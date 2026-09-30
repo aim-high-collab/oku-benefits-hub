@@ -2,7 +2,7 @@ import { openDb } from './db.js';
 import { createApp } from './app.js';
 import { loadConfig } from './config.js';
 import { hashPassword } from './http.js';
-import { seedBenefits, seedDemoPlaces } from './seed.js';
+import { seedBenefits, seedPlaces, purgeLegacyDemoPlaces } from './seed.js';
 
 const config = loadConfig();
 const db = openDb(config.dbPath);
@@ -23,7 +23,10 @@ async function ensureAdmin() {
 await ensureAdmin();
 const nBenefits = seedBenefits(db);
 if (nBenefits) console.log(`Seeded ${nBenefits} government benefit entries (unverified starting points).`);
-if (config.seedDemo && seedDemoPlaces(db)) console.log('Seeded fictional demo places (npm run purge:demo removes them).');
+const nPurged = purgeLegacyDemoPlaces(db);
+if (nPurged) console.log(`Removed ${nPurged} legacy placeholder places.`);
+const nPlaces = seedPlaces(db);
+if (nPlaces) console.log(`Added ${nPlaces} researched attractions (details not yet confirmed with the venues).`);
 
 createApp({ db, config }).listen(config.port, () => {
   console.log(`OKU Benefits Hub running at http://localhost:${config.port}`);

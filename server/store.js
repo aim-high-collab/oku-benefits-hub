@@ -10,7 +10,6 @@ export const parsePlace = (row) => row && {
   accessibility: JSON.parse(row.accessibility),
   submitter_is_owner: Boolean(row.submitter_is_owner),
   partner_verified: Boolean(row.partner_verified),
-  is_demo: Boolean(row.is_demo),
 };
 
 const placeholders = (n) => Array(n).fill('?').join(',');
@@ -66,12 +65,12 @@ export function insertOffers(db, placeId, offers) {
   for (const o of offers) ins.run(placeId, o.title, o.kind, o.value_text, o.conditions);
 }
 
-export function insertPlace(db, data, { userId, status, isOwner = false, isDemo = false, partnerVerified = false }) {
+export function insertPlace(db, data, { userId, status, isOwner = false, partnerVerified = false }) {
   return tx(db, () => {
     const res = db.prepare(`INSERT INTO places (${PLACE_COLS.join(',')}, accessibility, status, submitter_is_owner,
-        partner_verified, is_demo, submitted_by) VALUES (${placeholders(PLACE_COLS.length + 6)})`)
+        partner_verified, submitted_by) VALUES (${placeholders(PLACE_COLS.length + 5)})`)
       .run(...PLACE_COLS.map((c) => data[c]), JSON.stringify(data.accessibility), status,
-        isOwner ? 1 : 0, partnerVerified ? 1 : 0, isDemo ? 1 : 0, userId ?? null);
+        isOwner ? 1 : 0, partnerVerified ? 1 : 0, userId ?? null);
     const id = Number(res.lastInsertRowid);
     insertOffers(db, id, data.offers);
     return id;

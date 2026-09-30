@@ -26,7 +26,7 @@ Requires Node.js **22.13+** (uses the built-in `node:sqlite`; no native modules)
 
 ```bash
 npm install
-npm run dev        # http://localhost:3000, seeds fictional demo places
+npm run dev        # http://localhost:3000
 npm test           # API tests
 ```
 
@@ -36,16 +36,15 @@ variables are required). See `.env.example`.
 
 | Command | What it does |
 | --- | --- |
-| `npm start` | Production-style start; seeds benefit entries only |
-| `npm run dev` | Watch mode + fictional demo places (`--demo` flag, or `SEED_DEMO=1`) |
-| `npm run purge:demo` | Delete all demo places before going live |
+| `npm start` | Start the server (also seeds benefits and the attractions above on an empty database) |
+| `npm run dev` | Watch mode |
 
 Environment variables (set them in your shell; on Windows PowerShell use `$env:PORT=3000`, in `cmd` use `set PORT=3000`): `PORT`, `DB_PATH` (default `data/oku.db`), `NODE_ENV=production` (secure cookies),
 `TRUST_PROXY` (set to `1` behind a reverse proxy), `ADMIN_EMAIL`, `ADMIN_PASSWORD`.
 
 ## Important: data accuracy
 
-- The **demo places are fictional** and labelled "Demo listing". Never leave them in a live deployment.
+- The **seeded attractions** (Zoo Negara, KL Bird Park, Petrosains, Planetarium Negara, Muzium Negara) were compiled from web search results on 30 Sep 2026; the official sites could not be opened from the build environment. Their descriptions say so, some pin positions are approximate, and the KL Bird Park and Planetarium Negara concessions rest on secondary sources. Confirm each with the venue and correct it through the normal edit-request flow.
 - The seeded **government benefit entries are general starting points**, deliberately without rates or
   thresholds, and show "Not yet verified by a moderator" until someone checks them against the agency source
   and approves an edit. Verify each before launch.

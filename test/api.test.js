@@ -3,14 +3,14 @@ import assert from 'node:assert/strict';
 import { openDb } from '../server/db.js';
 import { createApp } from '../server/app.js';
 import { hashPassword } from '../server/http.js';
-import { seedBenefits, seedDemoPlaces } from '../server/seed.js';
+import { seedBenefits, seedPlaces } from '../server/seed.js';
 
 let server, base, db;
 
 before(async () => {
   db = openDb(':memory:');
   seedBenefits(db);
-  seedDemoPlaces(db);
+  seedPlaces(db);
   db.prepare("INSERT INTO users (name, email, password_hash, role) VALUES ('Mod', 'mod@x.my', ?, 'admin')")
     .run(await hashPassword('moderator-pass'));
   const app = createApp({ db, config: { secureCookies: false, rateLimitScale: 1000 } });
@@ -59,7 +59,8 @@ test('meta and public listings work without login', async () => {
   const c = client();
   assert.ok((await c.get('/api/meta')).body.categories.cafe);
   const places = (await c.get('/api/places')).body.places;
-  assert.ok(places.length >= 8 && places.every((p) => p.status === 'approved'));
+  assert.ok(places.length >= 5 && places.every((p) => p.status === 'approved'));
+  assert.ok(!places.some((p) => /demo/i.test(p.name)), 'no placeholder listings');
   assert.ok(places[0].offers);
   assert.ok((await c.get('/api/benefits')).body.benefits.length >= 8);
 });
@@ -67,11 +68,13 @@ test('meta and public listings work without login', async () => {
 test('filters: text, category, offer kind, accessibility features', async () => {
   const c = client();
   const ids = async (qs) => (await c.get(`/api/places?${qs}`)).body.places.map((p) => p.name);
-  assert.deepEqual(await ids('q=kopi'), ['Kopi Contoh (Demo)']);
-  assert.ok((await ids('category=cafe')).every((n) => n.startsWith('Kopi')));
-  assert.deepEqual(await ids('kind=free'), ['Muzium Ujian (Demo)']);
-  const both = await ids('features=lift,tactile_paving');
-  assert.deepEqual(both, ['Muzium Ujian (Demo)']);
+  assert.deepEqual(await ids('q=zoo'), ['Zoo Negara']);
+  assert.deepEqual(await ids('category=cafe'), []);
+  assert.equal((await ids('category=attraction')).length, 5);
+  const free = await ids('kind=free');
+  assert.ok(free.includes('Zoo Negara') && free.includes('Petrosains, The Discovery Centre') && !free.includes('Muzium Negara (National Museum)'));
+  assert.deepEqual(await ids('features=lift'), ['Muzium Negara (National Museum)']);
+  assert.deepEqual(await ids('features=lift,tactile_paving'), []);
   assert.deepEqual(await ids('q=_'), []); // LIKE wildcards are escaped, not treated as 'match anything'
 });
 
@@ -136,7 +139,7 @@ test('place validation reports field errors', async () => {
 test('edit request: only real changes, moderator approval applies them, rejection does not', async () => {
   const dan = await register('dan');
   const mod = await admin();
-  const target = (await client().get('/api/places?q=Kopi')).body.places[0];
+  const target = (await client().get('/api/places?q=Zoo')).body.places[0];
 
   assert.equal((await dan.post(`/api/places/${target.id}/edits`, { changes: { name: target.name }, reason: 'same' })).status, 422);
   assert.equal((await dan.post(`/api/places/${target.id}/edits`, { changes: { website: 'ftp://x' }, reason: '' })).status, 422);
@@ -167,7 +170,7 @@ test('edit request: only real changes, moderator approval applies them, rejectio
 
 test('edit request: resubmitting unchanged data (features in a different order) is not a change', async () => {
   const ivy = await register('ivy');
-  const p = (await client().get('/api/places?q=Pasar')).body.places[0];
+  const p = (await client().get('/api/places?q=Muzium')).body.places[0];
   const reordered = [...p.accessibility].reverse();
   const r = await ivy.post(`/api/places/${p.id}/edits`, { changes: { accessibility: reordered, offers: p.offers, lat: p.lat }, reason: '' });
   assert.equal(r.status, 422);
@@ -198,7 +201,7 @@ test('reviews: validation, upsert per user, stats, moderator removal', async () 
   const frank = await register('frank');
   const gina = await register('gina');
   const mod = await admin();
-  const p = (await client().get('/api/places?q=Pasar')).body.places[0];
+  const p = (await client().get('/api/places?q=Zoo')).body.places[0];
 
   assert.equal((await client().post(`/api/places/${p.id}/reviews`, { rating: 5 })).status, 401);
   assert.equal((await frank.post(`/api/places/${p.id}/reviews`, { rating: 9 })).status, 422);

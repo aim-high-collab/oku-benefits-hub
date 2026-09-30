@@ -38,7 +38,7 @@ export async function placeView(ctx, root, [id]) {
         h('h1', {}, p.name),
         h('div', { class: 'badges' }, badge(meta.categories[p.category]),
           p.partner_verified ? badge('✓ Verified partner', 'badge--ok') : null,
-          p.is_demo ? badge('Demo listing – fictional', 'badge--warn') : null),
+          ),
         summary),
       h('div', { class: 'actions' },
         h('a', { class: 'btn', href: directionsUrl(p), target: '_blank', rel: 'noopener noreferrer' }, 'Get directions'),
@@ -54,7 +54,7 @@ export async function placeView(ctx, root, [id]) {
               h('span', { class: 'muted' }, meta.offerKinds[o.kind]),
               o.conditions ? h('span', {}, ` — ${o.conditions}`) : null)))
             : h('p', { class: 'muted' }, 'No offers listed. Do they offer one? ', h('a', { href: `#/place/${p.id}/edit` }, 'Suggest an edit'), '.'),
-          h('p', { class: 'hint' }, 'Bring your OKU card. Offers can change, so it is worth asking before you order.')),
+          h('p', { class: 'hint' }, 'Bring your OKU card. Offers can change, so it is worth confirming before you go.')),
         h('section', { class: 'section', 'aria-labelledby': 'acc-h' }, h('h2', { id: 'acc-h' }, 'Accessibility'),
           p.accessibility.length
             ? h('ul', { class: 'chips' }, p.accessibility.map((f) => h('li', { class: 'chip chip--feature' }, meta.features[f])))

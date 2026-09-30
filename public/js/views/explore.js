@@ -135,7 +135,6 @@ export async function exploreView(ctx, root) {
       h('p', { class: 'meta' }, [meta.categories[p.category], p.city, p.distance != null ? fmtDistance(p.distance) : null].filter(Boolean).join(' · ')),
       h('div', { class: 'badges' },
         p.partner_verified ? badge('✓ Verified partner', 'badge--ok') : null,
-        p.is_demo ? badge('Demo listing', 'badge--warn') : null,
         p.review_count ? h('span', {}, stars(p.avg_rating), ` ${p.avg_rating} (${p.review_count})`) : badge('No reviews yet', 'badge--muted')),
       top.length ? h('ul', { class: 'chips', 'aria-label': 'OKU offers' }, top.map((o) => h('li', { class: 'chip' }, offerLine(o)))) : null,
       p.offers.length > 2 ? h('p', { class: 'meta' }, `+${p.offers.length - 2} more`) : null,

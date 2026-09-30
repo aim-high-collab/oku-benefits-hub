@@ -1,4 +1,3 @@
-import { fileURLToPath } from 'node:url';
 import { insertBenefit, insertPlace } from './store.js';
 
 // Starting points only: descriptions are deliberately general and rates/thresholds are left to the
@@ -87,22 +86,48 @@ const BENEFITS = [
   },
 ];
 
-const DEMO = [
-  { name: 'Kopi Contoh (Demo)', category: 'cafe', address: 'Jalan Contoh 1, Bukit Bintang', city: 'Kuala Lumpur', state: 'W.P. Kuala Lumpur', lat: 3.1466, lng: 101.7115, accessibility: ['step_free_entry', 'accessible_toilet', 'wide_aisles'], partner: true,
-    offers: [{ title: 'Discount on all drinks', kind: 'discount', value_text: '10% off', conditions: 'Show OKU card at the counter.' }] },
-  { name: 'Pasar Mini Sample (Demo)', category: 'grocery', address: 'Jalan Sample 5, Taman Tun', city: 'Petaling Jaya', state: 'Selangor', lat: 3.1073, lng: 101.6067, accessibility: ['oku_parking', 'ramp', 'trained_staff'], partner: false,
-    offers: [{ title: 'Priority checkout lane', kind: 'priority', value_text: '', conditions: 'Ask any cashier.' }] },
-  { name: 'Muzium Ujian (Demo)', category: 'attraction', address: 'Lebuh Ujian, George Town', city: 'George Town', state: 'Pulau Pinang', lat: 5.4141, lng: 100.3288, accessibility: ['step_free_entry', 'lift', 'accessible_toilet', 'tactile_paving'], partner: true,
-    offers: [{ title: 'Free admission for OKU', kind: 'free', value_text: 'Free', conditions: 'Caregiver enters at 50% off.' }] },
-  { name: 'Klinik Demo Sihat (Demo)', category: 'healthcare', address: 'Jalan Demo 2, Taman Molek', city: 'Johor Bahru', state: 'Johor', lat: 1.5535, lng: 103.7715, accessibility: ['step_free_entry', 'accessible_toilet', 'hearing_loop'], partner: false,
-    offers: [{ title: 'Consultation fee discount', kind: 'discount', value_text: '15% off', conditions: 'Weekdays only.' }] },
-  { name: 'Kedai Buku Rekaan (Demo)', category: 'retail', address: 'Jalan Rekaan 8, Kuching Waterfront', city: 'Kuching', state: 'Sarawak', lat: 1.5597, lng: 110.3446, accessibility: ['ramp', 'wide_aisles', 'braille_signage'], partner: true,
-    offers: [{ title: 'Discount on all books', kind: 'discount', value_text: '5% off', conditions: 'Not combinable with other promotions.' }, { title: 'Free bookmark', kind: 'freebie', value_text: '', conditions: '' }] },
-  { name: 'Restoran Model (Demo)', category: 'restaurant', address: 'Jalan Model 3, Gaya Street', city: 'Kota Kinabalu', state: 'Sabah', lat: 5.9804, lng: 116.0735, accessibility: ['step_free_entry', 'assistance_animals', 'quiet_space'], partner: false,
-    offers: [{ title: 'Free dessert with main course', kind: 'freebie', value_text: '', conditions: 'One per OKU cardholder.' }] },
-  { name: 'Taman Contoh Waterfront (Demo)', category: 'entertainment', address: 'Persiaran Contoh, Presint 2', city: 'Putrajaya', state: 'W.P. Putrajaya', lat: 2.9264, lng: 101.6964, accessibility: ['step_free_entry', 'accessible_toilet', 'oku_parking', 'tactile_paving'], partner: false, offers: [] },
-  { name: 'Hotel Sampel (Demo)', category: 'hotel', address: 'Jalan Sampel 10, Ipoh Garden', city: 'Ipoh', state: 'Perak', lat: 4.6, lng: 101.0901, accessibility: ['lift', 'accessible_toilet', 'wide_aisles', 'trained_staff'], partner: true,
-    offers: [{ title: 'Room upgrade subject to availability', kind: 'other', value_text: '', conditions: 'Mention OKU card at booking.' }] },
+const CHECKED = '30 Sep 2026';
+const NOTE = `Compiled from web sources on ${CHECKED} and not yet confirmed with the venue. Please confirm before you go, and use “Suggest an edit” to correct anything.`;
+const FREE_OKU = (conditions) => ({ title: 'Free admission for OKU cardholders', kind: 'free', value_text: 'Free', conditions });
+
+// Coordinates are approximate (placed from memory of the location, not geocoded): moderators should
+// nudge the pin via an edit request if it is off.
+const PLACES = [
+  {
+    name: 'Zoo Negara', category: 'attraction', website: 'https://www.zoonegara.my/', phone: '',
+    address: 'Jalan Taman Zoo, Ulu Klang', city: 'Ampang', state: 'Selangor', lat: 3.2101, lng: 101.7590,
+    description: `Malaysia’s national zoo. OKU cardholders are reported to enter free of charge. ${NOTE}`,
+    accessibility: [],
+    offers: [FREE_OKU('Show a valid OKU card at the ticket counter.')],
+  },
+  {
+    name: 'Kuala Lumpur Bird Park', category: 'attraction', website: 'https://www.klbirdpark.com/', phone: '',
+    address: '920 Jalan Cenderawasih, Taman Tasik Perdana', city: 'Kuala Lumpur', state: 'W.P. Kuala Lumpur', lat: 3.1430, lng: 101.6883,
+    description: `Walk-in aviary in the Lake Gardens. Free entry for OKU cardholders is listed by a secondary source and was not found on the park’s own pages. ${NOTE}`,
+    accessibility: [],
+    offers: [FREE_OKU('Reported by a third-party list; confirm with the park. Bring your OKU card.')],
+  },
+  {
+    name: 'Petrosains, The Discovery Centre', category: 'attraction', website: 'https://petrosains.com.my/', phone: '03-2331 8181',
+    address: 'Level 4, Suria KLCC, Kuala Lumpur City Centre', city: 'Kuala Lumpur', state: 'W.P. Kuala Lumpur', lat: 3.1584, lng: 101.7119,
+    description: `Interactive science centre. Its admission page states that OKU cardholders enter free. ${NOTE}`,
+    accessibility: [],
+    offers: [FREE_OKU('Present your registered OKU card at the counter.')],
+  },
+  {
+    name: 'Planetarium Negara', category: 'attraction', website: '', phone: '',
+    address: '53 Jalan Perdana, Tasik Perdana', city: 'Kuala Lumpur', state: 'W.P. Kuala Lumpur', lat: 3.1420, lng: 101.6871,
+    description: `National planetarium and space exhibition in the Lake Gardens. Admission is reported to be free, including for OKU visitors (only social-media sources found); separate fees may apply for some shows. Reported hours: 9am–4:30pm, closed Mondays and Tuesdays. ${NOTE}`,
+    accessibility: [],
+    offers: [FREE_OKU('Reported as free for everyone including OKU; check whether any shows are ticketed.')],
+  },
+  {
+    name: 'Muzium Negara (National Museum)', category: 'attraction', website: 'https://www.muziumnegara.gov.my/', phone: '',
+    address: 'Jalan Damansara', city: 'Kuala Lumpur', state: 'W.P. Kuala Lumpur', lat: 3.1379, lng: 101.6875,
+    description: `Malaysia’s national museum. We could not confirm an OKU admission concession (children and senior citizens are reported to enter free), so no offer is listed yet. Reported facilities: lifts, step-free routes, free wheelchair loan (subject to availability) and accessible toilets. ${NOTE}`,
+    accessibility: ['lift', 'step_free_entry', 'accessible_toilet'],
+    offers: [],
+  },
 ];
 
 export function seedBenefits(db) {
@@ -111,23 +136,16 @@ export function seedBenefits(db) {
   return BENEFITS.length;
 }
 
-export function seedDemoPlaces(db) {
-  if (db.prepare('SELECT COUNT(*) AS n FROM places WHERE is_demo = 1').get().n) return 0;
-  for (const { partner, ...p } of DEMO) {
-    insertPlace(db, { phone: '', website: '', description: 'Fictional demo listing used to preview the app. Not a real business.', ...p },
-      { userId: null, status: 'approved', isDemo: true, partnerVerified: partner, isOwner: partner });
+export function seedPlaces(db) {
+  const exists = db.prepare('SELECT 1 FROM places WHERE name = ?');
+  let added = 0;
+  for (const p of PLACES) {
+    if (exists.get(p.name)) continue;
+    insertPlace(db, p, { userId: null, status: 'approved' });
+    added++;
   }
-  return DEMO.length;
+  return added;
 }
 
-export const purgeDemoPlaces = (db) => db.prepare('DELETE FROM places WHERE is_demo = 1').run().changes;
-
-if (process.argv[1] === fileURLToPath(import.meta.url)) {
-  const { openDb } = await import('./db.js');
-  const { loadConfig } = await import('./config.js');
-  const db = openDb(loadConfig().dbPath);
-  const cmd = process.argv[2];
-  if (cmd === 'demo') console.log(`Seeded ${seedDemoPlaces(db)} demo places.`);
-  else if (cmd === 'purge-demo') console.log(`Removed ${purgeDemoPlaces(db)} demo places.`);
-  else { console.error('Usage: node server/seed.js demo|purge-demo'); process.exit(1); }
-}
+// Earlier versions shipped fictional placeholder listings; remove any left in an existing database.
+export const purgeLegacyDemoPlaces = (db) => db.prepare('DELETE FROM places WHERE is_demo = 1').run().changes;

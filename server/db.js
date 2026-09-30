@@ -34,7 +34,7 @@ CREATE TABLE IF NOT EXISTS places (
   status TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending','approved','rejected')),
   submitter_is_owner INTEGER NOT NULL DEFAULT 0,
   partner_verified INTEGER NOT NULL DEFAULT 0,
-  is_demo INTEGER NOT NULL DEFAULT 0,
+  is_demo INTEGER NOT NULL DEFAULT 0, -- legacy: placeholder rows from early versions, purged on start
   submitted_by INTEGER REFERENCES users(id) ON DELETE SET NULL,
   created_at TEXT NOT NULL DEFAULT (datetime('now')),
   updated_at TEXT NOT NULL DEFAULT (datetime('now'))
