@@ -54,6 +54,13 @@ variables are required). See `.env.example`.
   thresholds, and show "Not yet verified by a moderator" until someone checks them against the agency source
   and approves an edit. Verify each before launch.
 
+## Free preview to share (no server)
+
+`npm run build:static` writes a browser-only copy of the site to `docs/` (sample data baked in; anything visitors add
+or review stays in their own browser). It is committed, so you can host `docs/` for free:
+GitHub Pages (Settings > Pages > Deploy from a branch > pick the branch and `/docs`; the repo must be public on a free
+plan), or drag the `docs` folder onto Netlify Drop / Cloudflare Pages. Re-run the build after changing the app.
+
 ## Deploying from GitHub
 
 The app needs Node 22.13+, one running copy, and a **persistent disk** (the database and uploaded photos are files).

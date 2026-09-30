@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="en" data-demo>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>OKU Benefits Hub</title>
+  <meta name="description" content="Community directory and map of government benefits, merchant discounts, accessible places and volunteer opportunities for Malaysian OKU cardholders.">
+  <meta name="theme-color" content="#FFCF33">
+  <link rel="icon" type="image/svg+xml" href="img/logo-mark.svg">
+  <link rel="stylesheet" href="vendor/leaflet/leaflet.css">
+  <link rel="stylesheet" href="css/app.css">
+</head>
+<body>
+  <p class="demo-banner"><b>Preview.</b> Sample data only. Anything you add or review stays in your own browser.</p>
+  <a class="skip-link" href="#main">Skip to main content</a>
+  <header class="site-header">
+    <a class="brand" href="#/" aria-label="OKU Benefits Hub, home">
+      <img src="img/logo-mark.svg" alt="" width="44" height="44">
+      <span class="wordmark"><b>OKU</b> Benefits Hub</span>
+    </a>
+    <nav id="nav" aria-label="Main"></nav>
+    <div id="account" class="account"></div>
+  </header>
+  <main id="main" tabindex="-1"><p class="loading">Loading…</p></main>
+  <footer class="site-footer">
+    <div class="footer-inner">
+      <p class="footer-brand">OKU Benefits Hub</p>
+      <p>A community project, not affiliated with JKM or any government agency. Always confirm with the provider before you travel.</p>
+      <p>Map data © <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors.</p>
+    </div>
+  </footer>
+  <div id="live" class="sr-only" role="status" aria-live="polite"></div>
+  <div id="toasts" class="toasts"></div>
+  <script src="vendor/leaflet/leaflet.js"></script>
+  <script type="module" src="js/main.js"></script>
+</body>
+</html>

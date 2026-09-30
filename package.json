@@ -9,6 +9,7 @@
   },
   "scripts": {
     "start": "node server/index.js",
+    "build:static": "node --no-warnings scripts/build-static.js",
     "dev": "node --watch server/index.js",
     "test": "node --test --no-warnings test/*.test.js"
   },

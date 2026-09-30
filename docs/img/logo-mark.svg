@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="OKU Benefits Hub">
+  <rect x="2" y="2" width="60" height="60" rx="18" fill="#FFCF33" stroke="#17203D" stroke-width="4"/>
+  <circle cx="29" cy="14" r="5" fill="#17203D"/>
+  <g fill="none" stroke="#17203D" stroke-width="4.6" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M29 23v13h12l5 12"/>
+    <path d="M29 29.500h10"/>
+    <path d="M40.500 40.500A12.500 12.500 0 1 1 31.500 32"/>
+  </g>
+</svg>
