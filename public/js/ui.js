@@ -103,3 +103,26 @@ export function errorSummary(message, fields = {}) {
 // Shows "value · title", but not when the title already says the value ("10% off" / "10% off drinks").
 export const offerLine = (o) => (!o.value_text || o.title.toLowerCase().includes(o.value_text.toLowerCase())
   ? o.title : `${o.value_text} · ${o.title}`);
+
+// ---------- icons (stroke icons, 24x24 viewBox) ----------
+const NS = 'http://www.w3.org/2000/svg';
+const ICONS = {
+  search: ['<circle cx="11" cy="11" r="7"/>', '<path d="m20 20-3.5-3.5"/>'],
+  check: ['<path d="M20 6 9 17l-5-5"/>'],
+  pin: ['<path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/>', '<circle cx="12" cy="10" r="3"/>'],
+  phone: ['<path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2.1 4.2 2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1 1 .4 1.9.7 2.8a2 2 0 0 1-.5 2.1L8.1 9.9a16 16 0 0 0 6 6l1.3-1.3a2 2 0 0 1 2.1-.4c.9.3 1.8.6 2.8.7a2 2 0 0 1 1.7 2Z"/>'],
+  globe: ['<circle cx="12" cy="12" r="10"/>', '<path d="M2 12h20"/>', '<path d="M12 2a15 15 0 0 1 4 10 15 15 0 0 1-4 10 15 15 0 0 1-4-10 15 15 0 0 1 4-10Z"/>'],
+  directions: ['<path d="m3 11 19-9-9 19-2-8-8-2Z"/>'],
+  edit: ['<path d="M17 3a2.8 2.8 0 0 1 4 4L7.500 20.500 2 22l1.500-5.500Z"/>'],
+  star: ['<path d="m12 2 3.100 6.300 6.900 1-5 4.900 1.200 6.900L12 17.800 5.800 21.100 7 14.200 2 9.300l6.900-1Z" fill="currentColor"/>'],
+  locate: ['<circle cx="12" cy="12" r="3"/>', '<circle cx="12" cy="12" r="8"/>', '<path d="M12 2v3M12 19v3M2 12h3M19 12h3"/>'],
+  verified: ['<path d="M3.900 8.600a4 4 0 0 1 4.800-4.800 4 4 0 0 1 6.700 0 4 4 0 0 1 4.800 4.800 4 4 0 0 1 0 6.700 4 4 0 0 1-4.800 4.800 4 4 0 0 1-6.700 0 4 4 0 0 1-4.800-4.800 4 4 0 0 1 0-6.700Z"/>', '<path d="m9 12 2 2 4-4"/>'],
+  plus: ['<path d="M12 5v14M5 12h14"/>'],
+};
+
+export function icon(name, size = 18) {
+  const svg = document.createElementNS(NS, 'svg');
+  for (const [k, v] of Object.entries({ viewBox: '0 0 24 24', width: size, height: size, fill: 'none', stroke: 'currentColor', 'stroke-width': 2, 'stroke-linecap': 'round', 'stroke-linejoin': 'round', 'aria-hidden': 'true', class: 'icon' })) svg.setAttribute(k, v);
+  svg.innerHTML = ICONS[name].join(''); // constants above only, never user data
+  return svg;
+}

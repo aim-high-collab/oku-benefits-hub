@@ -1,7 +1,9 @@
 import { h, clear } from '../dom.js';
 import { api, qs } from '../api.js';
-import { field, checkboxGroup, distanceKm, fmtDistance, offerLine } from '../ui.js';
+import { field, checkboxGroup, distanceKm, fmtDistance, offerLine, icon, badge } from '../ui.js';
 import { createMap, destroyMap, pinIcon, locate } from '../map.js';
+
+const KIND_CHIPS = { free: 'Free', discount: 'Discount', priority: 'Priority', freebie: 'Freebie', other: 'Other' };
 
 export async function exploreView(ctx, root) {
   const { state } = ctx;
@@ -15,58 +17,72 @@ export async function exploreView(ctx, root) {
   let loadToken = 0;
 
   // ----- filters -----
-  const q = field({ label: 'Search', name: 'q', type: 'search', value: filters.q, attrs: { placeholder: 'Name, place, or offer (e.g. “10% off”)', autocomplete: 'off' } });
+  const q = field({ label: 'Search places', name: 'q', type: 'search', value: filters.q, attrs: { placeholder: 'Search by name, area or offer', autocomplete: 'off' } });
+  q.el.querySelector('label').classList.add('sr-only');
+  q.el.classList.add('search-field');
+  q.el.prepend(icon('search', 18));
+
+  const kindBtns = Object.entries({ '': 'All', ...KIND_CHIPS }).map(([value, text]) => {
+    const btn = h('button', { type: 'button', class: 'chip-btn', 'aria-pressed': String(filters.kind === value), onclick: () => {
+      filters.kind = value;
+      for (const [v, b] of kindBtns.map((x) => [x.value, x.btn])) b.setAttribute('aria-pressed', String(v === value));
+      refresh();
+    } }, text);
+    return { value, btn };
+  });
+  const kindRow = h('div', { class: 'chip-row', role: 'group', 'aria-label': 'Kind of offer' }, kindBtns.map((k) => k.btn));
+
   const category = field({ label: 'Type of place', name: 'category', tag: 'select', value: filters.category,
     options: [['', 'All types'], ...Object.entries(meta.categories)] });
-  const kind = field({ label: 'Kind of offer', name: 'kind', tag: 'select', value: filters.kind,
-    options: [['', 'Any (or none)'], ...Object.entries(meta.offerKinds)] });
   const sort = field({ label: 'Sort by', name: 'sort', tag: 'select', value: filters.sort,
     options: [['recommended', 'Recommended'], ['nearest', 'Nearest to me'], ['rating', 'Top rated']] });
   const feats = checkboxGroup({ legend: 'Accessibility needs', name: 'features', options: Object.entries(meta.features), selected: filters.features,
     hint: 'Only show places with all ticked features.' });
-  const locBtn = h('button', { type: 'button', class: 'btn btn--ghost btn--small', onclick: useLocation }, 'Use my location');
-  const locStatus = h('span', { class: 'muted', 'aria-live': 'polite' });
-  const details = h('details', { class: 'more', open: filters.features.length > 0 }, h('summary', {}, 'Accessibility filters'), feats.el);
+  const locBtn = h('button', { type: 'button', class: 'btn btn--ghost btn--icon', title: 'Sort by distance from me', 'aria-label': 'Use my location to sort by distance', onclick: useLocation }, icon('locate', 20));
+  const locStatus = h('p', { class: 'hint', 'aria-live': 'polite' });
+  const details = h('details', { class: 'more', open: filters.features.length > 0 }, h('summary', {}, 'Accessibility needs'), feats.el);
 
   const form = h('form', { role: 'search', 'aria-label': 'Filter places', onsubmit: (e) => { e.preventDefault(); refresh(); } },
-    q.el, h('div', { class: 'filter-row' }, category.el, kind.el), details, h('div', { class: 'filter-row' }, sort.el, h('div', { class: 'field', role: 'group', 'aria-labelledby': 'loc-lbl' },
-      h('span', { class: 'label-text', id: 'loc-lbl' }, 'Location'), locBtn, locStatus)));
+    h('div', { class: 'search-row' }, q.el, locBtn),
+    locStatus,
+    kindRow,
+    h('div', { class: 'filter-row' }, category.el, sort.el),
+    details);
 
   const count = h('p', { class: 'result-count', role: 'status' });
   const list = h('ul', { class: 'results', 'aria-label': 'Places' });
   const mapEl = h('div', { id: 'map', role: 'region', 'aria-label': 'Map of places. The results list is an equivalent alternative to the map.' });
 
   root.append(h('div', { class: 'explore' },
-    h('section', { class: 'explore-filters', 'aria-labelledby': 'explore-h' },
-      h('div', { class: 'title-row' },
-        h('h1', { id: 'explore-h' }, 'Where your OKU card works'),
-        h('a', { class: 'btn btn--small', href: '#/submit/place' }, 'Add a place')),
-      h('p', { class: 'muted' }, 'Free entry, discounts and accessible spaces. Anyone can add a place; a person checks it first.'),
-      form),
-    h('div', { class: 'explore-map' }, mapEl),
-    h('section', { class: 'explore-results', 'aria-label': 'Results' }, count, list)));
+    h('section', { class: 'panel', 'aria-labelledby': 'explore-h' },
+      h('div', { class: 'panel-head' },
+        h('h1', { id: 'explore-h' }, 'Places for OKU cardholders'),
+        form),
+      h('div', { class: 'panel-list' },
+        h('div', { class: 'count-row' }, count, h('a', { class: 'add-link', href: '#/submit/place' }, icon('plus', 15), 'Add a place')),
+        list)),
+    h('div', { class: 'explore-map' }, mapEl)));
 
   function readFilters() {
-    Object.assign(filters, { q: q.input.value.trim(), category: category.input.value, kind: kind.input.value, features: feats.values(), sort: sort.input.value });
+    Object.assign(filters, { q: q.input.value.trim(), category: category.input.value, features: feats.values(), sort: sort.input.value });
   }
 
   let timer;
-  const debounced = () => { clearTimeout(timer); timer = setTimeout(refresh, 300); };
-  q.input.addEventListener('input', debounced);
-  for (const el of [category.input, kind.input, sort.input]) el.addEventListener('change', refresh);
+  q.input.addEventListener('input', () => { clearTimeout(timer); timer = setTimeout(refresh, 300); });
+  for (const el of [category.input, sort.input]) el.addEventListener('change', refresh);
   feats.el.addEventListener('change', refresh);
 
   async function useLocation() {
     locBtn.disabled = true;
-    locStatus.textContent = ' Locating…';
+    locStatus.textContent = 'Locating…';
     try {
       state.loc = await locate();
-      locStatus.textContent = ' Location found.';
-      if (sort.input.value === 'recommended') sort.input.value = 'nearest';
+      locStatus.textContent = 'Sorted by distance from you.';
+      sort.input.value = 'nearest';
       showYou();
       refresh(true);
     } catch (err) {
-      locStatus.textContent = ` ${err.message}`;
+      locStatus.textContent = err.message;
     } finally {
       locBtn.disabled = false;
     }
@@ -105,12 +121,12 @@ export async function exploreView(ctx, root) {
   }
 
   function render(fit) {
-    count.textContent = places.length === 1 ? '1 place found' : `${places.length} places found`;
+    count.textContent = places.length === 1 ? '1 place' : `${places.length} places`;
     clear(list);
     layer.clearLayers();
     markers.clear();
     cards.clear();
-    if (!places.length) list.append(h('li', { class: 'empty' }, 'No places match those filters yet. ', h('a', { href: '#/submit/place' }, 'Know one? Add it.')));
+    if (!places.length) list.append(h('li', { class: 'empty' }, h('strong', {}, 'No places match yet.'), h('p', {}, 'Try removing a filter, or '), h('a', { href: '#/submit/place' }, 'add one you know')));
     for (const p of places) {
       const li = placeCard(p);
       cards.set(p.id, li);
@@ -129,18 +145,18 @@ export async function exploreView(ctx, root) {
 
   function placeCard(p) {
     const top = p.offers.slice(0, 2);
-    const facts = [
-      meta.categories[p.category], p.city, p.distance != null ? fmtDistance(p.distance) : null,
-      p.review_count ? `★ ${p.avg_rating} (${p.review_count})` : null,
-    ].filter(Boolean).join(' · ');
-    return h('li', { class: 'place-card', 'data-id': p.id },
+    return h('li', { class: 'result', 'data-id': p.id },
+      h('div', { class: 'result-top' },
+        h('span', { class: 'result-cat' }, meta.categories[p.category]),
+        p.distance != null ? h('span', { class: 'result-dist' }, fmtDistance(p.distance)) : null),
       h('h3', {}, h('a', { href: `#/place/${p.id}` }, p.name)),
-      h('p', { class: 'meta' }, facts),
-      top.length ? h('ul', { class: 'chips', 'aria-label': 'OKU offers' }, top.map((o) => h('li', { class: 'chip' }, offerLine(o)))) : null,
-      p.offers.length > 2 ? h('p', { class: 'meta' }, `+${p.offers.length - 2} more`) : null,
-      p.partner_verified ? h('p', { class: 'meta badge--ok' }, 'Verified partner') : null,
-      h('div', { class: 'row-actions' },
-        h('button', { type: 'button', class: 'linkish', 'aria-label': `Show ${p.name} on the map`, onclick: () => focusOnMap(p) }, 'Show on map')));
+      h('p', { class: 'result-addr' }, [p.address, p.city].filter(Boolean).join(', ')),
+      top.map((o) => h('p', { class: `deal deal--${o.kind}` }, icon('check', 16), h('span', {}, offerLine(o)))),
+      p.offers.length > 2 ? h('p', { class: 'result-more' }, `+${p.offers.length - 2} more offer${p.offers.length - 2 === 1 ? '' : 's'}`) : null,
+      h('div', { class: 'result-foot' },
+        p.review_count ? h('span', { class: 'rating' }, icon('star', 14), h('strong', {}, p.avg_rating), ` (${p.review_count})`) : h('span', { class: 'muted' }, 'No reviews yet'),
+        p.partner_verified ? badge('Verified partner', 'badge--ok') : null,
+        h('button', { type: 'button', class: 'linkbtn result-map', 'aria-label': `Show ${p.name} on the map`, onclick: () => focusOnMap(p) }, icon('pin', 15), 'Map')));
   }
 
   function highlight(id, scroll) {
@@ -156,8 +172,7 @@ export async function exploreView(ctx, root) {
   }
 
   return {
-    title: 'Map & places',
-    keepScroll: false,
+    title: 'Places',
     mounted() {
       map = createMap(mapEl);
       layer = L.layerGroup().addTo(map);

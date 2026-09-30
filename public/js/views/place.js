@@ -1,9 +1,9 @@
 import { h, clear } from '../dom.js';
 import { api } from '../api.js';
-import { badge, stars, fmtDate, field, radioGroup, errorSummary, offerLine } from '../ui.js';
+import { badge, stars, fmtDate, field, radioGroup, errorSummary, offerLine, icon } from '../ui.js';
 import { createMap, destroyMap, pinIcon, directionsUrl, osmUrl } from '../map.js';
 
-const HONOURED = { yes: 'Discount was honoured', no: 'Discount was not honoured', not_tried: 'Did not try the discount' };
+const HONOURED = { yes: 'Discount honoured', no: 'Discount not honoured', not_tried: 'Did not try the discount' };
 
 export async function placeView(ctx, root, [id]) {
   const { state } = ctx;
@@ -13,73 +13,79 @@ export async function placeView(ctx, root, [id]) {
   let map;
 
   const honouredTotal = p.honoured_yes + p.honoured_no;
-  const summary = p.review_count
-    ? h('p', {}, stars(p.avg_rating), ` ${p.avg_rating} from ${p.review_count} review${p.review_count === 1 ? '' : 's'}`,
-      honouredTotal ? ` · Discount honoured for ${p.honoured_yes} of ${honouredTotal} who tried it` : '')
-    : h('p', { class: 'muted' }, 'No reviews yet. Be the first to share your experience.');
+  const refresh = () => ctx.go(`#/place/${p.id}?r=${Date.now()}`);
 
   const contact = [
-    ['Address', [p.address, p.city, p.state].filter(Boolean).join(', ')],
-    p.phone ? ['Phone', h('a', { href: `tel:${p.phone.replace(/[^\d+]/g, '')}` }, p.phone)] : null,
-    p.website ? ['Website', h('a', { href: p.website, rel: 'noopener noreferrer nofollow', target: '_blank' }, p.website.replace(/^https?:\/\//, '').replace(/\/$/, ''))] : null,
+    ['pin', [p.address, p.city, p.state].filter(Boolean).join(', ')],
+    p.phone ? ['phone', h('a', { href: `tel:${p.phone.replace(/[^\d+]/g, '')}` }, p.phone)] : null,
+    p.website ? ['globe', h('a', { href: p.website, rel: 'noopener noreferrer nofollow', target: '_blank' }, p.website.replace(/^https?:\/\//, '').replace(/\/$/, ''))] : null,
   ].filter(Boolean);
 
-  const verifyBtn = isAdmin ? h('button', { type: 'button', class: 'btn btn--ghost btn--small', onclick: async () => {
+  const verifyBtn = isAdmin ? h('button', { type: 'button', class: 'btn btn--ghost', onclick: async () => {
     await api('PATCH', `/admin/places/${p.id}`, { partner_verified: !p.partner_verified });
     ctx.toast(p.partner_verified ? 'Partner badge removed.' : 'Marked as verified partner.');
-    ctx.go(`#/place/${p.id}?r=${Date.now()}`);
+    refresh();
   } }, p.partner_verified ? 'Remove partner badge' : 'Mark as verified partner') : null;
 
   root.append(h('div', { class: 'page page--wide' },
-    h('a', { class: 'back', href: '#/' }, '← Back to the map'),
+    h('nav', { class: 'crumbs', 'aria-label': 'Breadcrumb' }, h('a', { href: '#/' }, 'Places'), h('span', { 'aria-hidden': 'true' }, '/'), h('span', {}, p.city || p.state || meta.categories[p.category])),
     p.status !== 'approved' ? h('p', { class: 'notice' }, 'This listing is awaiting moderator approval. Only you and moderators can see it.') : null,
-    h('div', { class: 'place-head' },
+    h('header', { class: 'place-head' },
       h('div', {},
         h('h1', {}, p.name),
-        h('div', { class: 'badges' }, badge(meta.categories[p.category]),
-          p.partner_verified ? badge('Verified partner', 'badge--ok') : null),
-        summary),
-      h('div', { class: 'actions' },
-        h('a', { class: 'btn', href: directionsUrl(p), target: '_blank', rel: 'noopener noreferrer' }, 'Get directions'),
-        p.status === 'approved' ? h('a', { class: 'btn btn--ghost', href: `#/place/${p.id}/edit` }, 'Suggest an edit') : null,
+        h('div', { class: 'pills' },
+          badge(meta.categories[p.category]),
+          p.partner_verified ? h('span', { class: 'badge badge--ok' }, icon('verified', 14), 'Verified partner') : null,
+          p.review_count ? h('span', { class: 'rating' }, icon('star', 15), h('strong', {}, p.avg_rating), ` · ${p.review_count} review${p.review_count === 1 ? '' : 's'}`) : h('span', { class: 'muted' }, 'No reviews yet'))),
+      h('div', { class: 'place-actions' },
+        h('a', { class: 'btn', href: directionsUrl(p), target: '_blank', rel: 'noopener noreferrer' }, icon('directions', 17), 'Directions'),
+        p.status === 'approved' ? h('a', { class: 'btn btn--ghost', href: `#/place/${p.id}/edit` }, icon('edit', 16), 'Suggest an edit') : null,
         verifyBtn)),
-    p.description ? h('p', {}, p.description) : null,
-    h('div', { class: 'two-col' },
-      h('div', {},
-        h('section', { class: 'section', 'aria-labelledby': 'offers-h' }, h('h2', { id: 'offers-h' }, 'OKU offers'),
+    h('div', { class: 'place-grid' },
+      h('div', { class: 'place-main' },
+        p.description ? h('p', { class: 'place-about' }, p.description) : null,
+        h('section', { class: 'block', 'aria-labelledby': 'offers-h' },
+          h('h2', { id: 'offers-h' }, 'OKU offers'),
           p.offers.length
-            ? h('ul', { class: 'offer-list' }, p.offers.map((o) => h('li', { class: 'offer' },
+            ? h('ul', { class: 'offer-list' }, p.offers.map((o) => h('li', { class: 'offer-card' },
+              h('div', { class: 'offer-kind' }, icon('check', 16), meta.offerKinds[o.kind]),
               h('strong', {}, offerLine(o)),
-              h('span', { class: 'meta' }, meta.offerKinds[o.kind]),
-              o.conditions ? h('span', {}, ` — ${o.conditions}`) : null)))
-            : h('p', { class: 'muted' }, 'No offers listed. Do they offer one? ', h('a', { href: `#/place/${p.id}/edit` }, 'Suggest an edit'), '.'),
+              o.conditions ? h('p', {}, o.conditions) : null)))
+            : h('p', { class: 'muted' }, 'No offers listed yet. Does this place offer one? ', h('a', { href: `#/place/${p.id}/edit` }, 'Suggest an edit'), '.'),
           h('p', { class: 'hint' }, 'Bring your OKU card. Offers can change, so it is worth confirming before you go.')),
-        h('section', { class: 'section', 'aria-labelledby': 'acc-h' }, h('h2', { id: 'acc-h' }, 'Accessibility'),
+        h('section', { class: 'block', 'aria-labelledby': 'acc-h' },
+          h('h2', { id: 'acc-h' }, 'Accessibility'),
           p.accessibility.length
-            ? h('ul', { class: 'chips' }, p.accessibility.map((f) => h('li', { class: 'chip chip--feature' }, meta.features[f])))
-            : h('p', { class: 'muted' }, 'No accessibility features recorded yet.'))),
-      h('div', {},
-        h('section', { class: 'section', 'aria-labelledby': 'loc-h' }, h('h2', { id: 'loc-h' }, 'Location & contact'),
-          h('dl', { class: 'dl' }, contact.map(([k, v]) => [h('dt', {}, k), h('dd', {}, v)])),
-          h('div', { id: 'mini-map', role: 'region', 'aria-label': `Map showing ${p.name}`, style: null }),
-          h('p', { class: 'hint' }, h('a', { href: osmUrl(p), target: '_blank', rel: 'noopener noreferrer' }, 'Open in OpenStreetMap'))))),
-    reviewsSection()));
+            ? h('ul', { class: 'feature-grid' }, p.accessibility.map((f) => h('li', {}, icon('check', 16), meta.features[f])))
+            : h('p', { class: 'muted' }, 'No accessibility features recorded yet.')),
+        reviewsSection()),
+      h('aside', { class: 'place-side', 'aria-label': 'Location and contact' },
+        h('div', { id: 'mini-map', role: 'region', 'aria-label': `Map showing ${p.name}` }),
+        h('ul', { class: 'contact-list' }, contact.map(([ic, v]) => h('li', {}, icon(ic, 18), h('span', {}, v)))),
+        h('p', { class: 'side-link' }, h('a', { href: osmUrl(p), target: '_blank', rel: 'noopener noreferrer' }, 'Open in OpenStreetMap'))))));
 
   function reviewsSection() {
-    const wrap = h('section', { class: 'section', 'aria-labelledby': 'rev-h' }, h('h2', { id: 'rev-h' }, 'Reviews'));
+    const wrap = h('section', { class: 'block', 'aria-labelledby': 'rev-h' }, h('h2', { id: 'rev-h' }, 'Reviews'));
     if (p.status !== 'approved') return wrap;
+    if (p.review_count) {
+      wrap.append(h('div', { class: 'review-summary' },
+        h('div', { class: 'big-rating' }, p.avg_rating),
+        h('div', {}, stars(p.avg_rating), h('p', { class: 'muted' }, `${p.review_count} review${p.review_count === 1 ? '' : 's'}`,
+          honouredTotal ? ` · Discount honoured for ${p.honoured_yes} of ${honouredTotal} who tried it` : ''))));
+    }
     wrap.append(reviewForm());
-    if (!reviews.length) wrap.append(h('p', { class: 'muted' }, 'No reviews yet.'));
+    if (!reviews.length) wrap.append(h('p', { class: 'muted' }, 'No reviews yet. Be the first to share how it went.'));
     for (const r of reviews) {
       wrap.append(h('article', { class: 'review' },
-        h('header', {}, h('strong', {}, r.author), stars(r.rating), h('span', { class: 'muted' }, fmtDate(r.created_at)),
+        h('header', {}, h('strong', {}, r.author), stars(r.rating), h('span', { class: 'muted' }, fmtDate(r.created_at))),
+        h('div', { class: 'pills' },
           badge(HONOURED[r.discount_honoured], r.discount_honoured === 'yes' ? 'badge--ok' : r.discount_honoured === 'no' ? 'badge--danger' : 'badge--muted'),
-          r.access_rating ? h('span', {}, 'Accessibility: ', stars(r.access_rating, 'Accessibility rated')) : null),
+          r.access_rating ? h('span', { class: 'muted' }, 'Accessibility ', stars(r.access_rating, 'Accessibility rated')) : null),
         r.body ? h('p', {}, r.body) : null,
         isAdmin ? h('button', { type: 'button', class: 'btn btn--danger btn--small', onclick: async () => {
           if (!confirm('Remove this review?')) return;
           await api('DELETE', `/admin/reviews/${r.id}`);
-          ctx.go(`#/place/${p.id}?r=${Date.now()}`);
+          refresh();
         } }, 'Remove review') : null));
     }
     return wrap;
@@ -109,15 +115,15 @@ export async function placeView(ctx, root, [id]) {
           discount_honoured: honoured.value(),
           body: body.input.value,
         });
-        ctx.toast('Thank you – your review is posted.');
-        ctx.go(`#/place/${p.id}?r=${Date.now()}`);
+        ctx.toast('Thank you, your review is posted.');
+        refresh();
       } catch (err) {
         const s = errorSummary(err.message, err.fields);
         errs.append(s);
         s.focus();
         submit.disabled = false;
       }
-    } }, h('h3', {}, mine ? 'Update your review' : 'Write a review'), errs, rating.el, access.el, honoured.el, body.el, submit);
+    } }, h('h3', {}, mine ? 'Update your review' : 'Write a review'), errs, rating.el, access.el, honoured.el, body.el, h('div', { class: 'actions' }, submit));
   }
 
   return {

@@ -38,7 +38,6 @@ export function createApp({ db, config }) {
 
   app.use('/vendor/leaflet', express.static(leafletDist, { maxAge: '7d' }));
   app.use('/vendor/inter', express.static(fontDir('@fontsource-variable/inter'), { maxAge: '30d', immutable: true }));
-  app.use('/vendor/mono', express.static(fontDir('@fontsource-variable/jetbrains-mono'), { maxAge: '30d', immutable: true }));
   app.use(express.static(join(root, 'public')));
   // SPA uses hash routing, so unknown non-API paths are simply 404.
   app.use(errorHandler);

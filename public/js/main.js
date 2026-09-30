@@ -1,6 +1,6 @@
 import { h, clear } from './dom.js';
 import { api } from './api.js';
-import { announce, toast } from './ui.js';
+import { announce, toast, icon } from './ui.js';
 import { exploreView } from './views/explore.js';
 import { placeView } from './views/place.js';
 import { benefitsView } from './views/benefits.js';
@@ -49,17 +49,23 @@ const NAV = [
 
 function renderNav() {
   const path = currentPath();
+  const account = document.getElementById('account');
   clear(nav);
+  clear(account);
   for (const [href, label, re] of NAV) {
     nav.append(h('a', { href, 'aria-current': re.test(path) ? 'page' : null }, label));
   }
   if (state.user) {
     if (state.user.role === 'admin') nav.append(h('a', { href: '#/admin', 'aria-current': path === '/admin' ? 'page' : null }, 'Moderation'));
-    nav.append(h('a', { href: '#/account', 'aria-current': path === '/account' ? 'page' : null }, state.user.name));
-    nav.append(h('button', { type: 'button', onclick: logout }, 'Log out'));
+    account.append(
+      h('a', { class: 'btn btn--small', href: '#/submit/place' }, icon('plus', 16), 'Add a place'),
+      h('a', { class: 'me', href: '#/account', 'aria-current': path === '/account' ? 'page' : null, title: 'My contributions' },
+        h('span', { class: 'avatar', 'aria-hidden': 'true' }, state.user.name.trim().charAt(0).toUpperCase()), h('span', { class: 'me-name' }, state.user.name)),
+      h('button', { type: 'button', class: 'linkbtn', onclick: logout }, 'Log out'));
   } else {
-    nav.append(h('a', { href: '#/login', 'aria-current': path === '/login' ? 'page' : null }, 'Log in'));
-    nav.append(h('a', { class: 'nav-cta', href: '#/register' }, 'Join'));
+    account.append(
+      h('a', { class: 'linkbtn', href: '#/login', 'aria-current': path === '/login' ? 'page' : null }, 'Log in'),
+      h('a', { class: 'btn btn--small', href: '#/register' }, 'Sign up'));
   }
 }
 

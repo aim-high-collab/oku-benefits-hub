@@ -9,8 +9,8 @@ export async function benefitsView(ctx, root) {
   const count = h('p', { class: 'result-count', role: 'status' });
   const list = h('ul', { class: 'benefit-list', 'aria-label': 'Government benefits' });
 
-  root.append(h('div', { class: 'page' },
-    h('div', { class: 'title-row' }, h('h1', {}, 'Government benefits for OKU'), h('a', { class: 'btn btn--small', href: '#/submit/benefit' }, 'Add a benefit')),
+  root.append(h('div', { class: 'page page--mid' },
+    h('div', { class: 'title-row' }, h('h1', {}, 'Government benefits'), h('a', { class: 'btn btn--small btn--ghost', href: '#/submit/benefit' }, 'Add a benefit')),
     h('p', { class: 'lede' }, 'What the government offers, gathered in one place. Rules and amounts change, so check with the agency before you apply. If something is out of date, tell us with “Suggest an edit”.'),
     h('form', { role: 'search', class: 'filters-inline', onsubmit: (e) => { e.preventDefault(); load(); } }, q.el, category.el),
     count, list));
@@ -25,14 +25,15 @@ export async function benefitsView(ctx, root) {
     clear(list);
     if (!benefits.length) list.append(h('li', { class: 'empty' }, 'Nothing matches. ', h('a', { href: '#/submit/benefit' }, 'Add a benefit you know of.')));
     for (const b of benefits) {
-      list.append(h('li', { class: 'benefit' },
-        h('h2', {}, b.title),
-        h('p', { class: 'agency' }, b.agency),
-        h('div', { class: 'badges' }, badge(meta.benefitCategories[b.category]),
-          b.last_verified ? badge(`Checked ${fmtDate(b.last_verified)}`, 'badge--ok') : badge('Not yet verified', 'badge--warn')),
+      list.append(h('li', { class: 'card benefit' },
+        h('div', { class: 'benefit-head' },
+          h('div', {}, h('h2', {}, b.title), h('p', { class: 'agency' }, b.agency)),
+          h('div', { class: 'pills' }, badge(meta.benefitCategories[b.category]),
+            b.last_verified ? badge(`Checked ${fmtDate(b.last_verified)}`, 'badge--ok') : badge('Not yet verified', 'badge--warn'))),
         h('p', {}, b.summary),
-        b.eligibility ? h('p', {}, h('strong', {}, 'Who can apply: '), b.eligibility) : null,
-        b.how_to_apply ? h('p', {}, h('strong', {}, 'How to apply: '), b.how_to_apply) : null,
+        b.eligibility || b.how_to_apply ? h('dl', { class: 'facts' },
+          b.eligibility ? [h('dt', {}, 'Who can apply'), h('dd', {}, b.eligibility)] : null,
+          b.how_to_apply ? [h('dt', {}, 'How to apply'), h('dd', {}, b.how_to_apply)] : null) : null,
         h('div', { class: 'actions' },
           b.url ? h('a', { class: 'btn btn--small', href: b.url, target: '_blank', rel: 'noopener noreferrer' }, 'Official website') : null,
           h('a', { class: 'btn btn--ghost btn--small', href: `#/benefits/${b.id}/edit`, 'aria-label': `Suggest an edit to ${b.title}` }, 'Suggest an edit'))));
