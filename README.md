@@ -37,10 +37,10 @@ variables are required). See `.env.example`.
 | Command | What it does |
 | --- | --- |
 | `npm start` | Production-style start; seeds benefit entries only |
-| `npm run dev` | Watch mode + fictional demo places (`SEED_DEMO=1`) |
+| `npm run dev` | Watch mode + fictional demo places (`--demo` flag, or `SEED_DEMO=1`) |
 | `npm run purge:demo` | Delete all demo places before going live |
 
-Environment: `PORT`, `DB_PATH` (default `data/oku.db`), `NODE_ENV=production` (secure cookies),
+Environment variables (set them in your shell; on Windows PowerShell use `$env:PORT=3000`, in `cmd` use `set PORT=3000`): `PORT`, `DB_PATH` (default `data/oku.db`), `NODE_ENV=production` (secure cookies),
 `TRUST_PROXY` (set to `1` behind a reverse proxy), `ADMIN_EMAIL`, `ADMIN_PASSWORD`.
 
 ## Important: data accuracy

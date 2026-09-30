@@ -9,7 +9,7 @@
   },
   "scripts": {
     "start": "node server/index.js",
-    "dev": "SEED_DEMO=1 node --watch server/index.js",
+    "dev": "node --watch server/index.js --demo",
     "seed:demo": "node server/seed.js demo",
     "purge:demo": "node server/seed.js purge-demo",
     "test": "node --test --no-warnings test/*.test.js"

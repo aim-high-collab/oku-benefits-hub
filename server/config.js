@@ -1,6 +1,6 @@
 import { randomBytes } from 'node:crypto';
 
-export function loadConfig(env = process.env) {
+export function loadConfig(env = process.env, argv = process.argv) {
   const production = env.NODE_ENV === 'production';
   return {
     port: Number(env.PORT) || 3000,
@@ -8,7 +8,7 @@ export function loadConfig(env = process.env) {
     production,
     secureCookies: production && env.INSECURE_COOKIES !== '1',
     trustProxy: env.TRUST_PROXY || false,
-    seedDemo: env.SEED_DEMO === '1',
+    seedDemo: env.SEED_DEMO === '1' || argv.includes('--demo'),
     adminEmail: env.ADMIN_EMAIL || '',
     adminPassword: env.ADMIN_PASSWORD || '',
     generatePassword: () => randomBytes(9).toString('base64url'),
