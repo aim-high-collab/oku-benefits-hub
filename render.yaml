@@ -1,0 +1,27 @@
+# Render Blueprint: New > Blueprint > pick this repo. Persistent disks need a paid plan (Starter).
+services:
+  - type: web
+    name: oku-benefits-hub
+    runtime: node
+    plan: starter
+    buildCommand: npm ci
+    startCommand: npm start
+    healthCheckPath: /api/meta
+    autoDeploy: true
+    disk:
+      name: data
+      mountPath: /var/data
+      sizeGB: 1
+    envVars:
+      - key: NODE_VERSION
+        value: 22
+      - key: NODE_ENV
+        value: production
+      - key: TRUST_PROXY
+        value: 1
+      - key: DB_PATH
+        value: /var/data/oku.db
+      - key: ADMIN_EMAIL
+        sync: false
+      - key: ADMIN_PASSWORD
+        sync: false

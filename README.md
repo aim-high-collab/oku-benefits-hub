@@ -54,6 +54,14 @@ variables are required). See `.env.example`.
   thresholds, and show "Not yet verified by a moderator" until someone checks them against the agency source
   and approves an edit. Verify each before launch.
 
+## Deploying from GitHub
+
+The app needs Node 22.13+, one running copy, and a **persistent disk** (the database and uploaded photos are files).
+`render.yaml` describes this for [Render](https://render.com): New > Blueprint > choose this repo, then enter
+`ADMIN_EMAIL` and `ADMIN_PASSWORD` when asked. It deploys the repo's default branch and redeploys on every push.
+Railway and Fly.io work too: use `npm start`, attach a volume, and set the environment variables listed below.
+Back up the database file and the uploads folder regularly.
+
 ## Adding real photos to the seeded places
 
 No photos are bundled: the build environment could not download any, and Google Maps photos cannot be copied.
