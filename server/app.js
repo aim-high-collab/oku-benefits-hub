@@ -13,6 +13,7 @@ import { accountRoutes } from './routes/account.js';
 import { adminRoutes } from './routes/admin.js';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
+const fontDir = (pkg) => join(dirname(createRequire(import.meta.url).resolve(`${pkg}/package.json`)), 'files');
 const leafletDist = join(dirname(createRequire(import.meta.url).resolve('leaflet/package.json')), 'dist');
 
 export function createApp({ db, config }) {
@@ -36,6 +37,8 @@ export function createApp({ db, config }) {
   app.use('/api', (_req, _res, next) => next(new HttpError(404, 'Not found.')));
 
   app.use('/vendor/leaflet', express.static(leafletDist, { maxAge: '7d' }));
+  app.use('/vendor/inter', express.static(fontDir('@fontsource-variable/inter'), { maxAge: '30d', immutable: true }));
+  app.use('/vendor/mono', express.static(fontDir('@fontsource-variable/jetbrains-mono'), { maxAge: '30d', immutable: true }));
   app.use(express.static(join(root, 'public')));
   // SPA uses hash routing, so unknown non-API paths are simply 404.
   app.use(errorHandler);

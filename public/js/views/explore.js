@@ -1,6 +1,6 @@
 import { h, clear } from '../dom.js';
 import { api, qs } from '../api.js';
-import { field, checkboxGroup, badge, stars, distanceKm, fmtDistance, offerLine } from '../ui.js';
+import { field, checkboxGroup, distanceKm, fmtDistance, offerLine } from '../ui.js';
 import { createMap, destroyMap, pinIcon, locate } from '../map.js';
 
 export async function exploreView(ctx, root) {
@@ -38,12 +38,11 @@ export async function exploreView(ctx, root) {
 
   root.append(h('div', { class: 'explore' },
     h('section', { class: 'explore-filters', 'aria-labelledby': 'explore-h' },
-      h('h1', { id: 'explore-h' }, 'OKU-friendly places'),
-      h('p', { class: 'muted' }, 'Businesses and attractions that offer OKU discounts or perks, and spaces that are accessible. Community-submitted and moderated.'),
-      form,
-      h('div', { class: 'actions' },
-        h('a', { class: 'btn btn--small', href: '#/submit/place' }, 'Add a place or offer'),
-        h('a', { class: 'btn btn--ghost btn--small', href: '#/benefits' }, 'Government benefits'))),
+      h('div', { class: 'title-row' },
+        h('h1', { id: 'explore-h' }, 'Where your OKU card works'),
+        h('a', { class: 'btn btn--small', href: '#/submit/place' }, 'Add a place')),
+      h('p', { class: 'muted' }, 'Free entry, discounts and accessible spaces. Anyone can add a place; a person checks it first.'),
+      form),
     h('div', { class: 'explore-map' }, mapEl),
     h('section', { class: 'explore-results', 'aria-label': 'Results' }, count, list)));
 
@@ -76,7 +75,7 @@ export async function exploreView(ctx, root) {
   function showYou() {
     if (!state.loc || !map) return;
     youMarker?.remove();
-    youMarker = L.circleMarker([state.loc.lat, state.loc.lng], { radius: 8, color: '#fff', weight: 3, fillColor: '#b45309', fillOpacity: 1 })
+    youMarker = L.circleMarker([state.loc.lat, state.loc.lng], { radius: 8, color: '#fff', weight: 3, fillColor: '#2563eb', fillOpacity: 1 })
       .bindTooltip('You are here').addTo(map);
   }
 
@@ -111,7 +110,7 @@ export async function exploreView(ctx, root) {
     layer.clearLayers();
     markers.clear();
     cards.clear();
-    if (!places.length) list.append(h('li', { class: 'empty card' }, 'No places match those filters yet. ', h('a', { href: '#/submit/place' }, 'Know one? Add it.')));
+    if (!places.length) list.append(h('li', { class: 'empty' }, 'No places match those filters yet. ', h('a', { href: '#/submit/place' }, 'Know one? Add it.')));
     for (const p of places) {
       const li = placeCard(p);
       cards.set(p.id, li);
@@ -130,16 +129,18 @@ export async function exploreView(ctx, root) {
 
   function placeCard(p) {
     const top = p.offers.slice(0, 2);
-    return h('li', { class: 'card place-card', 'data-id': p.id },
+    const facts = [
+      meta.categories[p.category], p.city, p.distance != null ? fmtDistance(p.distance) : null,
+      p.review_count ? `★ ${p.avg_rating} (${p.review_count})` : null,
+    ].filter(Boolean).join(' · ');
+    return h('li', { class: 'place-card', 'data-id': p.id },
       h('h3', {}, h('a', { href: `#/place/${p.id}` }, p.name)),
-      h('p', { class: 'meta' }, [meta.categories[p.category], p.city, p.distance != null ? fmtDistance(p.distance) : null].filter(Boolean).join(' · ')),
-      h('div', { class: 'badges' },
-        p.partner_verified ? badge('✓ Verified partner', 'badge--ok') : null,
-        p.review_count ? h('span', {}, stars(p.avg_rating), ` ${p.avg_rating} (${p.review_count})`) : badge('No reviews yet', 'badge--muted')),
+      h('p', { class: 'meta' }, facts),
       top.length ? h('ul', { class: 'chips', 'aria-label': 'OKU offers' }, top.map((o) => h('li', { class: 'chip' }, offerLine(o)))) : null,
       p.offers.length > 2 ? h('p', { class: 'meta' }, `+${p.offers.length - 2} more`) : null,
+      p.partner_verified ? h('p', { class: 'meta badge--ok' }, 'Verified partner') : null,
       h('div', { class: 'row-actions' },
-        h('button', { type: 'button', class: 'btn btn--ghost btn--small', 'aria-label': `Show ${p.name} on the map`, onclick: () => focusOnMap(p) }, 'Show on map')));
+        h('button', { type: 'button', class: 'linkish', 'aria-label': `Show ${p.name} on the map`, onclick: () => focusOnMap(p) }, 'Show on map')));
   }
 
   function highlight(id, scroll) {

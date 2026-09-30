@@ -2,19 +2,18 @@ import { h } from '../dom.js';
 
 export async function businessView(ctx, root) {
   root.append(h('div', { class: 'page' },
-    h('h1', {}, 'For businesses & attractions'),
-    h('p', { class: 'lede' }, 'Many OKU cardholders and their families look for places that welcome them before they travel. Get listed for free, show your offer on the map, and be found.'),
+    h('h1', {}, 'For businesses and attractions'),
+    h('p', { class: 'lede' }, 'If you give OKU cardholders free entry, a discount or a bit of extra help, put it here. Listing is free, and people planning a trip will be able to find you on the map.'),
     h('div', { class: 'actions' }, h('a', { class: 'btn', href: '#/submit/place' }, 'List your business'), h('a', { class: 'btn btn--ghost', href: '#/' }, 'See the map')),
-    h('h2', {}, 'How it works'),
-    h('ol', { class: 'steps' },
-      h('li', { class: 'card' }, h('h3', {}, 'Create an account'), h('p', {}, 'Sign up and choose “Add a place or offer”. Tick that you own or manage the business.')),
-      h('li', { class: 'card' }, h('h3', {}, 'Describe your offer'), h('p', {}, 'Pin your location, say what OKU cardholders get (a discount, a freebie, priority service) and which accessibility features you have.')),
-      h('li', { class: 'card' }, h('h3', {}, 'Get verified'), h('p', {}, 'A moderator reviews the listing. Owner-submitted listings can earn the ✓ Verified partner badge and appear first in results.'))),
-    h('h2', {}, 'What makes a good listing'),
-    h('ul', {},
-      h('li', {}, 'A clear, simple offer staff can remember: “10% off the bill with an OKU card”.'),
-      h('li', {}, 'Honest accessibility information. Visitors review whether the offer was honoured and how access actually was.'),
-      h('li', {}, 'Staff who know about the offer. The reviews on this site show when a discount was honoured, so brief your team.')),
-    h('p', { class: 'notice notice--info' }, 'Already listed by a customer? Log in and use “Suggest an edit” on your listing to add offers or correct details, then tell us you are the owner in the reason.')));
+    h('div', { class: 'section' }, h('h2', {}, 'How it works'),
+      h('ol', { class: 'steps' },
+        h('li', {}, h('h3', {}, 'Make an account'), h('p', {}, 'Choose “Add a place”, and tick the box saying you own or manage the business.')),
+        h('li', {}, h('h3', {}, 'Describe the offer'), h('p', {}, 'Drop a pin on your location, say what OKU cardholders get, and tick the accessibility features you actually have.')),
+        h('li', {}, h('h3', {}, 'We check it'), h('p', {}, 'A person reviews the listing. Owner-submitted listings can be marked as verified partners, which shows up first in results.'))),
+      h('h2', {}, 'What makes a good listing'),
+      h('ul', {},
+        h('li', {}, 'A simple offer your staff can remember: “10% off the bill with an OKU card”.'),
+        h('li', {}, 'Honest accessibility details. Visitors say whether the offer was honoured and how getting around really was, so it pays to brief your team.'),
+        h('li', {}, 'Up-to-date information. Already listed by a customer? Log in and use “Suggest an edit” on your page, and mention that you are the owner.')))));
   return { title: 'For businesses' };
 }

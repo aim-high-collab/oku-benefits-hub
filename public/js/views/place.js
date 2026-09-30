@@ -30,15 +30,14 @@ export async function placeView(ctx, root, [id]) {
     ctx.go(`#/place/${p.id}?r=${Date.now()}`);
   } }, p.partner_verified ? 'Remove partner badge' : 'Mark as verified partner') : null;
 
-  root.append(h('div', { class: 'page' },
-    h('p', {}, h('a', { href: '#/' }, '← Back to map')),
+  root.append(h('div', { class: 'page page--wide' },
+    h('a', { class: 'back', href: '#/' }, '← Back to the map'),
     p.status !== 'approved' ? h('p', { class: 'notice' }, 'This listing is awaiting moderator approval. Only you and moderators can see it.') : null,
     h('div', { class: 'place-head' },
       h('div', {},
         h('h1', {}, p.name),
         h('div', { class: 'badges' }, badge(meta.categories[p.category]),
-          p.partner_verified ? badge('✓ Verified partner', 'badge--ok') : null,
-          ),
+          p.partner_verified ? badge('Verified partner', 'badge--ok') : null),
         summary),
       h('div', { class: 'actions' },
         h('a', { class: 'btn', href: directionsUrl(p), target: '_blank', rel: 'noopener noreferrer' }, 'Get directions'),
@@ -51,7 +50,7 @@ export async function placeView(ctx, root, [id]) {
           p.offers.length
             ? h('ul', { class: 'offer-list' }, p.offers.map((o) => h('li', { class: 'offer' },
               h('strong', {}, offerLine(o)),
-              h('span', { class: 'muted' }, meta.offerKinds[o.kind]),
+              h('span', { class: 'meta' }, meta.offerKinds[o.kind]),
               o.conditions ? h('span', {}, ` — ${o.conditions}`) : null)))
             : h('p', { class: 'muted' }, 'No offers listed. Do they offer one? ', h('a', { href: `#/place/${p.id}/edit` }, 'Suggest an edit'), '.'),
           h('p', { class: 'hint' }, 'Bring your OKU card. Offers can change, so it is worth confirming before you go.')),
@@ -99,7 +98,7 @@ export async function placeView(ctx, root, [id]) {
       hint: 'What was access like? Was staff helpful? Please do not share personal details.' });
     const errs = h('div');
     const submit = h('button', { class: 'btn', type: 'submit' }, mine ? 'Update my review' : 'Post review');
-    return h('form', { class: 'card', 'aria-label': 'Write a review', novalidate: true, onsubmit: async (e) => {
+    return h('form', { class: 'review-form', 'aria-label': 'Write a review', novalidate: true, onsubmit: async (e) => {
       e.preventDefault();
       clear(errs);
       submit.disabled = true;
