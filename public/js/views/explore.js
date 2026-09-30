@@ -1,9 +1,9 @@
 import { h, clear } from '../dom.js';
 import { api, qs } from '../api.js';
-import { field, checkboxGroup, distanceKm, fmtDistance, offerLine, icon, badge } from '../ui.js';
+import { field, checkboxGroup, distanceKm, fmtDistance, offerLine, icon, badge, groupOf, placeImage, offerIcon } from '../ui.js';
 import { createMap, destroyMap, pinIcon, locate } from '../map.js';
 
-const KIND_CHIPS = { free: 'Free', discount: 'Discount', priority: 'Priority', freebie: 'Freebie', other: 'Other' };
+const KIND_CHIPS = { free: 'Free', discount: 'Discount', priority: 'Priority', freebie: 'Freebie', volunteer: 'Volunteer' };
 
 export async function exploreView(ctx, root) {
   const { state } = ctx;
@@ -17,13 +17,13 @@ export async function exploreView(ctx, root) {
   let loadToken = 0;
 
   // ----- filters -----
-  const q = field({ label: 'Search places', name: 'q', type: 'search', value: filters.q, attrs: { placeholder: 'Search by name, area or offer', autocomplete: 'off' } });
+  const q = field({ label: 'Search places', name: 'q', type: 'search', value: filters.q, attrs: { placeholder: 'Search a place, area or offer', autocomplete: 'off' } });
   q.el.querySelector('label').classList.add('sr-only');
   q.el.classList.add('search-field');
   q.el.prepend(icon('search', 18));
 
   const kindBtns = Object.entries({ '': 'All', ...KIND_CHIPS }).map(([value, text]) => {
-    const btn = h('button', { type: 'button', class: 'chip-btn', 'aria-pressed': String(filters.kind === value), onclick: () => {
+    const btn = h('button', { type: 'button', class: `chip-btn deal--${value}`, 'data-kind': value, 'aria-pressed': String(filters.kind === value), onclick: () => {
       filters.kind = value;
       for (const [v, b] of kindBtns.map((x) => [x.value, x.btn])) b.setAttribute('aria-pressed', String(v === value));
       refresh();
@@ -56,10 +56,10 @@ export async function exploreView(ctx, root) {
   root.append(h('div', { class: 'explore' },
     h('section', { class: 'panel', 'aria-labelledby': 'explore-h' },
       h('div', { class: 'panel-head' },
-        h('h1', { id: 'explore-h' }, 'Places for OKU cardholders'),
+        h('h1', { id: 'explore-h' }, 'Places that say ', h('span', { class: 'hl' }, 'yes'), ' to your OKU card'),
         form),
       h('div', { class: 'panel-list' },
-        h('div', { class: 'count-row' }, count, h('a', { class: 'add-link', href: '#/submit/place' }, icon('plus', 15), 'Add a place')),
+        h('div', { class: 'count-row' }, count, h('a', { class: 'add-link', href: '#/submit/place' }, icon('plus', 16), 'Add a place')),
         list)),
     h('div', { class: 'explore-map' }, mapEl)));
 
@@ -131,7 +131,7 @@ export async function exploreView(ctx, root) {
       const li = placeCard(p);
       cards.set(p.id, li);
       list.append(li);
-      const m = L.marker([p.lat, p.lng], { icon: pinIcon(p.partner_verified ? 'pin--partner' : ''), title: p.name, alt: p.name, keyboard: true })
+      const m = L.marker([p.lat, p.lng], { icon: pinIcon(`tone-${groupOf(p.category)}`), title: p.name, alt: p.name, keyboard: true })
         .bindPopup(() => popupFor(p));
       m.on('click', () => highlight(p.id, true));
       m.addTo(layer);
@@ -145,18 +145,20 @@ export async function exploreView(ctx, root) {
 
   function placeCard(p) {
     const top = p.offers.slice(0, 2);
-    return h('li', { class: 'result', 'data-id': p.id },
-      h('div', { class: 'result-top' },
-        h('span', { class: 'result-cat' }, meta.categories[p.category]),
-        p.distance != null ? h('span', { class: 'result-dist' }, fmtDistance(p.distance)) : null),
-      h('h3', {}, h('a', { href: `#/place/${p.id}` }, p.name)),
-      h('p', { class: 'result-addr' }, [p.address, p.city].filter(Boolean).join(', ')),
-      top.map((o) => h('p', { class: `deal deal--${o.kind}` }, icon('check', 16), h('span', {}, offerLine(o)))),
-      p.offers.length > 2 ? h('p', { class: 'result-more' }, `+${p.offers.length - 2} more offer${p.offers.length - 2 === 1 ? '' : 's'}`) : null,
-      h('div', { class: 'result-foot' },
-        p.review_count ? h('span', { class: 'rating' }, icon('star', 14), h('strong', {}, p.avg_rating), ` (${p.review_count})`) : h('span', { class: 'muted' }, 'No reviews yet'),
-        p.partner_verified ? badge('Verified partner', 'badge--ok') : null,
-        h('button', { type: 'button', class: 'linkbtn result-map', 'aria-label': `Show ${p.name} on the map`, onclick: () => focusOnMap(p) }, icon('pin', 15), 'Map')));
+    return h('li', { class: `result tone-${groupOf(p.category)}`, 'data-id': p.id },
+      h('div', { class: 'result-photo' },
+        placeImage(p),
+        h('span', { class: 'sticker' }, meta.categories[p.category]),
+        p.distance != null ? h('span', { class: 'sticker sticker--r' }, fmtDistance(p.distance)) : null),
+      h('div', { class: 'result-body' },
+        h('h3', {}, h('a', { href: `#/place/${p.id}` }, p.name)),
+        h('p', { class: 'result-addr' }, [p.address, p.city].filter(Boolean).join(', ')),
+        top.map((o) => h('p', { class: `deal deal--${o.kind}` }, offerIcon(o.kind), h('span', {}, offerLine(o)))),
+        p.offers.length > 2 ? h('p', { class: 'result-more' }, `+${p.offers.length - 2} more offer${p.offers.length - 2 === 1 ? '' : 's'}`) : null,
+        h('div', { class: 'result-foot' },
+          p.review_count ? h('span', { class: 'rating' }, icon('star', 16), p.avg_rating, h('span', { class: 'muted' }, `(${p.review_count})`)) : null,
+          p.partner_verified ? h('span', { class: 'badge badge--ok' }, icon('verified', 14), 'Verified partner') : null,
+          h('button', { type: 'button', class: 'linkbtn result-map', 'aria-label': `Show ${p.name} on the map`, onclick: () => focusOnMap(p) }, icon('pin', 16), 'Show on map'))));
   }
 
   function highlight(id, scroll) {

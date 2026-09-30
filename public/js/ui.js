@@ -118,6 +118,7 @@ const ICONS = {
   locate: ['<circle cx="12" cy="12" r="3"/>', '<circle cx="12" cy="12" r="8"/>', '<path d="M12 2v3M12 19v3M2 12h3M19 12h3"/>'],
   verified: ['<path d="M3.900 8.600a4 4 0 0 1 4.800-4.800 4 4 0 0 1 6.700 0 4 4 0 0 1 4.800 4.800 4 4 0 0 1 0 6.700 4 4 0 0 1-4.800 4.800 4 4 0 0 1-6.700 0 4 4 0 0 1-4.800-4.800 4 4 0 0 1 0-6.700Z"/>', '<path d="m9 12 2 2 4-4"/>'],
   plus: ['<path d="M12 5v14M5 12h14"/>'],
+  heart: ['<path d="M19 14c1.500-1.500 3-3.200 3-5.500A5.500 5.500 0 0 0 16.500 3c-1.800 0-3 .5-4.500 2-1.500-1.500-2.700-2-4.500-2A5.500 5.500 0 0 0 2 8.500c0 2.300 1.500 4 3 5.500l7 7Z"/>'],
 };
 
 export function icon(name, size = 18) {
@@ -126,3 +127,22 @@ export function icon(name, size = 18) {
   svg.innerHTML = ICONS[name].join(''); // constants above only, never user data
   return svg;
 }
+
+// ---------- category colours & place images ----------
+const GROUP = {
+  restaurant: 'food', cafe: 'food', grocery: 'shop', retail: 'shop', healthcare: 'care', attraction: 'fun', entertainment: 'fun',
+  hotel: 'stay', education: 'learn', services: 'place', social: 'together', other: 'place',
+};
+export const groupOf = (category) => GROUP[category] ?? 'place';
+
+/** The place's own photo, or an illustrated cover for its kind of place. */
+export function placeImage(place, cls = '') {
+  return h('img', {
+    class: `photo ${place.image ? '' : 'photo--cover'} ${cls}`.replace(/\s+/g, ' ').trim(),
+    src: place.image || `/img/cover/${groupOf(place.category)}.svg`,
+    alt: place.image ? `Photo of ${place.name}` : '',
+    loading: 'lazy', width: 640, height: 256,
+  });
+}
+
+export const offerIcon = (kind) => icon(kind === 'volunteer' ? 'heart' : 'check', 18);

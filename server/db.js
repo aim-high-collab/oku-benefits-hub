@@ -30,6 +30,7 @@ CREATE TABLE IF NOT EXISTS places (
   lng REAL NOT NULL,
   phone TEXT NOT NULL DEFAULT '',
   website TEXT NOT NULL DEFAULT '',
+  image TEXT NOT NULL DEFAULT '',
   accessibility TEXT NOT NULL DEFAULT '[]',
   status TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending','approved','rejected')),
   submitter_is_owner INTEGER NOT NULL DEFAULT 0,
@@ -101,6 +102,10 @@ export function openDb(file = ':memory:') {
   db.exec('PRAGMA foreign_keys = ON;');
   if (file !== ':memory:') db.exec('PRAGMA journal_mode = WAL;');
   db.exec(SCHEMA);
+  // Databases created before photos existed.
+  if (!db.prepare('PRAGMA table_info(places)').all().some((c) => c.name === 'image')) {
+    db.exec("ALTER TABLE places ADD COLUMN image TEXT NOT NULL DEFAULT ''");
+  }
   return db;
 }
 

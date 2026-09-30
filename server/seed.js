@@ -1,3 +1,5 @@
+import { existsSync } from 'node:fs';
+import { join } from 'node:path';
 import { insertBenefit, insertPlace } from './store.js';
 
 // Starting points only: descriptions are deliberately general and rates/thresholds are left to the
@@ -87,46 +89,83 @@ const BENEFITS = [
 ];
 
 const CHECKED = '30 Sep 2026';
-const NOTE = `Compiled from web sources on ${CHECKED} and not yet confirmed with the venue. Please confirm before you go, and use “Suggest an edit” to correct anything.`;
+const NOTE = `Compiled from web sources on ${CHECKED}, not yet confirmed with the venue, and the map pin may be a few hundred metres off. Please check before you go, and use “Suggest an edit” to correct anything.`;
 const FREE_OKU = (conditions) => ({ title: 'Free admission for OKU cardholders', kind: 'free', value_text: 'Free', conditions });
 
-// Coordinates are approximate (placed from memory of the location, not geocoded): moderators should
-// nudge the pin via an edit request if it is off.
+// Coordinates are approximate (placed from knowledge of the area, not geocoded). Moderators can nudge a pin
+// through the normal edit-request flow.
+// Photos: drop `<slug>.jpg|png|webp` into public/img/places/ and restart; see applySeedPhotos().
 const PLACES = [
   {
-    name: 'Zoo Negara', category: 'attraction', website: 'https://www.zoonegara.my/', phone: '',
+    slug: 'zoo-negara', name: 'Zoo Negara', category: 'attraction', website: 'https://www.zoonegara.my/', phone: '',
     address: 'Jalan Taman Zoo, Ulu Klang', city: 'Ampang', state: 'Selangor', lat: 3.2101, lng: 101.7590,
     description: `Malaysia’s national zoo. OKU cardholders are reported to enter free of charge. ${NOTE}`,
-    accessibility: [],
-    offers: [FREE_OKU('Show a valid OKU card at the ticket counter.')],
+    accessibility: [], offers: [FREE_OKU('Show a valid OKU card at the ticket counter.')],
   },
   {
-    name: 'Kuala Lumpur Bird Park', category: 'attraction', website: 'https://www.klbirdpark.com/', phone: '',
+    slug: 'kl-bird-park', name: 'Kuala Lumpur Bird Park', category: 'attraction', website: 'https://www.klbirdpark.com/', phone: '',
     address: '920 Jalan Cenderawasih, Taman Tasik Perdana', city: 'Kuala Lumpur', state: 'W.P. Kuala Lumpur', lat: 3.1430, lng: 101.6883,
     description: `Walk-in aviary in the Lake Gardens. Free entry for OKU cardholders is listed by a secondary source and was not found on the park’s own pages. ${NOTE}`,
-    accessibility: [],
-    offers: [FREE_OKU('Reported by a third-party list; confirm with the park. Bring your OKU card.')],
+    accessibility: [], offers: [FREE_OKU('Reported by a third-party list; confirm with the park. Bring your OKU card.')],
   },
   {
-    name: 'Petrosains, The Discovery Centre', category: 'attraction', website: 'https://petrosains.com.my/', phone: '03-2331 8181',
+    slug: 'petrosains', name: 'Petrosains, The Discovery Centre', category: 'attraction', website: 'https://petrosains.com.my/', phone: '03-2331 8181',
     address: 'Level 4, Suria KLCC, Kuala Lumpur City Centre', city: 'Kuala Lumpur', state: 'W.P. Kuala Lumpur', lat: 3.1584, lng: 101.7119,
     description: `Interactive science centre. Its admission page states that OKU cardholders enter free. ${NOTE}`,
-    accessibility: [],
-    offers: [FREE_OKU('Present your registered OKU card at the counter.')],
+    accessibility: [], offers: [FREE_OKU('Present your registered OKU card at the counter.')],
   },
   {
-    name: 'Planetarium Negara', category: 'attraction', website: '', phone: '',
+    slug: 'planetarium-negara', name: 'Planetarium Negara', category: 'attraction', website: '', phone: '',
     address: '53 Jalan Perdana, Tasik Perdana', city: 'Kuala Lumpur', state: 'W.P. Kuala Lumpur', lat: 3.1420, lng: 101.6871,
     description: `National planetarium and space exhibition in the Lake Gardens. Admission is reported to be free, including for OKU visitors (only social-media sources found); separate fees may apply for some shows. Reported hours: 9am–4:30pm, closed Mondays and Tuesdays. ${NOTE}`,
-    accessibility: [],
-    offers: [FREE_OKU('Reported as free for everyone including OKU; check whether any shows are ticketed.')],
+    accessibility: [], offers: [FREE_OKU('Reported as free for everyone including OKU; check whether any shows are ticketed.')],
   },
   {
-    name: 'Muzium Negara (National Museum)', category: 'attraction', website: 'https://www.muziumnegara.gov.my/', phone: '',
+    slug: 'muzium-negara', name: 'Muzium Negara (National Museum)', category: 'attraction', website: 'https://www.muziumnegara.gov.my/', phone: '',
     address: 'Jalan Damansara', city: 'Kuala Lumpur', state: 'W.P. Kuala Lumpur', lat: 3.1379, lng: 101.6875,
     description: `Malaysia’s national museum. We could not confirm an OKU admission concession (children and senior citizens are reported to enter free), so no offer is listed yet. Reported facilities: lifts, step-free routes, free wheelchair loan (subject to availability) and accessible toilets. ${NOTE}`,
-    accessibility: ['lift', 'step_free_entry', 'accessible_toilet'],
-    offers: [],
+    accessibility: ['lift', 'step_free_entry', 'accessible_toilet'], offers: [],
+  },
+  {
+    slug: 'sunway-lagoon', name: 'Sunway Lagoon', category: 'entertainment', website: 'https://sunwaylagoon.com/', phone: '',
+    address: '3 Jalan PJS 11/11, Bandar Sunway', city: 'Subang Jaya', state: 'Selangor', lat: 3.0709, lng: 101.6072,
+    description: `Theme and water park. Its FAQ is reported to give OKU cardholders a discount on the published ticket price. ${NOTE}`,
+    accessibility: [],
+    offers: [{ title: 'Discount on admission for OKU cardholders', kind: 'discount', value_text: '50% off', conditions: 'OKU tickets are reported to be sold only at the ticketing counters, with your OKU card shown for verification.' }],
+  },
+  {
+    slug: 'aquaria-klcc', name: 'Aquaria KLCC', category: 'attraction', website: 'https://aquariaklcc.com/', phone: '',
+    address: 'Kuala Lumpur Convention Centre, Jalan Pinang', city: 'Kuala Lumpur', state: 'W.P. Kuala Lumpur', lat: 3.1529, lng: 101.7135,
+    description: `Oceanarium beneath the Kuala Lumpur Convention Centre. A concession rate for OKU visitors is reported, but sources disagree on the price. ${NOTE}`,
+    accessibility: [],
+    offers: [{ title: 'Concession ticket for OKU cardholders', kind: 'discount', value_text: '', conditions: 'Verification with your OKU card is required. One source lists RM16; confirm the current price at the counter.' }],
+  },
+  {
+    slug: 'sunway-putra-mall', name: 'Sunway Putra Mall', category: 'retail', website: '', phone: '',
+    address: '100 Jalan Putra', city: 'Kuala Lumpur', state: 'W.P. Kuala Lumpur', lat: 3.1667, lng: 101.6878,
+    description: `Reported as Malaysia’s first autism-friendly mall. Tuesdays are “Autsome Day” with dimmed lights, lower music and dedicated quiet zones, plus sensory walls and calm rooms for anyone who needs a break. ${NOTE}`,
+    accessibility: ['quiet_space'],
+    offers: [{ title: 'Autsome Day: dimmed lights, quieter music, quiet zones', kind: 'other', value_text: 'Every Tuesday', conditions: 'Reported by a news article; confirm the current schedule with the mall.' }],
+  },
+  {
+    slug: 'autism-cafe-project', name: 'Autism Café Project', category: 'social', website: '', phone: '',
+    address: '5 Jalan Adang U8/16, Bukit Jelutong', city: 'Shah Alam', state: 'Selangor', lat: 3.1052, lng: 101.5268,
+    description: `A social enterprise café where autistic young adults train and work in the kitchen and front of house. Eating here supports their training. The café has moved a few times (Puchong, Shah Alam, USJ), so check its Facebook or Instagram page (@autismcafeproject) for the current address and hours. ${NOTE}`,
+    accessibility: [], offers: [],
+  },
+  {
+    slug: 'bake-with-dignity', name: 'Bake with Dignity', category: 'social', website: 'https://www.dignityandservices.org/bwd-online-store-and-cafe/bwd-cafe', phone: '',
+    address: 'Tropicana Gardens Mall, 2A Persiaran Surian, Tropicana Indah', city: 'Petaling Jaya', state: 'Selangor', lat: 3.1706, lng: 101.6082,
+    description: `Café and bakery run by Dignity & Services, giving adults with learning disabilities sheltered employment and training. Proceeds go back into the training programme. The team has also baked in Taman Tun Dr Ismail and Bandar Sunway; check for the current spot. ${NOTE}`,
+    accessibility: [],
+    offers: [{ title: 'Volunteer in the kitchen', kind: 'volunteer', value_text: '', conditions: 'Occasional or regular morning and afternoon slots, no experience needed; trainers show you the ropes. Sign up through Dignity & Services.' }],
+  },
+  {
+    slug: 'tender-hearts', name: 'Tender Hearts Café', category: 'social', website: 'https://tenderheartswebsit.wixsite.com/tender-hearts', phone: '016-216 2188',
+    address: 'L2.05, Level 2, KL Gateway Mall, Kerinchi', city: 'Kuala Lumpur', state: 'W.P. Kuala Lumpur', lat: 3.1122, lng: 101.6671,
+    description: `Café staffed by young people with special needs, part of Tender Hearts, which also runs a baking and training centre at Summit USJ, Subang Jaya. ${NOTE}`,
+    accessibility: [],
+    offers: [{ title: 'Volunteer with Tender Hearts', kind: 'volunteer', value_text: '', conditions: 'Contact them by email (tenderheartsent@gmail.com) or sign up on their website.' }],
   },
 ];
 
@@ -139,12 +178,26 @@ export function seedBenefits(db) {
 export function seedPlaces(db) {
   const exists = db.prepare('SELECT 1 FROM places WHERE name = ?');
   let added = 0;
-  for (const p of PLACES) {
+  for (const { slug, ...p } of PLACES) {
     if (exists.get(p.name)) continue;
-    insertPlace(db, p, { userId: null, status: 'approved' });
+    insertPlace(db, { image: '', ...p }, { userId: null, status: 'approved' });
     added++;
   }
   return added;
+}
+
+/**
+ * Photos we are allowed to use (your own, or properly licensed) can be dropped into public/img/places/ as
+ * `<slug>.jpg|png|webp` (slugs are listed in PLACES above). They are attached to seeded places that have no photo yet.
+ */
+export function applySeedPhotos(db, dir) {
+  const set = db.prepare("UPDATE places SET image = ? WHERE name = ? AND image = ''");
+  let n = 0;
+  for (const p of PLACES) {
+    const file = ['jpg', 'jpeg', 'png', 'webp'].map((e) => `${p.slug}.${e}`).find((f) => existsSync(join(dir, f)));
+    if (file) n += Number(set.run(`/img/places/${file}`, p.name).changes);
+  }
+  return n;
 }
 
 // Earlier versions shipped fictional placeholder listings; remove any left in an existing database.

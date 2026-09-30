@@ -6,8 +6,8 @@ businesses list themselves (or are listed by the community), OKU users find them
 
 ## Features
 
-- **Map + list of places** (OpenStreetMap via Leaflet). Filter by type, kind of offer, accessibility features and
-  free text; "use my location" sorts by distance. The list is a full alternative to the map for keyboard and
+- **Map + photo cards** (OpenStreetMap via Leaflet). Filter by kind of offer (free, discount, priority, freebie,
+  volunteer), type of place, accessibility features and free text; "use my location" sorts by distance. The list is a full alternative to the map for keyboard and
   screen-reader users.
 - **Community submissions**: anyone with an account can add a place (with offers, accessibility features and a
   pinned location, with address search via Nominatim) or a government benefit.
@@ -19,6 +19,11 @@ businesses list themselves (or are listed by the community), OKU users find them
   listing as a trust signal for businesses that say they participate.
 - **Government benefits directory** with agency links and a "verified by a moderator on <date>" indicator.
 - **Business landing page** explaining how to get listed.
+
+- **Photos**: submitters can attach a photo (resized in the browser, checked server-side, stored in
+  `data/uploads`, shown after moderation). Listings without a photo get a colourful illustrated cover.
+- **Volunteer places & social enterprises**: a "Social enterprise & volunteering" category and a "Volunteer with us"
+  offer type, for places like Autism Café Project, Bake with Dignity and Tender Hearts.
 
 ## Run it
 
@@ -39,15 +44,22 @@ variables are required). See `.env.example`.
 | `npm start` | Start the server (also seeds benefits and the attractions above on an empty database) |
 | `npm run dev` | Watch mode |
 
-Environment variables (set them in your shell; on Windows PowerShell use `$env:PORT=3000`, in `cmd` use `set PORT=3000`): `PORT`, `DB_PATH` (default `data/oku.db`), `NODE_ENV=production` (secure cookies),
+`UPLOAD_DIR` (default: `uploads` next to the database), and environment variables (set them in your shell; on Windows PowerShell use `$env:PORT=3000`, in `cmd` use `set PORT=3000`): `PORT`, `DB_PATH` (default `data/oku.db`), `NODE_ENV=production` (secure cookies),
 `TRUST_PROXY` (set to `1` behind a reverse proxy), `ADMIN_EMAIL`, `ADMIN_PASSWORD`.
 
 ## Important: data accuracy
 
-- The **seeded attractions** (Zoo Negara, KL Bird Park, Petrosains, Planetarium Negara, Muzium Negara) were compiled from web search results on 30 Sep 2026; the official sites could not be opened from the build environment. Their descriptions say so, some pin positions are approximate, and the KL Bird Park and Planetarium Negara concessions rest on secondary sources. Confirm each with the venue and correct it through the normal edit-request flow.
+- The **seeded places** (Zoo Negara, KL Bird Park, Petrosains, Planetarium Negara, Muzium Negara, Aquaria KLCC, Sunway Lagoon, Sunway Putra Mall, Autism Café Project, Bake with Dignity, Tender Hearts) were compiled from web search results on 30 Sep 2026; the official sites could not be opened from the build environment. Their descriptions say so, all pin positions are approximate, and the KL Bird Park, Planetarium Negara and Aquaria KLCC concessions rest on secondary sources. The Autism Café Project has moved several times, so check its address. Confirm each with the venue and correct it through the normal edit-request flow.
 - The seeded **government benefit entries are general starting points**, deliberately without rates or
   thresholds, and show "Not yet verified by a moderator" until someone checks them against the agency source
   and approves an edit. Verify each before launch.
+
+## Adding real photos to the seeded places
+
+No photos are bundled: the build environment could not download any, and Google Maps photos cannot be copied.
+Drop photos you took or are licensed to use into `public/img/places/` named after the place slug
+(`zoo-negara.jpg`, `petrosains.png`, `bake-with-dignity.webp`, ... the slugs are in `server/seed.js`) and restart;
+they are attached automatically. Photos submitted through the site work without any of this.
 
 ## Architecture
 
@@ -57,7 +69,8 @@ server/   Express 5 API + SQLite (node:sqlite)
   validate.js   input validation (per-field errors)
   store.js      queries, edit-request diffing/applying
   routes/       auth, places (+reviews, edits), benefits, account, admin
-public/   No-build frontend: ES modules, hash routing, Leaflet served from node_modules
+public/   No-build frontend: ES modules, hash routing, Leaflet + fonts served from node_modules,
+          illustrated covers in img/cover, logo in img/logo-mark.svg
 test/     API tests (node:test)
 ```
 

@@ -11,6 +11,7 @@ import { placeRoutes } from './routes/places.js';
 import { benefitRoutes } from './routes/benefits.js';
 import { accountRoutes } from './routes/account.js';
 import { adminRoutes } from './routes/admin.js';
+import { uploadRoutes } from './uploads.js';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
 const fontDir = (pkg) => join(dirname(createRequire(import.meta.url).resolve(`${pkg}/package.json`)), 'files');
@@ -27,6 +28,8 @@ export function createApp({ db, config }) {
   const writeLimiter = rateLimit({ windowMs: 60_000, max: 30 * scale });
   const deps = { db, config, authLimiter, writeLimiter };
 
+  app.use('/api/uploads', uploadRoutes(deps));
+  app.use('/uploads', express.static(config.uploadDir, { maxAge: '30d', immutable: true, index: false, dotfiles: 'deny' }));
   app.use('/api', express.json({ limit: '100kb' }), sameOriginWrites, sessionMiddleware(db));
   app.get('/api/meta', (_req, res) => res.json(meta()));
   app.use('/api/auth', authRoutes(deps));
@@ -37,7 +40,8 @@ export function createApp({ db, config }) {
   app.use('/api', (_req, _res, next) => next(new HttpError(404, 'Not found.')));
 
   app.use('/vendor/leaflet', express.static(leafletDist, { maxAge: '7d' }));
-  app.use('/vendor/inter', express.static(fontDir('@fontsource-variable/inter'), { maxAge: '30d', immutable: true }));
+  app.use('/vendor/fonts', express.static(fontDir('@fontsource-variable/bricolage-grotesque'), { maxAge: '30d', immutable: true }));
+  app.use('/vendor/fonts', express.static(fontDir('@fontsource-variable/figtree'), { maxAge: '30d', immutable: true }));
   app.use(express.static(join(root, 'public')));
   // SPA uses hash routing, so unknown non-API paths are simply 404.
   app.use(errorHandler);

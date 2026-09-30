@@ -13,10 +13,10 @@ export function createMap(el, { center = MALAYSIA_CENTER, zoom = MALAYSIA_ZOOM }
   return map;
 }
 
-export function pinIcon(kind = '') {
+export function pinIcon(tone = '') {
   return L.divIcon({
     className: 'pin-wrap',
-    html: `<span class="pin ${kind}"></span>`,
+    html: `<span class="pin ${tone}"></span>`,
     iconSize: [32, 38],
     iconAnchor: [16, 36],
     popupAnchor: [0, -32],

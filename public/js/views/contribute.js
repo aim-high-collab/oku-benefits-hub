@@ -37,6 +37,56 @@ function formShell({ children, submitLabel, onSubmit, fields = {} }) {
   return form;
 }
 
+// ---------- photo picker ----------
+
+/** Downscales in the browser (phone photos are huge) and re-encodes as JPEG before uploading. */
+async function shrink(file, max = 1280) {
+  const bmp = await createImageBitmap(file);
+  const scale = Math.min(1, max / Math.max(bmp.width, bmp.height));
+  const canvas = document.createElement('canvas');
+  canvas.width = Math.round(bmp.width * scale);
+  canvas.height = Math.round(bmp.height * scale);
+  canvas.getContext('2d').drawImage(bmp, 0, 0, canvas.width, canvas.height);
+  return canvas.toDataURL('image/jpeg', 0.82);
+}
+
+function photoPicker(initial) {
+  let path = initial || '';
+  const id = `photo-${Math.random().toString(36).slice(2, 7)}`;
+  const preview = h('img', { class: 'photo-preview', alt: 'Preview of the chosen photo', hidden: !path, src: path || null });
+  const status = h('p', { class: 'hint', role: 'status' });
+  const input = h('input', { type: 'file', id, accept: 'image/jpeg,image/png,image/webp' });
+  const remove = h('button', { type: 'button', class: 'btn btn--ghost btn--small', hidden: !path, onclick: () => {
+    path = '';
+    preview.hidden = true;
+    remove.hidden = true;
+    input.value = '';
+    status.textContent = 'Photo removed.';
+  } }, 'Remove photo');
+  input.addEventListener('change', async () => {
+    const file = input.files[0];
+    if (!file) return;
+    status.textContent = 'Uploading…';
+    try {
+      const data = await shrink(file);
+      path = (await api('POST', '/uploads', { image: data })).path;
+      preview.src = data;
+      preview.hidden = false;
+      remove.hidden = false;
+      status.textContent = 'Photo added. It will be checked with the rest of your submission.';
+    } catch (err) {
+      status.textContent = err.message || 'We could not use that photo. Try a different one.';
+      input.value = '';
+    }
+  });
+  const el = h('div', { class: 'field' },
+    h('label', { for: id }, 'Photo (optional)'),
+    h('p', { class: 'hint' }, 'A photo of the entrance or front helps people see if it will work for them. Only upload pictures you took yourself.'),
+    h('div', { class: 'photo-field' }, preview, h('div', {}, input, h('div', { class: 'actions' }, remove))),
+    status);
+  return { el, value: () => path };
+}
+
 // ---------- place form ----------
 
 function offerRow(meta, offer, onRemove) {
@@ -133,6 +183,7 @@ function placeForm(ctx, initial, { mode, onSubmit }) {
   const lat = field({ label: 'Latitude', name: 'lat', type: 'number', value: initial.lat ?? '', required: true, attrs: { step: 'any' } });
   const lng = field({ label: 'Longitude', name: 'lng', type: 'number', value: initial.lng ?? '', required: true, attrs: { step: 'any' } });
   const picker = locationPicker(meta, initial, lat, lng);
+  const photo = photoPicker(initial.image);
   const feats = checkboxGroup({ legend: 'Accessibility features', name: 'features', options: Object.entries(meta.features), selected: initial.accessibility, hint: 'Tick what you have seen or know is available.' });
   const offersBox = h('div');
   const offerRows = new Set();
@@ -163,14 +214,15 @@ function placeForm(ctx, initial, { mode, onSubmit }) {
       lat: lat.input.value === '' ? null : Number(lat.input.value),
       lng: lng.input.value === '' ? null : Number(lng.input.value),
       accessibility: feats.values(),
+      image: photo.value(),
       offers: [...offerRows].map((r) => r.read()),
     }, { is_owner: owner ? owner.querySelector('input').checked : false, reason: reason?.input.value ?? '' }),
     children: [
-      h('fieldset', { class: 'group' }, h('legend', {}, '1. About the place'), f.name.el, f.category.el, f.description.el),
+      h('fieldset', { class: 'group' }, h('legend', {}, '1. About the place'), f.name.el, f.category.el, f.description.el, photo.el),
       h('fieldset', { class: 'group' }, h('legend', {}, '2. Where is it?'), f.address.el, h('div', { class: 'grid-2' }, f.city.el, f.state.el),
         picker.el, h('div', { class: 'grid-2' }, lat.el, lng.el)),
       h('fieldset', { class: 'group' }, h('legend', {}, '3. OKU offers'),
-        h('p', { class: 'hint' }, 'Discounts, freebies or priority service for OKU cardholders. Leave empty if it is simply an accessible space.'),
+        h('p', { class: 'hint' }, 'Discounts, freebies, priority service, or a chance to volunteer. Leave empty if it is simply an accessible space.'),
         offersBox, offersErr,
         h('div', { class: 'actions' }, h('button', { type: 'button', class: 'btn btn--ghost btn--small', onclick: () => addOffer().fields.title.input.focus() }, 'Add another offer'))),
       h('fieldset', { class: 'group' }, h('legend', {}, '4. Accessibility & contact'), feats.el, h('div', { class: 'grid-2' }, f.phone.el, f.website.el)),
@@ -180,7 +232,7 @@ function placeForm(ctx, initial, { mode, onSubmit }) {
   return { form, picker };
 }
 
-const blankPlace = { name: '', category: 'restaurant', description: '', address: '', city: '', state: '', phone: '', website: '', accessibility: [], offers: [] };
+const blankPlace = { image: '', name: '', category: 'restaurant', description: '', address: '', city: '', state: '', phone: '', website: '', accessibility: [], offers: [] };
 
 export async function submitPlaceView(ctx, root) {
   if (needLogin(ctx, root, 'add a place')) return { title: 'Log in' };
@@ -192,8 +244,8 @@ export async function submitPlaceView(ctx, root) {
       ctx.go(res.status === 'approved' ? `#/place/${res.id}` : '#/account');
     },
   });
-  root.append(h('div', { class: 'page page--narrow' }, h('h1', {}, 'Add a place or offer'),
-    h('p', { class: 'lede' }, 'Know a business that gives OKU discounts, or a place that is genuinely accessible? Add it so others can find it. Submissions are reviewed before they appear.'), form));
+  root.append(h('div', { class: 'page page--narrow' }, h('h1', {}, 'Add a place'),
+    h('p', { class: 'lede' }, 'Know a business that gives OKU discounts, a place that is genuinely accessible, or a group that welcomes volunteers? Add it so others can find it. A person checks every submission before it appears.'), form));
   return { title: 'Add a place', mounted: () => picker.mount(), destroy: () => picker.destroy() };
 }
 

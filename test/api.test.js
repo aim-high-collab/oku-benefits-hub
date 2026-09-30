@@ -4,6 +4,9 @@ import { openDb } from '../server/db.js';
 import { createApp } from '../server/app.js';
 import { hashPassword } from '../server/http.js';
 import { seedBenefits, seedPlaces } from '../server/seed.js';
+import { mkdtempSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 
 let server, base, db;
 
@@ -13,7 +16,8 @@ before(async () => {
   seedPlaces(db);
   db.prepare("INSERT INTO users (name, email, password_hash, role) VALUES ('Mod', 'mod@x.my', ?, 'admin')")
     .run(await hashPassword('moderator-pass'));
-  const app = createApp({ db, config: { secureCookies: false, rateLimitScale: 1000 } });
+  const uploadDir = mkdtempSync(join(tmpdir(), 'oku-uploads-'));
+  const app = createApp({ db, config: { secureCookies: false, rateLimitScale: 1000, uploadDir } });
   await new Promise((resolve) => { server = app.listen(0, resolve); });
   base = `http://127.0.0.1:${server.address().port}`;
 });
@@ -59,7 +63,7 @@ test('meta and public listings work without login', async () => {
   const c = client();
   assert.ok((await c.get('/api/meta')).body.categories.cafe);
   const places = (await c.get('/api/places')).body.places;
-  assert.ok(places.length >= 5 && places.every((p) => p.status === 'approved'));
+  assert.ok(places.length >= 10 && places.every((p) => p.status === 'approved'));
   assert.ok(!places.some((p) => /demo/i.test(p.name)), 'no placeholder listings');
   assert.ok(places[0].offers);
   assert.ok((await c.get('/api/benefits')).body.benefits.length >= 8);
@@ -70,10 +74,13 @@ test('filters: text, category, offer kind, accessibility features', async () => 
   const ids = async (qs) => (await c.get(`/api/places?${qs}`)).body.places.map((p) => p.name);
   assert.deepEqual(await ids('q=zoo'), ['Zoo Negara']);
   assert.deepEqual(await ids('category=cafe'), []);
-  assert.equal((await ids('category=attraction')).length, 5);
+  assert.equal((await ids('category=attraction')).length, 6);
+  assert.deepEqual((await ids('category=social')).sort(), ['Autism Café Project', 'Bake with Dignity', 'Tender Hearts Café']);
+  assert.deepEqual((await ids('kind=volunteer')).sort(), ['Bake with Dignity', 'Tender Hearts Café']);
   const free = await ids('kind=free');
   assert.ok(free.includes('Zoo Negara') && free.includes('Petrosains, The Discovery Centre') && !free.includes('Muzium Negara (National Museum)'));
   assert.deepEqual(await ids('features=lift'), ['Muzium Negara (National Museum)']);
+  assert.deepEqual(await ids('features=quiet_space'), ['Sunway Putra Mall']);
   assert.deepEqual(await ids('features=lift,tactile_paving'), []);
   assert.deepEqual(await ids('q=_'), []); // LIKE wildcards are escaped, not treated as 'match anything'
 });
@@ -228,4 +235,45 @@ test('script tags are stored verbatim (escaping is the client’s job) and never
   assert.equal(r.status, 201);
   const mine = (await c.get(`/api/places/${r.body.id}`)).body.place;
   assert.equal(mine.name, '<img src=x onerror=alert(1)>');
+});
+
+// 1x1 PNG
+const PNG_B64 = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mO8/uPHfwAIWQOCR3pKuwAAAABJRU5ErkJggg==';
+const asDataUrl = (b64, type = 'png') => `data:image/${type};base64,${b64}`;
+
+test('photo upload: needs login, checks real image bytes, is served back, and can be attached to a place', async () => {
+  assert.equal((await client().post('/api/uploads', { image: asDataUrl(PNG_B64) })).status, 401);
+  const jo = await register('jo');
+  assert.equal((await jo.post('/api/uploads', { image: 'nope' })).status, 422);
+  // right prefix, wrong bytes
+  const fake = Buffer.from('<script>alert(1)</script>'.repeat(3)).toString('base64');
+  assert.equal((await jo.post('/api/uploads', { image: asDataUrl(fake) })).status, 422);
+  const big = Buffer.concat([Buffer.from([0xff, 0xd8, 0xff, 0xe0]), Buffer.alloc(2.5 * 1024 * 1024)]).toString('base64');
+  assert.equal((await jo.post('/api/uploads', { image: asDataUrl(big, 'jpeg') })).status, 413);
+
+  const up = await jo.post('/api/uploads', { image: asDataUrl(PNG_B64) });
+  assert.equal(up.status, 201);
+  assert.match(up.body.path, /^\/uploads\/[a-f0-9]{32}\.png$/);
+  const served = await fetch(base + up.body.path);
+  assert.equal(served.status, 200);
+  assert.equal(served.headers.get('content-type'), 'image/png');
+
+  // attach on submit; a made-up path is rejected
+  const bad = await jo.post('/api/places', validPlace({ image: '/uploads/' + 'a'.repeat(32) + '.png' }));
+  assert.equal(bad.status, 422);
+  assert.ok(bad.body.fields.image);
+  assert.equal((await jo.post('/api/places', validPlace({ image: '../../etc/passwd' }))).status, 422);
+  const ok = await jo.post('/api/places', validPlace({ name: 'Photo Place', image: up.body.path }));
+  assert.equal(ok.status, 201);
+  assert.equal((await jo.get(`/api/places/${ok.body.id}`)).body.place.image, up.body.path);
+
+  // and via an edit request, applied on approval
+  const mod = await admin();
+  await mod.post(`/api/admin/places/${ok.body.id}/approve`);
+  const up2 = await jo.post('/api/uploads', { image: asDataUrl(PNG_B64) });
+  const e = await jo.post(`/api/places/${ok.body.id}/edits`, { changes: { image: up2.body.path }, reason: 'Better photo' });
+  assert.equal(e.status, 201);
+  assert.equal((await client().get(`/api/places/${ok.body.id}`)).body.place.image, up.body.path);
+  await mod.post(`/api/admin/edits/${e.body.id}/approve`);
+  assert.equal((await client().get(`/api/places/${ok.body.id}`)).body.place.image, up2.body.path);
 });

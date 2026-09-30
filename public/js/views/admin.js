@@ -48,6 +48,7 @@ export async function adminView(ctx, root) {
         q.places.length ? null : h('p', { class: 'muted' }, 'Nothing waiting.'),
         q.places.map((p) => h('article', { class: 'card queue-item' },
           h('h3', {}, p.name),
+          p.image ? h('img', { class: 'thumb', src: p.image, alt: `Photo of ${p.name}` }) : null,
           h('div', { class: 'badges' }, badge(meta.categories[p.category]), p.submitter_is_owner ? badge('Claims to be the owner', 'badge--warn') : badge('Community submission', 'badge--muted')),
           h('p', { class: 'muted' }, `${[p.address, p.city, p.state].filter(Boolean).join(', ')} · by ${p.submitter ?? 'unknown'} · ${fmtDate(p.created_at)}`),
           p.description ? h('p', {}, p.description) : null,

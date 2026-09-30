@@ -3,10 +3,11 @@ import { HttpError, requireUser } from '../http.js';
 import { clean, cleanReason, PLACE_SPEC } from '../validate.js';
 import { FEATURES, CATEGORIES, OFFER_KINDS } from '../meta.js';
 import { listPlaces, getPlace, insertPlace, createEditRequest } from '../store.js';
+import { uploadExists } from '../uploads.js';
 
 const int = (v) => (/^\d+$/.test(String(v)) ? Number(v) : null);
 
-export function placeRoutes({ db, writeLimiter }) {
+export function placeRoutes({ db, config, writeLimiter }) {
   const r = Router();
 
   r.get('/', (req, res) => {
@@ -30,6 +31,7 @@ export function placeRoutes({ db, writeLimiter }) {
 
   r.post('/', requireUser, writeLimiter, (req, res) => {
     const data = clean(req.body, PLACE_SPEC);
+    if (!uploadExists(config.uploadDir, data.image)) throw new HttpError(422, 'Upload the photo again.', { image: 'Upload the photo again.' });
     if (!data.offers.length && !data.accessibility.length) {
       throw new HttpError(422, 'Add at least one OKU offer or one accessibility feature.', {
         offers: 'Add at least one offer, or tick an accessibility feature.',
@@ -48,6 +50,7 @@ export function placeRoutes({ db, writeLimiter }) {
     const place = loadVisible(req);
     if (place.status !== 'approved') throw new HttpError(409, 'This listing is still awaiting review.');
     const changes = clean(req.body?.changes, PLACE_SPEC, { partial: true });
+    if (!uploadExists(config.uploadDir, changes.image)) throw new HttpError(422, 'Upload the photo again.', { image: 'Upload the photo again.' });
     if (!Object.keys(changes).length) throw new HttpError(422, 'You have not changed anything.');
     const reason = cleanReason(req.body?.reason);
     const id = createEditRequest(db, { type: 'place', id: place.id, user: req.user, changes, reason });

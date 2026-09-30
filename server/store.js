@@ -2,7 +2,7 @@
 import { tx } from './db.js';
 import { HttpError } from './http.js';
 
-const PLACE_COLS = ['name', 'category', 'description', 'address', 'city', 'state', 'lat', 'lng', 'phone', 'website'];
+const PLACE_COLS = ['name', 'category', 'description', 'address', 'city', 'state', 'lat', 'lng', 'phone', 'website', 'image'];
 const BENEFIT_COLS = ['title', 'agency', 'category', 'summary', 'eligibility', 'how_to_apply', 'url'];
 
 export const parsePlace = (row) => row && {

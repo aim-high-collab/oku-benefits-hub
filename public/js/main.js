@@ -58,7 +58,7 @@ function renderNav() {
   if (state.user) {
     if (state.user.role === 'admin') nav.append(h('a', { href: '#/admin', 'aria-current': path === '/admin' ? 'page' : null }, 'Moderation'));
     account.append(
-      h('a', { class: 'btn btn--small', href: '#/submit/place' }, icon('plus', 16), 'Add a place'),
+      h('a', { class: 'btn btn--small btn--sun', href: '#/submit/place' }, icon('plus', 16), 'Add a place'),
       h('a', { class: 'me', href: '#/account', 'aria-current': path === '/account' ? 'page' : null, title: 'My contributions' },
         h('span', { class: 'avatar', 'aria-hidden': 'true' }, state.user.name.trim().charAt(0).toUpperCase()), h('span', { class: 'me-name' }, state.user.name)),
       h('button', { type: 'button', class: 'linkbtn', onclick: logout }, 'Log out'));

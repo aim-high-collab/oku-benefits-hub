@@ -2,7 +2,8 @@ import { openDb } from './db.js';
 import { createApp } from './app.js';
 import { loadConfig } from './config.js';
 import { hashPassword } from './http.js';
-import { seedBenefits, seedPlaces, purgeLegacyDemoPlaces } from './seed.js';
+import { fileURLToPath } from 'node:url';
+import { seedBenefits, seedPlaces, applySeedPhotos, purgeLegacyDemoPlaces } from './seed.js';
 
 const config = loadConfig();
 const db = openDb(config.dbPath);
@@ -27,6 +28,9 @@ const nPurged = purgeLegacyDemoPlaces(db);
 if (nPurged) console.log(`Removed ${nPurged} legacy placeholder places.`);
 const nPlaces = seedPlaces(db);
 if (nPlaces) console.log(`Added ${nPlaces} researched attractions (details not yet confirmed with the venues).`);
+
+const nPhotos = applySeedPhotos(db, fileURLToPath(new URL('../public/img/places', import.meta.url)));
+if (nPhotos) console.log(`Attached ${nPhotos} photo(s) from public/img/places.`);
 
 createApp({ db, config }).listen(config.port, () => {
   console.log(`OKU Benefits Hub running at http://localhost:${config.port}`);

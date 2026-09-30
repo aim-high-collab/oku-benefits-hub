@@ -39,6 +39,13 @@ const url = (v, errors, key) => {
   }
 };
 
+export const IMAGE_PATH = /^\/uploads\/[a-f0-9]{32}\.(jpg|png|webp)$/;
+const image = (v, errors, key) => {
+  const s = typeof v === 'string' ? v.trim() : '';
+  if (s && !IMAGE_PATH.test(s)) errors[key] = 'Upload the photo again.';
+  return s;
+};
+
 const coord = (min, max, label) => (v, errors, key) => {
   const n = typeof v === 'number' ? v : Number.NaN;
   if (!Number.isFinite(n) || n < min || n > max) errors[key] = `${label} must be inside Malaysia. Pick the location on the map.`;
@@ -85,6 +92,7 @@ export const PLACE_SPEC = {
   lng: coord(MY_BOUNDS.minLng, MY_BOUNDS.maxLng, 'Location'),
   phone,
   website: url,
+  image,
   accessibility: features,
   offers,
 };

@@ -1,6 +1,6 @@
 import { h, clear } from '../dom.js';
 import { api } from '../api.js';
-import { badge, stars, fmtDate, field, radioGroup, errorSummary, offerLine, icon } from '../ui.js';
+import { badge, stars, fmtDate, field, radioGroup, errorSummary, offerLine, icon, groupOf, placeImage, offerIcon } from '../ui.js';
 import { createMap, destroyMap, pinIcon, directionsUrl, osmUrl } from '../map.js';
 
 const HONOURED = { yes: 'Discount honoured', no: 'Discount not honoured', not_tried: 'Did not try the discount' };
@@ -34,7 +34,6 @@ export async function placeView(ctx, root, [id]) {
       h('div', {},
         h('h1', {}, p.name),
         h('div', { class: 'pills' },
-          badge(meta.categories[p.category]),
           p.partner_verified ? h('span', { class: 'badge badge--ok' }, icon('verified', 14), 'Verified partner') : null,
           p.review_count ? h('span', { class: 'rating' }, icon('star', 15), h('strong', {}, p.avg_rating), ` · ${p.review_count} review${p.review_count === 1 ? '' : 's'}`) : h('span', { class: 'muted' }, 'No reviews yet'))),
       h('div', { class: 'place-actions' },
@@ -43,20 +42,21 @@ export async function placeView(ctx, root, [id]) {
         verifyBtn)),
     h('div', { class: 'place-grid' },
       h('div', { class: 'place-main' },
+        h('div', { class: `place-hero tone-${groupOf(p.category)}` }, placeImage(p), h('span', { class: 'sticker' }, meta.categories[p.category])),
         p.description ? h('p', { class: 'place-about' }, p.description) : null,
         h('section', { class: 'block', 'aria-labelledby': 'offers-h' },
-          h('h2', { id: 'offers-h' }, 'OKU offers'),
+          h('h2', { id: 'offers-h' }, 'Offers & ways to help'),
           p.offers.length
-            ? h('ul', { class: 'offer-list' }, p.offers.map((o) => h('li', { class: 'offer-card' },
-              h('div', { class: 'offer-kind' }, icon('check', 16), meta.offerKinds[o.kind]),
+            ? h('ul', { class: 'offer-list' }, p.offers.map((o) => h('li', { class: `offer-card offer-card--${o.kind}` },
+              h('div', { class: 'offer-kind' }, offerIcon(o.kind), meta.offerKinds[o.kind]),
               h('strong', {}, offerLine(o)),
               o.conditions ? h('p', {}, o.conditions) : null)))
-            : h('p', { class: 'muted' }, 'No offers listed yet. Does this place offer one? ', h('a', { href: `#/place/${p.id}/edit` }, 'Suggest an edit'), '.'),
-          h('p', { class: 'hint' }, 'Bring your OKU card. Offers can change, so it is worth confirming before you go.')),
+            : h('p', { class: 'muted' }, 'Nothing listed yet. Does this place offer a perk, or welcome volunteers? ', h('a', { href: `#/place/${p.id}/edit` }, 'Suggest an edit'), '.'),
+          p.offers.some((o) => o.kind !== 'volunteer') ? h('p', { class: 'hint' }, 'Bring your OKU card. Offers can change, so it is worth confirming before you go.') : null),
         h('section', { class: 'block', 'aria-labelledby': 'acc-h' },
           h('h2', { id: 'acc-h' }, 'Accessibility'),
           p.accessibility.length
-            ? h('ul', { class: 'feature-grid' }, p.accessibility.map((f) => h('li', {}, icon('check', 16), meta.features[f])))
+            ? h('ul', { class: 'feature-grid' }, p.accessibility.map((f) => h('li', {}, icon('check', 14), meta.features[f])))
             : h('p', { class: 'muted' }, 'No accessibility features recorded yet.')),
         reviewsSection()),
       h('aside', { class: 'place-side', 'aria-label': 'Location and contact' },
@@ -130,7 +130,7 @@ export async function placeView(ctx, root, [id]) {
     title: p.name,
     mounted() {
       map = createMap(document.getElementById('mini-map'), { center: [p.lat, p.lng], zoom: 16 });
-      L.marker([p.lat, p.lng], { icon: pinIcon(p.partner_verified ? 'pin--partner' : ''), title: p.name, alt: p.name }).addTo(map);
+      L.marker([p.lat, p.lng], { icon: pinIcon(`tone-${groupOf(p.category)}`), title: p.name, alt: p.name }).addTo(map);
     },
     destroy() { destroyMap(map); },
   };

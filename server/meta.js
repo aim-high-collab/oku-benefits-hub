@@ -12,6 +12,7 @@ export const CATEGORIES = {
   hotel: 'Hotel & stay',
   education: 'Education & training',
   services: 'Services',
+  social: 'Social enterprise & volunteering',
   other: 'Other',
 };
 
@@ -41,6 +42,7 @@ export const OFFER_KINDS = {
   free: 'Free / waived',
   priority: 'Priority service',
   freebie: 'Freebie / add-on',
+  volunteer: 'Volunteer with us',
   other: 'Other perk',
 };
 
