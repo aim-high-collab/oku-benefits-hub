@@ -6,7 +6,7 @@ businesses list themselves (or are listed by the community), OKU users find them
 
 ## Features
 
-- **Map + photo cards** (OpenStreetMap via Leaflet). Filter by kind of offer (free, discount, priority, freebie,
+- **Map + photo cards** (OpenStreetMap via Leaflet, or Google Maps when a key is set; see below). Filter by kind of offer (free, discount, priority, freebie,
   volunteer), type of place, accessibility features and free text; "use my location" sorts by distance. The list is a full alternative to the map for keyboard and
   screen-reader users.
 - **Community submissions**: anyone with an account can add a place (with offers, accessibility features and a
@@ -45,7 +45,28 @@ variables are required). See `.env.example`.
 | `npm run dev` | Watch mode |
 
 `UPLOAD_DIR` (default: `uploads` next to the database), and environment variables (set them in your shell; on Windows PowerShell use `$env:PORT=3000`, in `cmd` use `set PORT=3000`): `PORT`, `DB_PATH` (default `data/oku.db`), `NODE_ENV=production` (secure cookies),
-`TRUST_PROXY` (set to `1` behind a reverse proxy), `ADMIN_EMAIL`, `ADMIN_PASSWORD`.
+`TRUST_PROXY` (set to `1` behind a reverse proxy), `ADMIN_EMAIL`, `ADMIN_PASSWORD`, `GOOGLE_MAPS_API_KEY`,
+`GOOGLE_MAPS_MAP_ID`.
+
+## Google Maps
+
+Without a key the site uses OpenStreetMap (free, no account). To use Google Maps for the maps and the
+"Find address or landmark" search instead:
+
+1. In the [Google Cloud console](https://console.cloud.google.com/google/maps-apis), create a project with billing
+   enabled and enable **Maps JavaScript API** and **Places API (New)**.
+2. Create an API key. Under *Application restrictions* choose **Websites** and add your site
+   (e.g. `https://your-app.onrender.com/*`, plus `http://localhost:3000/*` for development). Under *API
+   restrictions* allow only those two APIs. The key is sent to every visitor's browser, so these restrictions are
+   what stop others from using it.
+3. Optional but recommended for production: create a **Map ID** (Map management > Create map ID, type JavaScript,
+   vector). Without one the built-in `DEMO_MAP_ID` is used, which Google intends for testing.
+4. Set `GOOGLE_MAPS_API_KEY` (and `GOOGLE_MAPS_MAP_ID`) and restart. On Render, fill them in under Environment.
+
+If the key is missing, rejected or the script cannot load, the site falls back to OpenStreetMap. With a key set,
+the Content-Security-Policy is widened to Google's published allowlist (which needs `'unsafe-eval'` and inline
+styles). Watch your usage in the Cloud console; Google bills map loads and place searches beyond the free tier.
+"Directions" always opens Google Maps (a plain link, no key needed).
 
 ## Important: data accuracy
 
@@ -59,7 +80,8 @@ variables are required). See `.env.example`.
 `npm run build:static` writes a browser-only copy of the site to `docs/` (sample data baked in; anything visitors add
 or review stays in their own browser). It is committed, so you can host `docs/` for free:
 GitHub Pages (Settings > Pages > Deploy from a branch > pick the branch and `/docs`; the repo must be public on a free
-plan), or drag the `docs` folder onto Netlify Drop / Cloudflare Pages. Re-run the build after changing the app.
+plan), or drag the `docs` folder onto Netlify Drop / Cloudflare Pages. Re-run the build after changing the app. To use Google Maps in the preview, run the build with
+`GOOGLE_MAPS_API_KEY` set; the key then sits in `docs/data.json`, so restrict it to the preview's address.
 
 ## Deploying from GitHub
 
@@ -85,6 +107,7 @@ server/   Express 5 API + SQLite (node:sqlite)
   store.js      queries, edit-request diffing/applying
   routes/       auth, places (+reviews, edits), benefits, account, admin
 public/   No-build frontend: ES modules, hash routing, Leaflet + fonts served from node_modules,
+          js/map.js picks Google Maps or Leaflet (all views go through it),
           illustrated covers in img/cover, logo in img/logo-mark.svg
 test/     API tests (node:test)
 ```

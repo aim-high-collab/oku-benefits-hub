@@ -1,7 +1,7 @@
 import { h, clear } from '../dom.js';
 import { api } from '../api.js';
 import { badge, stars, fmtDate, field, radioGroup, errorSummary, offerLine, icon, groupOf, placeImage, offerIcon } from '../ui.js';
-import { createMap, destroyMap, pinIcon, directionsUrl, osmUrl } from '../map.js';
+import { createMap, destroyMap, directionsUrl, googleMapsUrl, osmUrl, usingGoogle } from '../map.js';
 
 const HONOURED = { yes: 'Discount honoured', no: 'Discount not honoured', not_tried: 'Did not try the discount' };
 
@@ -11,6 +11,7 @@ export async function placeView(ctx, root, [id]) {
   const [{ place: p }, { reviews }] = await Promise.all([api('GET', `/places/${id}`), api('GET', `/places/${id}/reviews`)]);
   const isAdmin = state.user?.role === 'admin';
   let map;
+  let destroyed = false;
 
   const honouredTotal = p.honoured_yes + p.honoured_no;
   const refresh = () => ctx.go(`#/place/${p.id}?r=${Date.now()}`);
@@ -62,7 +63,9 @@ export async function placeView(ctx, root, [id]) {
       h('aside', { class: 'place-side', 'aria-label': 'Location and contact' },
         h('div', { id: 'mini-map', role: 'region', 'aria-label': `Map showing ${p.name}` }),
         h('ul', { class: 'contact-list' }, contact.map(([ic, v]) => h('li', {}, icon(ic, 18), h('span', {}, v)))),
-        h('p', { class: 'side-link' }, h('a', { href: osmUrl(p), target: '_blank', rel: 'noopener noreferrer' }, 'Open in OpenStreetMap'))))));
+        h('p', { class: 'side-link' }, usingGoogle()
+          ? h('a', { href: googleMapsUrl(p), target: '_blank', rel: 'noopener noreferrer' }, 'Open in Google Maps')
+          : h('a', { href: osmUrl(p), target: '_blank', rel: 'noopener noreferrer' }, 'Open in OpenStreetMap'))))));
 
   function reviewsSection() {
     const wrap = h('section', { class: 'block', 'aria-labelledby': 'rev-h' }, h('h2', { id: 'rev-h' }, 'Reviews'));
@@ -128,10 +131,12 @@ export async function placeView(ctx, root, [id]) {
 
   return {
     title: p.name,
-    mounted() {
-      map = createMap(document.getElementById('mini-map'), { center: [p.lat, p.lng], zoom: 16 });
-      L.marker([p.lat, p.lng], { icon: pinIcon(`tone-${groupOf(p.category)}`), title: p.name, alt: p.name }).addTo(map);
+    async mounted() {
+      const m = await createMap(document.getElementById('mini-map'), { center: [p.lat, p.lng], zoom: 16 });
+      if (destroyed) return destroyMap(m);
+      map = m;
+      map.addMarker({ lat: p.lat, lng: p.lng, tone: `tone-${groupOf(p.category)}`, title: p.name });
     },
-    destroy() { destroyMap(map); },
+    destroy() { destroyed = true; destroyMap(map); },
   };
 }

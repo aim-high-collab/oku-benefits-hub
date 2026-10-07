@@ -277,3 +277,21 @@ test('photo upload: needs login, checks real image bytes, is served back, and ca
   await mod.post(`/api/admin/edits/${e.body.id}/approve`);
   assert.equal((await client().get(`/api/places/${ok.body.id}`)).body.place.image, up2.body.path);
 });
+
+test('maps default to OpenStreetMap; a Google Maps key switches provider and CSP', async () => {
+  const osm = await client().get('/api/meta');
+  assert.deepEqual(osm.body.maps, { provider: 'osm' });
+  assert.ok(!osm.res.headers.get('content-security-policy').includes('googleapis'));
+
+  const app = createApp({ db, config: { secureCookies: false, uploadDir: tmpdir(), googleMapsKey: 'test-key', googleMapId: 'abc123' } });
+  const srv = await new Promise((resolve) => { const s = app.listen(0, () => resolve(s)); });
+  try {
+    const res = await fetch(`http://127.0.0.1:${srv.address().port}/api/meta`);
+    assert.deepEqual((await res.json()).maps, { provider: 'google', key: 'test-key', mapId: 'abc123' });
+    const csp = res.headers.get('content-security-policy');
+    assert.match(csp, /script-src 'self' https:\/\/\*\.googleapis\.com/);
+    assert.match(csp, /connect-src [^;]*nominatim[^;]*googleapis/);
+  } finally {
+    srv.close();
+  }
+});

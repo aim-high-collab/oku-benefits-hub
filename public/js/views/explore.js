@@ -1,7 +1,7 @@
 import { h, clear } from '../dom.js';
 import { api, qs } from '../api.js';
 import { field, checkboxGroup, distanceKm, fmtDistance, offerLine, icon, badge, groupOf, placeImage, offerIcon } from '../ui.js';
-import { createMap, destroyMap, pinIcon, locate } from '../map.js';
+import { createMap, destroyMap, locate } from '../map.js';
 
 const KIND_CHIPS = { free: 'Free', discount: 'Discount', priority: 'Priority', freebie: 'Freebie', volunteer: 'Volunteer' };
 
@@ -10,7 +10,7 @@ export async function exploreView(ctx, root) {
   const { meta, filters } = state;
   let places = [];
   let map;
-  let layer;
+  let destroyed = false;
   let youMarker;
   const markers = new Map();
   const cards = new Map();
@@ -91,8 +91,7 @@ export async function exploreView(ctx, root) {
   function showYou() {
     if (!state.loc || !map) return;
     youMarker?.remove();
-    youMarker = L.circleMarker([state.loc.lat, state.loc.lng], { radius: 8, color: '#fff', weight: 3, fillColor: '#2563eb', fillOpacity: 1 })
-      .bindTooltip('You are here').addTo(map);
+    youMarker = map.addYouMarker(state.loc.lat, state.loc.lng);
   }
 
   // ----- data -----
@@ -106,7 +105,7 @@ export async function exploreView(ctx, root) {
       count.textContent = err.message;
       return;
     }
-    if (mine !== loadToken) return;
+    if (mine !== loadToken || !map) return;
     places = data.places;
     if (state.loc) for (const p of places) p.distance = distanceKm(state.loc, p);
     if (filters.sort === 'nearest' && state.loc) places.sort((a, b) => a.distance - b.distance);
@@ -123,7 +122,7 @@ export async function exploreView(ctx, root) {
   function render(fit) {
     count.textContent = places.length === 1 ? '1 place' : `${places.length} places`;
     clear(list);
-    layer.clearLayers();
+    for (const m of markers.values()) m.remove();
     markers.clear();
     cards.clear();
     if (!places.length) list.append(h('li', { class: 'empty' }, h('strong', {}, 'No places match yet.'), h('p', {}, 'Try removing a filter, or '), h('a', { href: '#/submit/place' }, 'add one you know')));
@@ -131,16 +130,10 @@ export async function exploreView(ctx, root) {
       const li = placeCard(p);
       cards.set(p.id, li);
       list.append(li);
-      const m = L.marker([p.lat, p.lng], { icon: pinIcon(`tone-${groupOf(p.category)}`), title: p.name, alt: p.name, keyboard: true })
-        .bindPopup(() => popupFor(p));
-      m.on('click', () => highlight(p.id, true));
-      m.addTo(layer);
-      markers.set(p.id, m);
+      markers.set(p.id, map.addMarker({ lat: p.lat, lng: p.lng, tone: `tone-${groupOf(p.category)}`, title: p.name,
+        popup: () => popupFor(p), onClick: () => highlight(p.id, true) }));
     }
-    if (fit && places.length) {
-      const b = L.latLngBounds(places.map((p) => [p.lat, p.lng]));
-      map.fitBounds(b.pad(0.2), { maxZoom: 15 });
-    }
+    if (fit) map.fitTo(places, 15);
   }
 
   function placeCard(p) {
@@ -167,7 +160,8 @@ export async function exploreView(ctx, root) {
   }
 
   function focusOnMap(p) {
-    map.setView([p.lat, p.lng], Math.max(map.getZoom(), 16));
+    if (!map) return;
+    map.setView(p.lat, p.lng, Math.max(map.getZoom(), 16));
     markers.get(p.id)?.openPopup();
     highlight(p.id, false);
     document.getElementById('map').scrollIntoView({ block: 'nearest' });
@@ -175,12 +169,13 @@ export async function exploreView(ctx, root) {
 
   return {
     title: 'Places',
-    mounted() {
-      map = createMap(mapEl);
-      layer = L.layerGroup().addTo(map);
+    async mounted() {
+      const m = await createMap(mapEl);
+      if (destroyed) return destroyMap(m);
+      map = m;
       showYou();
       refresh(true);
     },
-    destroy() { clearTimeout(timer); loadToken++; destroyMap(map); },
+    destroy() { destroyed = true; clearTimeout(timer); loadToken++; destroyMap(map); },
   };
 }

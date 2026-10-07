@@ -1,7 +1,7 @@
 import { h, clear } from '../dom.js';
 import { api } from '../api.js';
 import { field, checkboxGroup, errorSummary } from '../ui.js';
-import { createMap, destroyMap, pinIcon, locate, MALAYSIA_CENTER, MALAYSIA_ZOOM } from '../map.js';
+import { createMap, destroyMap, locate, searchPlaces, usingGoogle, MALAYSIA_CENTER, MALAYSIA_ZOOM } from '../map.js';
 
 // ---------- shared plumbing ----------
 
@@ -101,11 +101,12 @@ function offerRow(meta, offer, onRemove) {
 
 function locationPicker(meta, initial, lat, lng) {
   const mapEl = h('div', { id: 'picker-map', role: 'region', 'aria-label': 'Location picker map. Click or tap to place the pin, or use the search box or coordinate fields.' });
-  const search = field({ label: 'Find address or landmark', name: 'geo', type: 'search', hint: 'Searches OpenStreetMap. Then click the map to fine-tune the pin.', attrs: { autocomplete: 'off' } });
+  const search = field({ label: 'Find address or landmark', name: 'geo', type: 'search', hint: `Searches ${usingGoogle() ? 'Google Maps' : 'OpenStreetMap'}. Then click the map to fine-tune the pin.`, attrs: { autocomplete: 'off' } });
   const results = h('ul', { class: 'geo-results', 'aria-label': 'Search results' });
   const status = h('p', { class: 'hint', role: 'status' });
   let map;
   let marker;
+  let destroyed = false;
 
   const setPoint = (la, ln, pan = true, writeInputs = true) => {
     if (writeInputs) {
@@ -114,10 +115,9 @@ function locationPicker(meta, initial, lat, lng) {
     }
     if (!map) return;
     if (!marker) {
-      marker = L.marker([la, ln], { icon: pinIcon(), draggable: true, keyboard: true, title: 'Selected location' }).addTo(map);
-      marker.on('dragend', () => { const p = marker.getLatLng(); setPoint(p.lat, p.lng, false); });
-    } else marker.setLatLng([la, ln]);
-    if (pan) map.setView([la, ln], Math.max(map.getZoom(), 17));
+      marker = map.addMarker({ lat: la, lng: ln, title: 'Selected location', draggable: true, onDragEnd: (a, b) => setPoint(a, b, false) });
+    } else marker.setPosition(la, ln);
+    if (pan) map.setView(la, ln, Math.max(map.getZoom(), 17));
     status.textContent = `Selected location: ${Number(la).toFixed(5)}, ${Number(ln).toFixed(5)}`;
   };
 
@@ -135,11 +135,10 @@ function locationPicker(meta, initial, lat, lng) {
     status.textContent = 'Searching…';
     clear(results);
     try {
-      const res = await fetch(`https://nominatim.openstreetmap.org/search?format=jsonv2&countrycodes=my&limit=5&q=${encodeURIComponent(term)}`, { headers: { accept: 'application/json' } });
-      const found = await res.json();
+      const found = await searchPlaces(term, meta.bounds);
       status.textContent = found.length ? `${found.length} result${found.length === 1 ? '' : 's'}. Choose one to move the pin.` : 'No results. Try a nearby landmark or drop the pin on the map.';
       for (const r of found) {
-        results.append(h('li', {}, h('button', { type: 'button', onclick: () => { setPoint(+r.lat, +r.lon); clear(results); } }, r.display_name)));
+        results.append(h('li', {}, h('button', { type: 'button', onclick: () => { setPoint(r.lat, r.lng); clear(results); } }, r.label)));
       }
     } catch {
       status.textContent = 'Search is unavailable right now. Click the map to place the pin instead.';
@@ -158,13 +157,18 @@ function locationPicker(meta, initial, lat, lng) {
 
   return {
     el,
-    mount() {
+    async mount() {
       const has = Number.isFinite(initial?.lat);
-      map = createMap(mapEl, has ? { center: [initial.lat, initial.lng], zoom: 17 } : { center: MALAYSIA_CENTER, zoom: MALAYSIA_ZOOM });
-      map.on('click', (e) => setPoint(e.latlng.lat, e.latlng.lng, false));
-      if (has) setPoint(initial.lat, initial.lng, false, false);
+      const m = await createMap(mapEl, has ? { center: [initial.lat, initial.lng], zoom: 17 } : { center: MALAYSIA_CENTER, zoom: MALAYSIA_ZOOM });
+      if (destroyed) return destroyMap(m);
+      map = m;
+      map.onClick((la, ln) => setPoint(la, ln, false));
+      // the coordinate fields hold the initial point (or whatever was typed while the map loaded)
+      const la = parseFloat(lat.input.value);
+      const ln = parseFloat(lng.input.value);
+      if (Number.isFinite(la) && Number.isFinite(ln)) setPoint(la, ln, !has, false);
     },
-    destroy() { destroyMap(map); },
+    destroy() { destroyed = true; destroyMap(map); },
   };
 }
 

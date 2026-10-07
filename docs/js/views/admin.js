@@ -1,6 +1,7 @@
 import { h, clear } from '../dom.js';
 import { api } from '../api.js';
 import { badge, fmtDate, offerLine } from '../ui.js';
+import { googleMapsUrl, osmUrl, usingGoogle } from '../map.js';
 
 export async function adminView(ctx, root) {
   const { state } = ctx;
@@ -54,7 +55,7 @@ export async function adminView(ctx, root) {
           p.description ? h('p', {}, p.description) : null,
           p.offers.length ? h('ul', {}, p.offers.map((o) => h('li', {}, `${offerLine(o)} (${meta.offerKinds[o.kind]})${o.conditions ? ` — ${o.conditions}` : ''}`))) : null,
           p.accessibility.length ? h('p', {}, h('strong', {}, 'Accessibility: '), p.accessibility.map((f) => meta.features[f]).join(', ')) : null,
-          h('p', {}, h('a', { href: `#/place/${p.id}` }, 'Open listing'), ' · ', h('a', { href: `https://www.openstreetmap.org/?mlat=${p.lat}&mlon=${p.lng}#map=18/${p.lat}/${p.lng}`, target: '_blank', rel: 'noopener noreferrer' }, 'Check location on map')),
+          h('p', {}, h('a', { href: `#/place/${p.id}` }, 'Open listing'), ' · ', h('a', { href: usingGoogle() ? googleMapsUrl(p) : osmUrl(p), target: '_blank', rel: 'noopener noreferrer' }, 'Check location on map')),
           actions(`/admin/places/${p.id}`, p.submitter_is_owner
             ? h('button', { type: 'button', class: 'btn btn--ghost btn--small', onclick: async () => {
               try { await api('POST', `/admin/places/${p.id}/approve`); await api('PATCH', `/admin/places/${p.id}`, { partner_verified: true }); ctx.toast('Approved as verified partner.'); await load(); } catch (e) { ctx.toast(e.message, 'error'); }

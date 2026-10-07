@@ -21,7 +21,7 @@ export function createApp({ db, config }) {
   const app = express();
   app.disable('x-powered-by');
   if (config.trustProxy) app.set('trust proxy', config.trustProxy);
-  app.use(securityHeaders);
+  app.use(securityHeaders(config));
 
   const scale = config.rateLimitScale ?? 1;
   const authLimiter = rateLimit({ windowMs: 60_000, max: 10 * scale });
@@ -31,7 +31,7 @@ export function createApp({ db, config }) {
   app.use('/api/uploads', uploadRoutes(deps));
   app.use('/uploads', express.static(config.uploadDir, { maxAge: '30d', immutable: true, index: false, dotfiles: 'deny' }));
   app.use('/api', express.json({ limit: '100kb' }), sameOriginWrites, sessionMiddleware(db));
-  app.get('/api/meta', (_req, res) => res.json(meta()));
+  app.get('/api/meta', (_req, res) => res.json(meta(config)));
   app.use('/api/auth', authRoutes(deps));
   app.use('/api/places', placeRoutes(deps));
   app.use('/api/benefits', benefitRoutes(deps));

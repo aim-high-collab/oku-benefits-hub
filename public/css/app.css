@@ -227,6 +227,12 @@ details.more[open] summary::after { transform: rotate(-135deg); }
 .pin-wrap { background: none; border: 0; }
 .pin { display: block; width: 28px; height: 28px; border-radius: 50% 50% 50% 0; background: var(--tone, var(--blue)); border: 3px solid var(--ink); transform: rotate(-45deg); box-shadow: 2px 2px 0 rgba(23, 32, 61, .45); margin: 4px 0 0 2px; position: relative; }
 .pin::after { content: ""; position: absolute; inset: 6px; border-radius: 50%; background: var(--paper); border: 2px solid var(--ink); }
+.gm-pin { width: 32px; height: 36px; }
+.you-dot { display: block; width: 18px; height: 18px; border-radius: 50%; background: #2563eb; border: 3px solid #fff; box-shadow: 0 0 0 1px rgba(23, 32, 61, .35); transform: translateY(9px); }
+.gm-style { font: inherit; }
+.gm-style-iw h3 { margin: 0 0 .2rem; font-size: 1.1rem; }
+.gm-style-iw p { margin: 0 0 .3rem; }
+.gm-style-iw a { color: var(--blue); }
 .leaflet-container { font: inherit; background: #dfe9f3; }
 .leaflet-control-attribution { font-size: 11px; }
 .leaflet-bar a { color: var(--ink); }

@@ -6,6 +6,7 @@ import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { openDb } from '../server/db.js';
 import { meta } from '../server/meta.js';
+import { loadConfig } from '../server/config.js';
 import { listPlaces } from '../server/store.js';
 import { seedBenefits, seedPlaces } from '../server/seed.js';
 
@@ -33,7 +34,7 @@ const db = openDb(':memory:');
 seedBenefits(db);
 seedPlaces(db);
 const benefits = db.prepare("SELECT * FROM benefits WHERE status = 'approved'").all().map((b) => ({ ...b }));
-writeFileSync(join(out, 'data.json'), JSON.stringify({ meta: meta(), places: listPlaces(db, {}), benefits }));
+writeFileSync(join(out, 'data.json'), JSON.stringify({ meta: meta(loadConfig()), places: listPlaces(db, {}), benefits }));
 
 // relative URLs so it works under https://user.github.io/repo-name/
 let html = readFileSync(join(out, 'index.html'), 'utf8');
@@ -41,4 +42,5 @@ html = html.replace(/(href|src)="\//g, '$1="').replace('<html lang="en">', '<htm
 html = html.replace('<body>', '<body>\n  <p class="demo-banner"><b>Preview.</b> Sample data only. Anything you add or review stays in your own browser.</p>');
 writeFileSync(join(out, 'index.html'), html);
 writeFileSync(join(out, '.nojekyll'), '');
+if (process.env.GOOGLE_MAPS_API_KEY) console.log('Google Maps key baked into docs/data.json: restrict it to your preview site\'s address.');
 console.log(`Static preview written to docs/ (${JSON.parse(readFileSync(join(out, 'data.json'))).places.length} places).`);

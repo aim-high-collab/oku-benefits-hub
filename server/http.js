@@ -126,23 +126,42 @@ export function rateLimit({ windowMs, max }) {
   };
 }
 
-export function securityHeaders(req, res, next) {
-  res.set({
-    'Content-Security-Policy': [
-      "default-src 'self'",
-      "script-src 'self'",
-      "style-src 'self'",
-      "img-src 'self' data: https://tile.openstreetmap.org https://*.tile.openstreetmap.org",
-      "connect-src 'self' https://nominatim.openstreetmap.org",
-      "frame-ancestors 'none'",
-      "base-uri 'self'",
-      "form-action 'self'",
-    ].join('; '),
-    'X-Content-Type-Options': 'nosniff',
-    'Referrer-Policy': 'strict-origin-when-cross-origin',
-    'Permissions-Policy': 'geolocation=(self), camera=(), microphone=()',
-  });
-  next();
+// Google Maps' published allowlist. Its script needs eval and injects inline styles, so these are only
+// loosened when a Google Maps key is configured. OpenStreetMap stays allowed as the fallback.
+const GOOGLE_MAPS_CSP = {
+  script: " https://*.googleapis.com https://*.gstatic.com *.google.com https://*.ggpht.com *.googleusercontent.com 'unsafe-eval' blob:",
+  style: " 'unsafe-inline' https://fonts.googleapis.com",
+  img: ' https://*.googleapis.com https://*.gstatic.com *.google.com *.googleusercontent.com',
+  connect: ' https://*.googleapis.com *.google.com https://*.gstatic.com data: blob:',
+  font: " 'self' https://fonts.gstatic.com",
+  frame: ' *.google.com',
+  worker: ' blob:',
+};
+
+export function securityHeaders(config = {}) {
+  const g = config.googleMapsKey ? GOOGLE_MAPS_CSP : {};
+  const csp = [
+    "default-src 'self'",
+    `script-src 'self'${g.script ?? ''}`,
+    `style-src 'self'${g.style ?? ''}`,
+    `img-src 'self' data: https://tile.openstreetmap.org https://*.tile.openstreetmap.org${g.img ?? ''}`,
+    `connect-src 'self' https://nominatim.openstreetmap.org${g.connect ?? ''}`,
+    g.font && `font-src${g.font}`,
+    g.frame && `frame-src${g.frame}`,
+    g.worker && `worker-src${g.worker}`,
+    "frame-ancestors 'none'",
+    "base-uri 'self'",
+    "form-action 'self'",
+  ].filter(Boolean).join('; ');
+  return (_req, res, next) => {
+    res.set({
+      'Content-Security-Policy': csp,
+      'X-Content-Type-Options': 'nosniff',
+      'Referrer-Policy': 'strict-origin-when-cross-origin',
+      'Permissions-Policy': 'geolocation=(self), camera=(), microphone=()',
+    });
+    next();
+  };
 }
 
 export function errorHandler(err, _req, res, _next) {

@@ -1,6 +1,7 @@
 import { h, clear } from './dom.js';
 import { api } from './api.js';
 import { announce, toast, icon } from './ui.js';
+import { configureMaps } from './map.js';
 import { exploreView } from './views/explore.js';
 import { placeView } from './views/place.js';
 import { benefitsView } from './views/benefits.js';
@@ -120,6 +121,7 @@ try {
   const [meta, me] = await Promise.all([api('GET', '/meta'), api('GET', '/auth/me')]);
   state.meta = meta;
   state.user = me.user;
+  configureMaps(meta.maps);
 } catch {
   clear(main).append(h('div', { class: 'page' }, h('h1', {}, 'We can’t reach the server'), h('p', {}, 'Please check your connection and reload.')));
   throw new Error('boot failed');

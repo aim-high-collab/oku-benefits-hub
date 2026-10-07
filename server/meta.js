@@ -61,11 +61,17 @@ export const BENEFIT_CATEGORIES = {
 // Rough bounding box around Malaysia; rejects obviously wrong coordinates.
 export const MY_BOUNDS = { minLat: 0.8, maxLat: 7.5, minLng: 99.5, maxLng: 119.5 };
 
-export const meta = () => ({
+// Which map the client draws. The key is a browser key, so it is public by design: restrict it by HTTP referrer.
+export const mapsConfig = (config = {}) => (config.googleMapsKey
+  ? { provider: 'google', key: config.googleMapsKey, mapId: config.googleMapId || 'DEMO_MAP_ID' }
+  : { provider: 'osm' });
+
+export const meta = (config) => ({
   categories: CATEGORIES,
   states: STATES,
   features: FEATURES,
   offerKinds: OFFER_KINDS,
   benefitCategories: BENEFIT_CATEGORIES,
   bounds: MY_BOUNDS,
+  maps: mapsConfig(config),
 });
