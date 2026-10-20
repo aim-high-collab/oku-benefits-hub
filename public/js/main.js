@@ -107,7 +107,7 @@ async function logout() {
 
 // The label lists from /api/meta (categories, features, offer kinds...) are English; read them through t() so
 // every select, checkbox and badge built from them follows the chosen language.
-const LABELS = ['categories', 'features', 'offerKinds', 'sources', 'benefitCategories'];
+const LABELS = ['categories', 'features', 'offerKinds', 'sources', 'benefitCategories', 'accessQuestions'];
 const translated = (meta) => ({ ...meta, ...Object.fromEntries(LABELS.map((k) => [k, new Proxy(meta[k], { get: (o, key) => (typeof o[key] === 'string' ? t(o[key]) : o[key]) })])) });
 
 const currentPath = () => location.hash.replace(/^#/, '').split('?')[0] || '/';

@@ -4,7 +4,7 @@ const KEY = 'oku-demo-v1';
 let base;
 let store;
 
-const fresh = () => ({ user: null, users: [], places: [], benefits: [], edits: [], reviews: [], visits: [], next: 1000 });
+const fresh = () => ({ user: null, users: [], places: [], benefits: [], edits: [], reviews: [], visits: [], access: [], next: 1000 });
 const save = () => { try { localStorage.setItem(KEY, JSON.stringify(store)); } catch { /* storage full or blocked */ } };
 const fail = (status, message, fields = {}) => Object.assign(new Error(message), { status, fields });
 
@@ -19,17 +19,25 @@ const allBenefits = () => [...base.benefits, ...store.benefits];
 const need = () => { if (!store.user) throw fail(401, 'Please log in to do that.'); return store.user; };
 const like = (hay, q) => hay.toLowerCase().includes(q.toLowerCase());
 
+const ACCESS_FEATURES = ['step_free_entry', 'accessible_toilet', 'oku_parking', 'trained_staff'];
+function accessReports(placeId) {
+  const out = {};
+  for (const a of (store.access || []).filter((x) => x.place_id === placeId)) {
+    out[a.feature] ??= { yes: 0, no: 0 };
+    out[a.feature][a.answer]++;
+  }
+  return out;
+}
+
 function withStats(p) {
   const rs = store.reviews.filter((r) => r.place_id === p.id);
   const n = rs.length;
-  const as = rs.filter((r) => r.access_rating);
   const vs = store.visits.filter((v) => v.place_id === p.id);
   return {
     ...p,
     review_count: n,
     avg_rating: n ? Math.round((rs.reduce((s, r) => s + r.rating, 0) / n) * 10) / 10 : null,
-    avg_access: as.length ? Math.round((as.reduce((s, r) => s + r.access_rating, 0) / as.length) * 10) / 10 : null,
-    access_count: as.length,
+    access_reports: accessReports(p.id),
     honoured_yes: rs.filter((r) => r.discount_honoured === 'yes').length,
     honoured_no: rs.filter((r) => r.discount_honoured === 'no').length,
     visits_yes: vs.filter((v) => v.worked === 'yes').length,
@@ -151,6 +159,17 @@ export async function handle(method, path, body = {}) {
     save();
     const { visits_yes, visits_no, visits_partly, last_visit_at } = withStats(place);
     return { visits_yes, visits_no, visits_partly, last_visit_at };
+  }
+
+  if ((m = /^\/places\/(\d+)\/access$/.exec(p)) && method === 'POST') {
+    const place = allPlaces().find((x) => x.id === Number(m[1]));
+    if (!place) throw fail(404, 'Place not found.');
+    const entries = Object.entries(body.answers || {});
+    if (!entries.length || entries.some(([f, a]) => !ACCESS_FEATURES.includes(f) || !['yes', 'no'].includes(a))) throw fail(422, 'Answer yes or no to at least one question.');
+    store.access = store.access || [];
+    for (const [feature, answer] of entries) store.access.push({ place_id: place.id, feature, answer, created_at: new Date().toISOString() });
+    save();
+    return { access_reports: accessReports(place.id) };
   }
 
   // ----- benefits -----

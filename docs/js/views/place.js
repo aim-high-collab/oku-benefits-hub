@@ -1,17 +1,33 @@
 import { h, clear } from '../dom.js';
 import { api } from '../api.js';
 import { badge, stars, fmtDate, field, radioGroup, errorSummary, offerLine, icon, groupOf, placeImage, photoCredit, offerIcon,
-  trustOf, trustStamp, workedCounts, workedMeter, mobileNumber, accessScore } from '../ui.js';
+  trustOf, trustStamp, workedCounts, workedMeter, mobileNumber, visitorVerdict } from '../ui.js';
 import { t, tIn } from '../i18n.js';
 import { createMap, destroyMap, directionsUrl, googleMapsUrl, osmUrl, usingGoogle } from '../map.js';
 
 const HONOURED = { yes: 'Discount honoured', no: 'Discount not honoured', not_tried: 'Did not try the discount' };
 const VOTED_KEY = 'oku-visits';
-
-const votedFor = (id) => { try { return JSON.parse(localStorage.getItem(VOTED_KEY) || '[]').includes(id); } catch { return false; } };
-const rememberVote = (id) => {
-  try { localStorage.setItem(VOTED_KEY, JSON.stringify([...JSON.parse(localStorage.getItem(VOTED_KEY) || '[]'), id].slice(-200))); } catch { /* storage blocked */ }
+const ACCESS_KEY = 'oku-access';
+// Shown when most visitors answered "no" to the quick question for this feature.
+const NOT_THERE = {
+  step_free_entry: 'Steps at the entrance', accessible_toilet: 'No accessible toilet', oku_parking: 'No OKU parking bay', trained_staff: 'Staff were not helpful',
 };
+
+// One answer per place per device, kept in localStorage (the answers themselves need no account).
+const answeredFor = (key, id) => { try { return JSON.parse(localStorage.getItem(key) || '[]').includes(id); } catch { return false; } };
+const rememberAnswer = (key, id) => {
+  try { localStorage.setItem(key, JSON.stringify([...JSON.parse(localStorage.getItem(key) || '[]'), id].slice(-200))); } catch { /* storage blocked */ }
+};
+const votedFor = (id) => answeredFor(VOTED_KEY, id);
+const rememberVote = (id) => rememberAnswer(VOTED_KEY, id);
+
+/** "3 visitors said yes", "1 said yes · 2 said no" */
+function reportCounts(r) {
+  if (r.yes && r.no) return t('{y} said yes · {n} said no', { y: r.yes, n: r.no });
+  const n = r.yes || r.no;
+  if (r.yes) return n === 1 ? t('1 visitor said yes') : t('{n} visitors said yes', { n });
+  return n === 1 ? t('1 visitor said no') : t('{n} visitors said no', { n });
+}
 
 export async function placeView(ctx, root, [id]) {
   const { state } = ctx;
@@ -62,6 +78,7 @@ export async function placeView(ctx, root, [id]) {
         drawMeter();
         rememberVote(p.id);
         voteStatus.textContent = t('Thank you. Your answer is counted.');
+        if (!answeredFor(ACCESS_KEY, p.id)) voteStatus.after(accessQuestions());
       } catch (err) {
         voteStatus.textContent = err.message;
         for (const b of voteBtns) b.disabled = false;
@@ -76,7 +93,63 @@ export async function placeView(ctx, root, [id]) {
     p.status === 'approved' ? h('div', { class: 'did-it-work' },
       h('h3', {}, t('Been here? Did the OKU offer work?')),
       h('p', { class: 'hint' }, t('No account needed. Your answer updates the count above.')),
-      h('div', { class: 'vote-row' }, voteBtns), voteStatus) : null);
+      h('div', { class: 'vote-row' }, voteBtns), voteStatus,
+      votedFor(p.id) && !answeredFor(ACCESS_KEY, p.id) ? accessQuestions() : null) : null);
+
+  // ----- quick accessibility questions, offered after a "Did it work?" answer -----
+  function accessQuestions() {
+    const picked = {};
+    const status = h('p', { class: 'hint', role: 'status' });
+    const rows = Object.entries(meta.accessQuestions).map(([feature, question]) => {
+      const choices = [['yes', 'Yes', 'check'], ['no', 'No', 'x'], ['unsure', 'Not sure', 'question']];
+      const btns = choices.map(([v, label, ic]) => h('button', {
+        type: 'button', class: 'btn btn--ghost btn--small', 'aria-pressed': 'false', onclick: (e) => {
+          picked[feature] = v;
+          for (const b of btns) b.setAttribute('aria-pressed', String(b === e.currentTarget));
+        } }, icon(ic, 16), t(label)));
+      return h('fieldset', { class: 'quick-q' }, h('legend', {}, question), h('div', { class: 'vote-row' }, btns));
+    });
+    const send = h('button', { type: 'button', class: 'btn', onclick: async () => {
+      const answers = Object.fromEntries(Object.entries(picked).filter(([, v]) => v !== 'unsure'));
+      send.disabled = true;
+      try {
+        if (Object.keys(answers).length) p.access_reports = (await api('POST', `/places/${p.id}/access`, { answers })).access_reports;
+        rememberAnswer(ACCESS_KEY, p.id);
+        box.replaceChildren(h('p', { role: 'status' }, h('strong', {}, t('Thank you. The Accessibility section now includes your answers.'))));
+        const next = accessibilitySection();
+        accSection.replaceWith(next);
+        accSection = next;
+      } catch (err) {
+        status.textContent = t(err.message);
+        send.disabled = false;
+      }
+    } }, t('Send answers'));
+    const box = h('div', { class: 'quick-access' },
+      h('h3', {}, t('A few quick questions (optional)')),
+      h('p', { class: 'hint' }, t('They fill in the Accessibility section for the next visitor. Skip any you are not sure about.')),
+      rows, h('div', { class: 'actions' }, send), status);
+    return box;
+  }
+
+  // ----- what we know about access: listed features plus visitors' Yes / No answers -----
+  function accessibilitySection() {
+    const reported = Object.keys(p.access_reports ?? {}).filter((f) => visitorVerdict(p, f));
+    const features = [...p.accessibility, ...reported.filter((f) => !p.accessibility.includes(f))];
+    const item = (f) => {
+      const verdict = visitorVerdict(p, f);
+      // 'Were staff helpful?' asks less than 'Staff trained to assist', so a visitor's yes is worded as such.
+      const label = verdict === 'no' ? t(NOT_THERE[f]) : f === 'trained_staff' && verdict ? t('Helpful staff') : meta.features[f];
+      return h('li', {}, icon(verdict === 'no' ? 'x' : 'check', 14),
+        h('span', {}, label, verdict ? h('span', { class: 'report-count' }, ` · ${reportCounts(p.access_reports[f])}`) : null));
+    };
+    return h('section', { class: 'block', 'aria-labelledby': 'acc-h' },
+      h('h2', { id: 'acc-h' }, t('Accessibility')),
+      features.length
+        ? h('ul', { class: 'feature-grid' }, features.map(item))
+        : h('p', { class: 'unknown' }, icon('question', 18), h('span', {}, t('Not known yet. Ask the place before you go, or'), ' ',
+          h('a', { href: `#/place/${p.id}/edit` }, t('add what you know')), '.')));
+  }
+  let accSection = accessibilitySection();
 
   // ----- contact: messages before calls -----
   const contactBtns = h('div', { class: 'contact-btns' },
@@ -122,14 +195,7 @@ export async function placeView(ctx, root, [id]) {
             h('strong', {}, offerLine(o)),
             o.conditions ? h('p', {}, t(o.conditions)) : null,
             o.valid_until ? h('p', {}, t('Valid until {date}', { date: fmtDate(o.valid_until) })) : null)))) : null,
-        h('section', { class: 'block', 'aria-labelledby': 'acc-h' },
-          h('h2', { id: 'acc-h' }, t('Accessibility')),
-          p.access_count ? h('p', { class: 'access-line' }, accessScore(p, 'access-score--big'),
-            h('span', { class: 'hint' }, t('From visitors’ reviews: 1 = very hard to get in and around, 5 = easy.'))) : null,
-          p.accessibility.length
-            ? h('ul', { class: 'feature-grid' }, p.accessibility.map((f) => h('li', {}, icon('check', 14), meta.features[f])))
-            : h('p', { class: 'unknown' }, icon('question', 18), h('span', {}, t('Not known yet. Ask the place before you go, or'), ' ',
-              h('a', { href: `#/place/${p.id}/edit` }, t('add what you know')), '.'))),
+        accSection,
         p.description ? h('section', { class: 'block', 'aria-labelledby': 'about-h' }, h('h2', { id: 'about-h' }, t('About this place')), h('p', { class: 'place-about' }, t(p.description))) : null,
         reviewsSection()),
       h('aside', { class: 'place-side', 'aria-label': t('Location and contact') },
@@ -160,8 +226,7 @@ export async function placeView(ctx, root, [id]) {
       wrap.append(h('article', { class: 'review' },
         h('header', {}, h('strong', {}, r.author), stars(r.rating), h('span', { class: 'muted' }, fmtDate(r.created_at))),
         h('div', { class: 'pills' },
-          badge(t(HONOURED[r.discount_honoured]), r.discount_honoured === 'yes' ? 'badge--ok' : r.discount_honoured === 'no' ? 'badge--danger' : 'badge--muted'),
-          r.access_rating ? h('span', { class: 'muted' }, `${t('Accessibility')} `, stars(r.access_rating, 'Accessibility rated {n} out of 5')) : null),
+          badge(t(HONOURED[r.discount_honoured]), r.discount_honoured === 'yes' ? 'badge--ok' : r.discount_honoured === 'no' ? 'badge--danger' : 'badge--muted')),
         r.body ? h('p', {}, r.body) : null,
         isAdmin ? h('button', { type: 'button', class: 'btn btn--danger btn--small', onclick: async () => {
           if (!confirm(t('Remove this review?'))) return;
@@ -179,7 +244,6 @@ export async function placeView(ctx, root, [id]) {
     }
     const mine = reviews.find((r) => r.author === state.user.name);
     const rating = radioGroup({ legend: t('Overall rating (1 = poor, 5 = excellent)'), name: 'rating', value: String(mine?.rating ?? ''), options: [1, 2, 3, 4, 5].map((n) => [String(n), String(n)]) });
-    const access = radioGroup({ legend: t('Accessibility rating (optional)'), hint: t('How easy was it to get in and around? Your answer adds to the place’s access score.'), name: 'access', value: String(mine?.access_rating ?? ''), options: [1, 2, 3, 4, 5].map((n) => [String(n), String(n)]) });
     const honoured = radioGroup({ legend: t('Was the OKU offer honoured?'), name: 'honoured', value: mine?.discount_honoured ?? 'not_tried',
       options: [['yes', t('Yes')], ['no', t('No')], ['not_tried', t('I did not try it')]] });
     const body = field({ label: t('Your review (optional)'), name: 'body', tag: 'textarea', maxlength: 1000, value: mine?.body ?? '',
@@ -193,7 +257,6 @@ export async function placeView(ctx, root, [id]) {
       try {
         await api('POST', `/places/${p.id}/reviews`, {
           rating: rating.value() ? Number(rating.value()) : null,
-          access_rating: access.value() ? Number(access.value()) : null,
           discount_honoured: honoured.value(),
           body: body.input.value,
         });
@@ -205,7 +268,7 @@ export async function placeView(ctx, root, [id]) {
         s.focus();
         submit.disabled = false;
       }
-    } }, h('h3', {}, mine ? t('Update your review') : t('Write a review')), errs, rating.el, access.el, honoured.el, body.el, h('div', { class: 'actions' }, submit));
+    } }, h('h3', {}, mine ? t('Update your review') : t('Write a review')), errs, rating.el, honoured.el, body.el, h('div', { class: 'actions' }, submit));
   }
 
   return {

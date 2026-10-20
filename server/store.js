@@ -17,8 +17,6 @@ const placeholders = (n) => Array(n).fill('?').join(',');
 const STATS_SQL = `
   (SELECT ROUND(AVG(rating), 1) FROM reviews r WHERE r.place_id = places.id) AS avg_rating,
   (SELECT COUNT(*) FROM reviews r WHERE r.place_id = places.id) AS review_count,
-  (SELECT ROUND(AVG(access_rating), 1) FROM reviews r WHERE r.place_id = places.id) AS avg_access,
-  (SELECT COUNT(access_rating) FROM reviews r WHERE r.place_id = places.id) AS access_count,
   (SELECT COUNT(*) FROM reviews r WHERE r.place_id = places.id AND discount_honoured = 'yes') AS honoured_yes,
   (SELECT COUNT(*) FROM reviews r WHERE r.place_id = places.id AND discount_honoured = 'no') AS honoured_no,
   (SELECT COUNT(*) FROM visits v WHERE v.place_id = places.id AND worked = 'yes') AS visits_yes,
@@ -36,6 +34,17 @@ export function attachOffers(db, places) {
     byPlace.get(o.place_id).push({ ...o });
   }
   for (const p of places) p.offers = byPlace.get(p.id) || [];
+  return attachAccessReports(db, places);
+}
+
+/** Visitors' Yes / No accessibility answers as { feature: { yes, no } } on each place. */
+export function attachAccessReports(db, places) {
+  if (!places.length) return places;
+  const rows = db.prepare(`SELECT place_id, feature, SUM(answer = 'yes') AS yes, SUM(answer = 'no') AS no FROM access_reports
+    WHERE place_id IN (${placeholders(places.length)}) GROUP BY place_id, feature`).all(...places.map((p) => p.id));
+  for (const p of places) p.access_reports = {};
+  const byId = new Map(places.map((p) => [p.id, p]));
+  for (const r of rows) byId.get(r.place_id).access_reports[r.feature] = { yes: r.yes, no: r.no };
   return places;
 }
 

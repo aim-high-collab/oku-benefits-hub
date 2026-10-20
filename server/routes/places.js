@@ -1,8 +1,9 @@
 import { Router } from 'express';
 import { HttpError, requireUser } from '../http.js';
 import { clean, cleanReason, PLACE_SPEC } from '../validate.js';
-import { FEATURES, CATEGORIES, OFFER_KINDS, SOURCES } from '../meta.js';
+import { FEATURES, CATEGORIES, OFFER_KINDS, SOURCES, ACCESS_QUESTIONS } from '../meta.js';
 import { listPlaces, getPlace, insertPlace, createEditRequest } from '../store.js';
+import { tx } from '../db.js';
 import { uploadExists } from '../uploads.js';
 
 const int = (v) => (/^\d+$/.test(String(v)) ? Number(v) : null);
@@ -72,6 +73,21 @@ export function placeRoutes({ db, config, writeLimiter }) {
     db.prepare('INSERT INTO visits (place_id, worked) VALUES (?, ?)').run(place.id, worked);
     const p = getPlace(db, place.id);
     res.status(201).json({ visits_yes: p.visits_yes, visits_no: p.visits_no, visits_partly: p.visits_partly, last_visit_at: p.last_visit_at });
+  });
+
+  // Quick accessibility questions after a visit: { answers: { step_free_entry: 'yes', ... } }. No account needed.
+  r.post('/:id/access', writeLimiter, (req, res) => {
+    const place = loadVisible(req);
+    if (place.status !== 'approved') throw new HttpError(409, 'This listing is still awaiting review.');
+    const answers = req.body?.answers;
+    const entries = answers && typeof answers === 'object' && !Array.isArray(answers) ? Object.entries(answers) : [];
+    if (!entries.length || entries.length > Object.keys(ACCESS_QUESTIONS).length
+      || entries.some(([f, a]) => !Object.hasOwn(ACCESS_QUESTIONS, f) || !['yes', 'no'].includes(a))) {
+      throw new HttpError(422, 'Answer yes or no to at least one question.');
+    }
+    const ins = db.prepare('INSERT INTO access_reports (place_id, feature, answer) VALUES (?, ?, ?)');
+    tx(db, () => { for (const [f, a] of entries) ins.run(place.id, f, a); });
+    res.status(201).json({ access_reports: getPlace(db, place.id).access_reports });
   });
 
   // ---------- reviews ----------

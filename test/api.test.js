@@ -171,6 +171,22 @@ test('"Did it work?" needs no account and is counted per place', async () => {
   assert.equal((await anon.post('/api/places/999999/visits', { worked: 'yes' })).status, 404);
 });
 
+test('quick accessibility answers need no account and come back with the place', async () => {
+  const anon = client();
+  const p = (await anon.get('/api/places?q=Petrosains')).body.places[0];
+  assert.deepEqual(p.access_reports, {});
+  const post = (answers) => anon.post(`/api/places/${p.id}/access`, { answers });
+  assert.equal((await post({ step_free_entry: 'yes', accessible_toilet: 'no' })).status, 201);
+  assert.equal((await post({ hearing_loop: 'yes' })).status, 422); // not one of the four questions
+  assert.equal((await post({ step_free_entry: 'maybe' })).status, 422);
+  assert.equal((await post({})).status, 422);
+  const last = await post({ step_free_entry: 'yes' });
+  assert.deepEqual(last.body.access_reports, { step_free_entry: { yes: 2, no: 0 }, accessible_toilet: { yes: 0, no: 1 } });
+  const listed = (await anon.get('/api/places?q=Petrosains')).body.places[0];
+  assert.deepEqual(listed.access_reports.step_free_entry, { yes: 2, no: 0 });
+  assert.equal((await anon.post('/api/places/999999/access', { answers: { step_free_entry: 'yes' } })).status, 404);
+});
+
 test('place validation reports field errors', async () => {
   const c = await register('carol');
   const bad = await c.post('/api/places', validPlace({ name: '', lat: 51.5, lng: -0.1, website: 'javascript:alert(1)', category: 'nope' }));
@@ -261,8 +277,6 @@ test('reviews: validation, upsert per user, stats, moderator removal', async () 
   const stats = (await client().get(`/api/places/${p.id}`)).body.place;
   assert.equal(stats.review_count, 2);
   assert.equal(stats.avg_rating, 3);
-  assert.equal(stats.avg_access, 5);
-  assert.equal(stats.access_count, 1);
   assert.equal(stats.honoured_yes, 1);
   assert.equal(stats.honoured_no, 1);
 

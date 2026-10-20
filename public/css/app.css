@@ -231,9 +231,14 @@ details.more[open] summary::after { transform: rotate(-135deg); }
 .deal--freebie { --tone: var(--pink); } .deal--volunteer { --tone: #ffb3a8; } .deal--other { --tone: #e9dcbc; }
 .result-more { font-weight: 700; color: var(--muted); margin: 0 0 .5rem; }
 .result-stats { display: flex; flex-wrap: wrap; gap: .25rem 1rem; margin: .45rem 0 0; font-weight: 650; font-size: .95rem; }
-.worked-line, .access-score { display: inline-flex; align-items: center; gap: .35rem; }
-.access-line { display: flex; flex-wrap: wrap; align-items: center; gap: .3rem .8rem; margin: 0 0 .8rem; }
-.access-score--big { font-weight: 800; font-size: 1.1rem; }
+.worked-line { display: inline-flex; align-items: center; gap: .35rem; }
+.quick-access { margin-top: 1rem; padding-top: 1rem; border-top: 2px dashed var(--ink); }
+.quick-access h3 { margin-bottom: .2rem; }
+.quick-q { border: 0; padding: 0; margin: .8rem 0 0; }
+.quick-q legend { font-weight: 750; margin-bottom: .35rem; }
+.quick-q .btn { min-height: 44px; }
+.quick-q .btn[aria-pressed="true"] { background: var(--ink); color: var(--paper); }
+.report-count { font-weight: 500; color: var(--muted); }
 .result-foot { display: flex; flex-wrap: wrap; align-items: center; gap: .5rem .75rem; margin-top: .55rem; font-weight: 700; }
 .result-map { position: relative; z-index: 1; margin-left: auto; color: var(--link); }
 

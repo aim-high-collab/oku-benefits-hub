@@ -106,6 +106,16 @@ CREATE TABLE IF NOT EXISTS visits (
   created_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
 CREATE INDEX IF NOT EXISTS visits_place ON visits(place_id);
+
+-- Quick Yes / No accessibility answers from visitors (no account). "Not sure" is simply not stored.
+CREATE TABLE IF NOT EXISTS access_reports (
+  id INTEGER PRIMARY KEY,
+  place_id INTEGER NOT NULL REFERENCES places(id) ON DELETE CASCADE,
+  feature TEXT NOT NULL,
+  answer TEXT NOT NULL CHECK (answer IN ('yes','no')),
+  created_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+CREATE INDEX IF NOT EXISTS access_reports_place ON access_reports(place_id);
 `;
 
 // Columns added after the first release; older databases get them on start.

@@ -134,7 +134,6 @@ const ICONS = {
   card: ['<rect x="2" y="5" width="20" height="14" rx="2"/>', '<path d="M6 10h8M6 14h12"/>'],
   external: ['<path d="M15 3h6v6M10 14 21 3M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>'],
   menu: ['<path d="M4 6h16M4 12h16M4 18h16"/>'],
-  access: ['<circle cx="12" cy="4.5" r="2"/>', '<path d="M12 7v6h5l2 5M9 10a6 6 0 1 0 6 8"/>'],
   heart: ['<path d="M19 14c1.500-1.500 3-3.200 3-5.500A5.500 5.500 0 0 0 16.500 3c-1.800 0-3 .5-4.500 2-1.500-1.500-2.700-2-4.500-2A5.500 5.500 0 0 0 2 8.500c0 2.300 1.500 4 3 5.500l7 7Z"/>'],
 };
 
@@ -211,13 +210,22 @@ export function workedLine(p) {
   return total ? h('span', { class: 'worked-line' }, icon('check', 16), t('Worked {a} of {b} visits', { a: yes, b: total })) : null;
 }
 
-/** The accessibility score from reviews: "Access 4.5/5 · 6 visitors". Deliberately no overall-quality stars here. */
-export function accessScore(p, cls = '') {
-  if (!p.access_count) return null;
-  const n = p.access_count;
-  return h('span', { class: `access-score ${cls}`.trim() }, icon('access', 16),
-    n === 1 ? t('Access {score}/5 · 1 visitor', { score: p.avg_access }) : t('Access {score}/5 · {n} visitors', { score: p.avg_access, n }));
+/** What visitors said about one feature: 'yes' or 'no' by majority, or null when no one has answered. */
+export function visitorVerdict(p, feature) {
+  const r = p.access_reports?.[feature];
+  if (!r || !(r.yes + r.no)) return null;
+  return r.yes >= r.no ? 'yes' : 'no';
 }
+
+/** Features we can say a place has: listed ones visitors haven't contradicted, plus ones visitors said yes to. */
+export function knownFeatures(p) {
+  const out = p.accessibility.filter((f) => visitorVerdict(p, f) !== 'no');
+  for (const f of Object.keys(p.access_reports ?? {})) if (visitorVerdict(p, f) === 'yes' && !out.includes(f)) out.push(f);
+  return out;
+}
+
+/** Total "yes" answers to the quick accessibility questions, for sorting. */
+export const accessYes = (p) => Object.values(p.access_reports ?? {}).reduce((n, r) => n + r.yes, 0);
 
 /** Ten squares, filled in proportion. Decorative: the sentence next to it carries the meaning. */
 export function workedMeter(yes, total) {

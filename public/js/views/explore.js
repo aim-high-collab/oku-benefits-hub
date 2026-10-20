@@ -1,6 +1,6 @@
 import { h, clear } from '../dom.js';
 import { api, qs } from '../api.js';
-import { field, distanceKm, fmtDistance, offerLine, icon, groupOf, placeImage, offerIcon, trustOf, trustStamp, workedLine, accessScore } from '../ui.js';
+import { field, distanceKm, fmtDistance, offerLine, icon, groupOf, placeImage, offerIcon, trustOf, trustStamp, workedLine, knownFeatures, accessYes } from '../ui.js';
 import { t } from '../i18n.js';
 import { createMap, destroyMap, locate } from '../map.js';
 
@@ -167,20 +167,22 @@ export async function exploreView(ctx, root) {
     const mine = ++loadToken;
     let data;
     try {
-      // "Not known" places have no features recorded, so the feature filter is applied here when they are included.
-      const features = filters.includeUnknown ? '' : filters.features.join(',');
-      data = await api('GET', `/places${qs({ q: filters.q, category: filters.category, kind: filters.kind, features })}`);
+      // Features are filtered here: visitors' Yes / No answers count too, and "Not known" places may be included.
+      data = await api('GET', `/places${qs({ q: filters.q, category: filters.category, kind: filters.kind })}`);
     } catch (err) {
       count.textContent = err.message;
       return;
     }
     if (mine !== loadToken || destroyed) return;
     places = data.places
-      .filter((p) => !filters.includeUnknown || !p.accessibility.length || filters.features.every((f) => p.accessibility.includes(f)))
+      .filter((p) => {
+        const known = knownFeatures(p);
+        return !filters.features.length || (known.length ? filters.features.every((f) => known.includes(f)) : filters.includeUnknown);
+      })
       .filter((p) => filters.trust.includes(trustOf(p).tier));
     if (state.loc) for (const p of places) p.distance = distanceKm(state.loc, p);
     if (filters.sort === 'nearest' && state.loc) places.sort((a, b) => a.distance - b.distance);
-    else if (filters.sort === 'access') places.sort((a, b) => (b.avg_access ?? 0) - (a.avg_access ?? 0) || b.access_count - a.access_count);
+    else if (filters.sort === 'access') places.sort((a, b) => accessYes(b) - accessYes(a) || knownFeatures(b).length - knownFeatures(a).length);
     else places.sort((a, b) => TRUST_RANK[trustOf(a).tier] - TRUST_RANK[trustOf(b).tier]); // checked ones first
     render();
   }
@@ -227,7 +229,7 @@ export async function exploreView(ctx, root) {
         h('p', { class: 'result-meta' }, [meta.categories[p.category], p.city, p.distance != null ? fmtDistance(p.distance) : null].filter(Boolean).join(' · ')),
         first ? h('p', { class: 'result-offer' }, offerIcon(first.kind), h('span', {}, h('strong', {}, offerLine(first)),
           p.offers.length > 1 ? h('span', { class: 'muted' }, ` · ${t('+{n} more', { n: p.offers.length - 1 })}`) : null)) : null,
-        workedLine(p) || accessScore(p) ? h('p', { class: 'result-stats' }, workedLine(p), accessScore(p)) : null,
+        workedLine(p) ? h('p', { class: 'result-stats' }, workedLine(p)) : null,
         h('div', { class: 'result-foot' },
           trustStamp(p),
           h('button', { type: 'button', class: 'linkbtn result-map', 'aria-label': `${t('Show on map')}: ${p.name}`, onclick: () => focusOnMap(p) }, icon('pin', 16), t('Map')))));
