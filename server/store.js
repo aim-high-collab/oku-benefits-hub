@@ -17,6 +17,8 @@ const placeholders = (n) => Array(n).fill('?').join(',');
 const STATS_SQL = `
   (SELECT ROUND(AVG(rating), 1) FROM reviews r WHERE r.place_id = places.id) AS avg_rating,
   (SELECT COUNT(*) FROM reviews r WHERE r.place_id = places.id) AS review_count,
+  (SELECT ROUND(AVG(access_rating), 1) FROM reviews r WHERE r.place_id = places.id) AS avg_access,
+  (SELECT COUNT(access_rating) FROM reviews r WHERE r.place_id = places.id) AS access_count,
   (SELECT COUNT(*) FROM reviews r WHERE r.place_id = places.id AND discount_honoured = 'yes') AS honoured_yes,
   (SELECT COUNT(*) FROM reviews r WHERE r.place_id = places.id AND discount_honoured = 'no') AS honoured_no,
   (SELECT COUNT(*) FROM visits v WHERE v.place_id = places.id AND worked = 'yes') AS visits_yes,

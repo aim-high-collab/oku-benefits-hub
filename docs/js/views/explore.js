@@ -1,6 +1,6 @@
 import { h, clear } from '../dom.js';
 import { api, qs } from '../api.js';
-import { field, distanceKm, fmtDistance, offerLine, icon, groupOf, placeImage, offerIcon, trustOf, trustStamp } from '../ui.js';
+import { field, distanceKm, fmtDistance, offerLine, icon, groupOf, placeImage, offerIcon, trustOf, trustStamp, workedLine, accessScore } from '../ui.js';
 import { t } from '../i18n.js';
 import { createMap, destroyMap, locate } from '../map.js';
 
@@ -41,7 +41,7 @@ export async function exploreView(ctx, root) {
   const category = field({ label: t('Type of place'), name: 'category', tag: 'select', value: filters.category,
     options: [['', t('All types')], ...Object.entries(meta.categories)] });
   const sort = field({ label: t('Sort by'), name: 'sort', tag: 'select', value: filters.sort,
-    options: [['recommended', t('Recommended')], ['nearest', t('Nearest to me')], ['rating', t('Top rated')]] });
+    options: [['recommended', t('Recommended')], ['nearest', t('Nearest to me')], ['access', t('Best access')]] });
   const box = (name, value, text, checked) => {
     const id = `cb-${name}-${value}`;
     const input = h('input', { type: 'checkbox', id, name, value, checked });
@@ -180,7 +180,7 @@ export async function exploreView(ctx, root) {
       .filter((p) => filters.trust.includes(trustOf(p).tier));
     if (state.loc) for (const p of places) p.distance = distanceKm(state.loc, p);
     if (filters.sort === 'nearest' && state.loc) places.sort((a, b) => a.distance - b.distance);
-    else if (filters.sort === 'rating') places.sort((a, b) => (b.avg_rating ?? 0) - (a.avg_rating ?? 0) || b.review_count - a.review_count);
+    else if (filters.sort === 'access') places.sort((a, b) => (b.avg_access ?? 0) - (a.avg_access ?? 0) || b.access_count - a.access_count);
     else places.sort((a, b) => TRUST_RANK[trustOf(a).tier] - TRUST_RANK[trustOf(b).tier]); // checked ones first
     render();
   }
@@ -227,6 +227,7 @@ export async function exploreView(ctx, root) {
         h('p', { class: 'result-meta' }, [meta.categories[p.category], p.city, p.distance != null ? fmtDistance(p.distance) : null].filter(Boolean).join(' · ')),
         first ? h('p', { class: 'result-offer' }, offerIcon(first.kind), h('span', {}, h('strong', {}, offerLine(first)),
           p.offers.length > 1 ? h('span', { class: 'muted' }, ` · ${t('+{n} more', { n: p.offers.length - 1 })}`) : null)) : null,
+        workedLine(p) || accessScore(p) ? h('p', { class: 'result-stats' }, workedLine(p), accessScore(p)) : null,
         h('div', { class: 'result-foot' },
           trustStamp(p),
           h('button', { type: 'button', class: 'linkbtn result-map', 'aria-label': `${t('Show on map')}: ${p.name}`, onclick: () => focusOnMap(p) }, icon('pin', 16), t('Map')))));

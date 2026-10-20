@@ -261,6 +261,8 @@ test('reviews: validation, upsert per user, stats, moderator removal', async () 
   const stats = (await client().get(`/api/places/${p.id}`)).body.place;
   assert.equal(stats.review_count, 2);
   assert.equal(stats.avg_rating, 3);
+  assert.equal(stats.avg_access, 5);
+  assert.equal(stats.access_count, 1);
   assert.equal(stats.honoured_yes, 1);
   assert.equal(stats.honoured_no, 1);
 

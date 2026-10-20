@@ -1,7 +1,7 @@
 import { h, clear } from '../dom.js';
 import { api } from '../api.js';
 import { badge, stars, fmtDate, field, radioGroup, errorSummary, offerLine, icon, groupOf, placeImage, photoCredit, offerIcon,
-  trustOf, trustStamp, workedCounts, workedMeter, mobileNumber } from '../ui.js';
+  trustOf, trustStamp, workedCounts, workedMeter, mobileNumber, accessScore } from '../ui.js';
 import { t, tIn } from '../i18n.js';
 import { createMap, destroyMap, directionsUrl, googleMapsUrl, osmUrl, usingGoogle } from '../map.js';
 
@@ -46,9 +46,9 @@ export async function placeView(ctx, root, [id]) {
   const tr = trustOf(p);
   const counts = { ...workedCounts(p) };
   const meterBox = h('div', { class: 'worked' });
-  const drawMeter = () => clear(meterBox).append(counts.total
+  const drawMeter = () => clear(meterBox).append(...(counts.total
     ? [workedMeter(counts.yes, counts.total), h('p', {}, h('strong', {}, t('Worked {a} of {b} visits', { a: counts.yes, b: counts.total })))]
-    : h('p', { class: 'muted' }, t('No one has reported a visit yet.')));
+    : [h('p', { class: 'muted' }, t('No one has reported a visit yet.'))]));
   drawMeter();
 
   const voteStatus = h('p', { class: 'hint', role: 'status' });
@@ -124,6 +124,8 @@ export async function placeView(ctx, root, [id]) {
             o.valid_until ? h('p', {}, t('Valid until {date}', { date: fmtDate(o.valid_until) })) : null)))) : null,
         h('section', { class: 'block', 'aria-labelledby': 'acc-h' },
           h('h2', { id: 'acc-h' }, t('Accessibility')),
+          p.access_count ? h('p', { class: 'access-line' }, accessScore(p, 'access-score--big'),
+            h('span', { class: 'hint' }, t('From visitors’ reviews: 1 = very hard to get in and around, 5 = easy.'))) : null,
           p.accessibility.length
             ? h('ul', { class: 'feature-grid' }, p.accessibility.map((f) => h('li', {}, icon('check', 14), meta.features[f])))
             : h('p', { class: 'unknown' }, icon('question', 18), h('span', {}, t('Not known yet. Ask the place before you go, or'), ' ',
@@ -177,7 +179,7 @@ export async function placeView(ctx, root, [id]) {
     }
     const mine = reviews.find((r) => r.author === state.user.name);
     const rating = radioGroup({ legend: t('Overall rating (1 = poor, 5 = excellent)'), name: 'rating', value: String(mine?.rating ?? ''), options: [1, 2, 3, 4, 5].map((n) => [String(n), String(n)]) });
-    const access = radioGroup({ legend: t('Accessibility rating (optional)'), name: 'access', value: String(mine?.access_rating ?? ''), options: [1, 2, 3, 4, 5].map((n) => [String(n), String(n)]) });
+    const access = radioGroup({ legend: t('Accessibility rating (optional)'), hint: t('How easy was it to get in and around? Your answer adds to the place’s access score.'), name: 'access', value: String(mine?.access_rating ?? ''), options: [1, 2, 3, 4, 5].map((n) => [String(n), String(n)]) });
     const honoured = radioGroup({ legend: t('Was the OKU offer honoured?'), name: 'honoured', value: mine?.discount_honoured ?? 'not_tried',
       options: [['yes', t('Yes')], ['no', t('No')], ['not_tried', t('I did not try it')]] });
     const body = field({ label: t('Your review (optional)'), name: 'body', tag: 'textarea', maxlength: 1000, value: mine?.body ?? '',

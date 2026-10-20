@@ -22,11 +22,14 @@ const like = (hay, q) => hay.toLowerCase().includes(q.toLowerCase());
 function withStats(p) {
   const rs = store.reviews.filter((r) => r.place_id === p.id);
   const n = rs.length;
+  const as = rs.filter((r) => r.access_rating);
   const vs = store.visits.filter((v) => v.place_id === p.id);
   return {
     ...p,
     review_count: n,
     avg_rating: n ? Math.round((rs.reduce((s, r) => s + r.rating, 0) / n) * 10) / 10 : null,
+    avg_access: as.length ? Math.round((as.reduce((s, r) => s + r.access_rating, 0) / as.length) * 10) / 10 : null,
+    access_count: as.length,
     honoured_yes: rs.filter((r) => r.discount_honoured === 'yes').length,
     honoured_no: rs.filter((r) => r.discount_honoured === 'no').length,
     visits_yes: vs.filter((v) => v.worked === 'yes').length,
