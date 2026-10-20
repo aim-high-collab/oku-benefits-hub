@@ -4,7 +4,7 @@ const KEY = 'oku-demo-v1';
 let base;
 let store;
 
-const fresh = () => ({ user: null, users: [], places: [], benefits: [], edits: [], reviews: [], next: 1000 });
+const fresh = () => ({ user: null, users: [], places: [], benefits: [], edits: [], reviews: [], visits: [], access: [], next: 1000 });
 const save = () => { try { localStorage.setItem(KEY, JSON.stringify(store)); } catch { /* storage full or blocked */ } };
 const fail = (status, message, fields = {}) => Object.assign(new Error(message), { status, fields });
 
@@ -19,15 +19,31 @@ const allBenefits = () => [...base.benefits, ...store.benefits];
 const need = () => { if (!store.user) throw fail(401, 'Please log in to do that.'); return store.user; };
 const like = (hay, q) => hay.toLowerCase().includes(q.toLowerCase());
 
+const ACCESS_FEATURES = ['step_free_entry', 'accessible_toilet', 'oku_parking', 'trained_staff'];
+function accessReports(placeId) {
+  const out = {};
+  for (const a of (store.access || []).filter((x) => x.place_id === placeId)) {
+    out[a.feature] ??= { yes: 0, no: 0 };
+    out[a.feature][a.answer]++;
+  }
+  return out;
+}
+
 function withStats(p) {
   const rs = store.reviews.filter((r) => r.place_id === p.id);
   const n = rs.length;
+  const vs = store.visits.filter((v) => v.place_id === p.id);
   return {
     ...p,
     review_count: n,
     avg_rating: n ? Math.round((rs.reduce((s, r) => s + r.rating, 0) / n) * 10) / 10 : null,
+    access_reports: accessReports(p.id),
     honoured_yes: rs.filter((r) => r.discount_honoured === 'yes').length,
     honoured_no: rs.filter((r) => r.discount_honoured === 'no').length,
+    visits_yes: vs.filter((v) => v.worked === 'yes').length,
+    visits_no: vs.filter((v) => v.worked === 'no').length,
+    visits_partly: vs.filter((v) => v.worked === 'partly').length,
+    last_visit_at: vs.length ? vs[vs.length - 1].created_at : null,
   };
 }
 
@@ -107,11 +123,12 @@ export async function handle(method, path, body = {}) {
   // ----- places -----
   if (p === '/places' && method === 'GET') return { places: listPlaces(q) };
   if (p === '/places' && method === 'POST') {
-    const user = need();
+    const user = store.user; // suggesting a place needs no account
     requireFields(body, { name: [2, 'Name'], address: [3, 'Address'] });
     if (!Number.isFinite(body.lat) || !Number.isFinite(body.lng)) throw fail(422, 'Please fix the highlighted fields.', { lat: 'Pick the location on the map.', lng: 'Pick the location on the map.' });
     if (!(body.offers?.length || body.accessibility?.length)) throw fail(422, 'Add at least one offer or one accessibility feature.', { offers: 'Add at least one offer, or tick an accessibility feature.' });
-    const place = { ...body, id: store.next++, status: 'approved', partner_verified: false, submitter_is_owner: body.is_owner === true, submitted_by: user.id,
+    const place = { ...body, id: store.next++, status: 'approved', partner_verified: false, verified_at: null, source: body.source || '',
+      submitter_is_owner: body.is_owner === true || body.source === 'owner', submitted_by: user?.id ?? null,
       offers: (body.offers || []).map((o, i) => ({ ...o, id: i })), accessibility: body.accessibility || [], created_at: new Date().toISOString() };
     store.places.push(place);
     save();
@@ -134,6 +151,26 @@ export async function handle(method, path, body = {}) {
     return { ok: true };
   }
   if ((m = /^\/places\/(\d+)\/edits$/.exec(p))) return newEdit('place', Number(m[1]), body);
+  if ((m = /^\/places\/(\d+)\/visits$/.exec(p)) && method === 'POST') {
+    const place = allPlaces().find((x) => x.id === Number(m[1]));
+    if (!place) throw fail(404, 'Place not found.');
+    if (!['yes', 'no', 'partly'].includes(body.worked)) throw fail(422, 'Choose yes, no or partly.');
+    store.visits.push({ place_id: place.id, worked: body.worked, created_at: new Date().toISOString() });
+    save();
+    const { visits_yes, visits_no, visits_partly, last_visit_at } = withStats(place);
+    return { visits_yes, visits_no, visits_partly, last_visit_at };
+  }
+
+  if ((m = /^\/places\/(\d+)\/access$/.exec(p)) && method === 'POST') {
+    const place = allPlaces().find((x) => x.id === Number(m[1]));
+    if (!place) throw fail(404, 'Place not found.');
+    const entries = Object.entries(body.answers || {});
+    if (!entries.length || entries.some(([f, a]) => !ACCESS_FEATURES.includes(f) || !['yes', 'no'].includes(a))) throw fail(422, 'Answer yes or no to at least one question.');
+    store.access = store.access || [];
+    for (const [feature, answer] of entries) store.access.push({ place_id: place.id, feature, answer, created_at: new Date().toISOString() });
+    save();
+    return { access_reports: accessReports(place.id) };
+  }
 
   // ----- benefits -----
   if (p === '/benefits' && method === 'GET') {

@@ -1,4 +1,5 @@
 import { h } from './dom.js';
+import { t, tIn, getLang } from './i18n.js';
 
 export const announce = (msg) => {
   const live = document.getElementById('live');
@@ -16,7 +17,8 @@ export function toast(msg, kind = 'ok') {
 export const fmtDate = (s) => {
   if (!s) return '';
   const d = new Date(s.includes('T') || s.includes(' ') ? s.replace(' ', 'T') + (s.endsWith('Z') ? '' : 'Z') : s);
-  return Number.isNaN(d.getTime()) ? s : d.toLocaleDateString('en-MY', { year: 'numeric', month: 'short', day: 'numeric' });
+  const locale = { ms: 'ms-MY', zh: 'zh-MY' }[getLang()] ?? 'en-MY';
+  return Number.isNaN(d.getTime()) ? s : d.toLocaleDateString(locale, { year: 'numeric', month: 'short', day: 'numeric' });
 };
 
 export function distanceKm(a, b) {
@@ -33,7 +35,7 @@ export const badge = (text, cls = '') => h('span', { class: `badge ${cls}` }, te
 
 export function stars(value, label) {
   const n = Math.round(value);
-  return h('span', { class: 'stars', role: 'img', 'aria-label': `${label ?? 'Rated'} ${value} out of 5` },
+  return h('span', { class: 'stars', role: 'img', 'aria-label': t(label ?? 'Rated {n} out of 5', { n: value }) },
     h('span', { 'aria-hidden': 'true' }, '★'.repeat(n) + '☆'.repeat(5 - n)));
 }
 
@@ -96,13 +98,16 @@ export function radioGroup({ legend, name, options, value, hint }) {
 export function errorSummary(message, fields = {}) {
   const items = [...new Set(Object.values(fields))];
   return h('div', { class: 'error-summary', role: 'alert', tabindex: '-1' },
-    h('strong', {}, message),
-    items.length ? h('ul', {}, items.map((m) => h('li', {}, m))) : null);
+    h('strong', {}, t(message)),
+    items.length ? h('ul', {}, items.map((m) => h('li', {}, t(m)))) : null);
 }
 
 // Shows "value · title", but not when the title already says the value ("10% off" / "10% off drinks").
-export const offerLine = (o) => (!o.value_text || o.title.toLowerCase().includes(o.value_text.toLowerCase())
-  ? o.title : `${o.value_text} · ${o.title}`);
+export function offerLine(o, code = getLang()) {
+  const title = tIn(code, o.title);
+  const value = tIn(code, o.value_text);
+  return !value || title.toLowerCase().includes(value.toLowerCase()) ? title : `${value} · ${title}`;
+}
 
 // ---------- icons (stroke icons, 24x24 viewBox) ----------
 const NS = 'http://www.w3.org/2000/svg';
@@ -118,6 +123,17 @@ const ICONS = {
   locate: ['<circle cx="12" cy="12" r="3"/>', '<circle cx="12" cy="12" r="8"/>', '<path d="M12 2v3M12 19v3M2 12h3M19 12h3"/>'],
   verified: ['<path d="M3.900 8.600a4 4 0 0 1 4.800-4.800 4 4 0 0 1 6.700 0 4 4 0 0 1 4.800 4.800 4 4 0 0 1 0 6.700 4 4 0 0 1-4.800 4.800 4 4 0 0 1-6.700 0 4 4 0 0 1-4.800-4.800 4 4 0 0 1 0-6.700Z"/>', '<path d="m9 12 2 2 4-4"/>'],
   plus: ['<path d="M12 5v14M5 12h14"/>'],
+  users: ['<path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/>', '<circle cx="9" cy="7" r="4"/>', '<path d="M22 21v-2a4 4 0 0 0-3-3.900M16 3.100a4 4 0 0 1 0 7.800"/>'],
+  question: ['<circle cx="12" cy="12" r="10"/>', '<path d="M9.100 9a3 3 0 0 1 5.800 1c0 2-3 3-3 3M12 17h.01"/>'],
+  shield: ['<path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10Z"/>', '<path d="m9 12 2 2 4-4"/>'],
+  chat: ['<path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2Z"/>'],
+  list: ['<path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/>'],
+  map: ['<path d="M9 3 3 6v15l6-3 6 3 6-3V3l-6 3-6-3Z"/>', '<path d="M9 3v15M15 6v15"/>'],
+  sliders: ['<path d="M4 21v-7M4 10V3M12 21v-9M12 8V3M20 21v-5M20 12V3M1 14h6M9 8h6M17 16h6"/>'],
+  x: ['<path d="M18 6 6 18M6 6l12 12"/>'],
+  card: ['<rect x="2" y="5" width="20" height="14" rx="2"/>', '<path d="M6 10h8M6 14h12"/>'],
+  external: ['<path d="M15 3h6v6M10 14 21 3M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>'],
+  menu: ['<path d="M4 6h16M4 12h16M4 18h16"/>'],
   heart: ['<path d="M19 14c1.500-1.500 3-3.200 3-5.500A5.500 5.500 0 0 0 16.500 3c-1.800 0-3 .5-4.500 2-1.500-1.500-2.700-2-4.500-2A5.500 5.500 0 0 0 2 8.500c0 2.300 1.500 4 3 5.500l7 7Z"/>'],
 };
 
@@ -135,14 +151,92 @@ const GROUP = {
 };
 export const groupOf = (category) => GROUP[category] ?? 'place';
 
-/** The place's own photo, or an illustrated cover for its kind of place. */
+export const isCalm = () => document.documentElement.classList.contains('calm');
+
+/** The place's own photo, or an illustrated cover for its kind of place. Calm mode loads neither. */
 export function placeImage(place, cls = '') {
+  if (isCalm()) return null;
   return h('img', {
     class: `photo ${place.image ? '' : 'photo--cover'} ${cls}`.replace(/\s+/g, ' ').trim(),
     src: place.image || `img/cover/${groupOf(place.category)}.svg`,
-    alt: place.image ? `Photo of ${place.name}` : '',
+    alt: place.image ? t('Photo of {name}', { name: place.name }) : '',
     loading: 'lazy', width: 640, height: 256,
   });
 }
 
+// Credits for the freely licensed photos in img/places/ (author, licence, source page), keyed by file name.
+let credits = null;
+export const loadPhotoCredits = () => fetch('img/places/credits.json').then((r) => (r.ok ? r.json() : {})).catch(() => ({})).then((c) => { credits = c; });
+
+/** "Photo: author, licence" with a link to the source, for photos that need attribution. */
+export function photoCredit(place) {
+  const c = place.image && !isCalm() ? credits?.[place.image.split('/').pop()] : null;
+  if (!c) return null;
+  return h('p', { class: 'photo-credit' }, `${t('Photo')}: ${c.author} · `,
+    h('a', { href: c.source, target: '_blank', rel: 'noopener noreferrer' }, c.license), ` · Wikimedia Commons`);
+}
+
 export const offerIcon = (kind) => icon(kind === 'volunteer' ? 'heart' : 'check', 18);
+
+// ---------- trust: business-confirmed, community-reported, not yet checked ----------
+
+export const workedCounts = (p) => {
+  const yes = (p.honoured_yes ?? 0) + (p.visits_yes ?? 0);
+  return { yes, total: yes + (p.honoured_no ?? 0) + (p.visits_no ?? 0) + (p.visits_partly ?? 0) };
+};
+
+/** Which of the three trust levels a listing is at, with a short explanation. */
+export function trustOf(p) {
+  const { yes, total } = workedCounts(p);
+  if (p.partner_verified) {
+    return { tier: 'business', icon: 'shield', label: t('Business confirmed'), detail: p.verified_at ? t('by the business · {date}', { date: fmtDate(p.verified_at) }) : '' };
+  }
+  if (total > 0 || p.source === 'used_it') {
+    return { tier: 'community', icon: 'users', label: t('Community reported'), detail: yes ? t('{n} visits said it worked', { n: yes }) : t('suggested by a visitor who used it') };
+  }
+  return { tier: 'unverified', icon: 'question', label: t('Not yet checked'), detail: t('from web sources or a tip · confirm before you go') };
+}
+
+/** The trust label: icon, word and border style all differ, so colour is never the only cue. */
+export function trustStamp(p, { detail = false, cls = '' } = {}) {
+  const tr = trustOf(p);
+  return h('span', { class: `stamp stamp--${tr.tier} ${cls}`.trim() }, icon(tr.icon, 18),
+    h('span', {}, h('strong', {}, tr.label), detail && tr.detail ? h('span', { class: 'stamp-detail' }, tr.detail) : null));
+}
+
+/** "Worked 3 of 4 visits" for a list card, or nothing when no one has reported a visit yet. */
+export function workedLine(p) {
+  const { yes, total } = workedCounts(p);
+  return total ? h('span', { class: 'worked-line' }, icon('check', 16), t('Worked {a} of {b} visits', { a: yes, b: total })) : null;
+}
+
+/** What visitors said about one feature: 'yes' or 'no' by majority, or null when no one has answered. */
+export function visitorVerdict(p, feature) {
+  const r = p.access_reports?.[feature];
+  if (!r || !(r.yes + r.no)) return null;
+  return r.yes >= r.no ? 'yes' : 'no';
+}
+
+/** Features we can say a place has: listed ones visitors haven't contradicted, plus ones visitors said yes to. */
+export function knownFeatures(p) {
+  const out = p.accessibility.filter((f) => visitorVerdict(p, f) !== 'no');
+  for (const f of Object.keys(p.access_reports ?? {})) if (visitorVerdict(p, f) === 'yes' && !out.includes(f)) out.push(f);
+  return out;
+}
+
+/** Total "yes" answers to the quick accessibility questions, for sorting. */
+export const accessYes = (p) => Object.values(p.access_reports ?? {}).reduce((n, r) => n + r.yes, 0);
+
+/** Ten squares, filled in proportion. Decorative: the sentence next to it carries the meaning. */
+export function workedMeter(yes, total) {
+  const filled = total ? Math.round((yes / total) * 10) : 0;
+  return h('span', { class: 'meter', 'aria-hidden': 'true' }, Array.from({ length: 10 }, (_, i) => h('span', { class: i < filled ? 'on' : '' })));
+}
+
+/** Malaysian mobile numbers (01x…) can take WhatsApp and SMS; returns the number in international form. */
+export function mobileNumber(phone) {
+  const d = String(phone || '').replace(/\D/g, '');
+  if (/^01\d{7,9}$/.test(d)) return `6${d}`;
+  if (/^601\d{7,9}$/.test(d)) return d;
+  return null;
+}

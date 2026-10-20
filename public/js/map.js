@@ -1,5 +1,7 @@
 // Map provider adapter. Google Maps (JavaScript API) when the server sends a key in /api/meta,
 // otherwise Leaflet (global `L`) with OpenStreetMap tiles. Views only use the handle returned by createMap.
+import { t } from './i18n.js';
+
 export const MALAYSIA_CENTER = [4.2105, 108.0];
 export const MALAYSIA_ZOOM = 6;
 
@@ -29,29 +31,36 @@ export function destroyMap(map) {
   map?.destroy();
 }
 
-function pinEl(tone = '') {
+// `label` (e.g. the result number) is drawn inside the pin so list and map can be matched without colour.
+function pinEl(tone = '', label = '') {
   const span = document.createElement('span');
-  span.className = `pin ${tone}`;
+  span.className = `pin ${tone}${label ? ' pin--label' : ''}`;
+  if (label) {
+    const b = document.createElement('b');
+    b.textContent = label;
+    span.append(b);
+  }
   return span;
 }
 
 // ---------- Leaflet ----------
 
-function leafletIcon(tone) {
-  return L.divIcon({ className: 'pin-wrap', html: pinEl(tone).outerHTML, iconSize: [32, 38], iconAnchor: [16, 36], popupAnchor: [0, -32] });
+function leafletIcon(tone, label) {
+  return L.divIcon({ className: 'pin-wrap', html: pinEl(tone, label).outerHTML, iconSize: [36, 40], iconAnchor: [18, 38], popupAnchor: [0, -34] });
 }
 
 function leafletMap(el, center, zoom) {
   // Zoom animation is off: Leaflet's delayed zoom-end callback throws if the map is removed during the
   // animation (we tear maps down on every route change), and it is kinder to reduced-motion users.
-  const map = L.map(el, { center, zoom, worldCopyJump: true, zoomAnimation: false, markerZoomAnimation: false });
+  const map = L.map(el, { center, zoom, worldCopyJump: true, zoomAnimation: false, markerZoomAnimation: false, zoomControl: false });
+  L.control.zoom({ zoomInTitle: t('Zoom in'), zoomOutTitle: t('Zoom out') }).addTo(map);
   L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
     maxZoom: 19,
     attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
   }).addTo(map);
   return {
-    addMarker({ lat, lng, tone, title, popup, draggable = false, onClick, onDragEnd }) {
-      const m = L.marker([lat, lng], { icon: leafletIcon(tone), title, alt: title, keyboard: true, draggable }).addTo(map);
+    addMarker({ lat, lng, tone, label, title, popup, draggable = false, onClick, onDragEnd }) {
+      const m = L.marker([lat, lng], { icon: leafletIcon(tone, label), title, alt: title, keyboard: true, draggable }).addTo(map);
       if (popup) m.bindPopup(popup);
       if (onClick) m.on('click', onClick);
       if (onDragEnd) m.on('dragend', () => { const p = m.getLatLng(); onDragEnd(p.lat, p.lng); });
@@ -63,7 +72,7 @@ function leafletMap(el, center, zoom) {
     },
     addYouMarker(lat, lng) {
       const m = L.circleMarker([lat, lng], { radius: 8, color: '#fff', weight: 3, fillColor: '#2563eb', fillOpacity: 1 })
-        .bindTooltip('You are here').addTo(map);
+        .bindTooltip(t('You are here')).addTo(map);
       return { remove: () => m.remove() };
     },
     fitTo(points, maxZoom) {
@@ -126,10 +135,10 @@ async function googleMap(el, [lat, lng], zoom) {
   };
 
   return {
-    addMarker({ lat: la, lng: ln, tone, title, popup, draggable = false, onClick, onDragEnd }) {
+    addMarker({ lat: la, lng: ln, tone, label, title, popup, draggable = false, onClick, onDragEnd }) {
       const wrap = document.createElement('div');
       wrap.className = 'pin-wrap gm-pin';
-      wrap.append(pinEl(tone));
+      wrap.append(pinEl(tone, label));
       const m = marker({ lat: la, lng: ln }, wrap, title, { gmpDraggable: draggable });
       const openPopup = () => {
         info.setContent(popup());
@@ -146,7 +155,7 @@ async function googleMap(el, [lat, lng], zoom) {
     addYouMarker(la, ln) {
       const dot = document.createElement('span');
       dot.className = 'you-dot';
-      const m = marker({ lat: la, lng: ln }, dot, 'You are here');
+      const m = marker({ lat: la, lng: ln }, dot, t('You are here'));
       return { remove: () => { m.map = null; markers.delete(m); } };
     },
     fitTo(points, maxZoom) {
@@ -208,10 +217,10 @@ export const osmUrl = (p) => `https://www.openstreetmap.org/?mlat=${p.lat}&mlon=
 
 export function locate() {
   return new Promise((resolve, reject) => {
-    if (!navigator.geolocation) return reject(new Error('Your browser does not support location.'));
+    if (!navigator.geolocation) return reject(new Error(t('Your browser does not support location.')));
     navigator.geolocation.getCurrentPosition(
       (pos) => resolve({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
-      () => reject(new Error('We could not get your location. Check your browser’s location permission.')),
+      () => reject(new Error(t('We could not get your location. Check your browser’s location permission.'))),
       { timeout: 10000, maximumAge: 60000 },
     );
   });

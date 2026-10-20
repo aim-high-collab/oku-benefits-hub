@@ -46,6 +46,21 @@ export const OFFER_KINDS = {
   other: 'Other perk',
 };
 
+// Quick Yes / No questions anyone can answer after a visit, one per accessibility feature (keys are FEATURES keys).
+export const ACCESS_QUESTIONS = {
+  step_free_entry: 'Could you get in without steps?',
+  accessible_toilet: 'Was there an accessible toilet?',
+  oku_parking: 'Was there an OKU parking bay?',
+  trained_staff: 'Were staff helpful?',
+};
+
+// "How do you know about this offer?" asked when someone adds a place. It sets the listing's trust label.
+export const SOURCES = {
+  used_it: 'I used it myself',
+  owner: 'I own or manage it, or the business told me',
+  heard: 'I saw it online or heard about it',
+};
+
 export const BENEFIT_CATEGORIES = {
   financial: 'Financial assistance',
   tax: 'Tax relief',
@@ -71,6 +86,8 @@ export const meta = (config) => ({
   states: STATES,
   features: FEATURES,
   offerKinds: OFFER_KINDS,
+  sources: SOURCES,
+  accessQuestions: ACCESS_QUESTIONS,
   benefitCategories: BENEFIT_CATEGORIES,
   bounds: MY_BOUNDS,
   maps: mapsConfig(config),

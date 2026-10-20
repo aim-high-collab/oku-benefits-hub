@@ -8,7 +8,7 @@ import { openDb } from '../server/db.js';
 import { meta } from '../server/meta.js';
 import { loadConfig } from '../server/config.js';
 import { listPlaces } from '../server/store.js';
-import { seedBenefits, seedPlaces } from '../server/seed.js';
+import { seedBenefits, seedPlaces, applySeedPhotos } from '../server/seed.js';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
 const out = join(root, 'docs');
@@ -33,8 +33,9 @@ for (const f of readdirSync(join(out, 'vendor/fonts'))) {
 const db = openDb(':memory:');
 seedBenefits(db);
 seedPlaces(db);
+applySeedPhotos(db, join(root, 'public/img/places'));
 const benefits = db.prepare("SELECT * FROM benefits WHERE status = 'approved'").all().map((b) => ({ ...b }));
-writeFileSync(join(out, 'data.json'), JSON.stringify({ meta: meta(loadConfig()), places: listPlaces(db, {}), benefits }));
+writeFileSync(join(out, 'data.json'), JSON.stringify({ meta: meta(loadConfig()), places: listPlaces(db, {}).map((p) => ({ ...p, image: p.image.replace(/^\//, '') })), benefits }));
 
 // relative URLs so it works under https://user.github.io/repo-name/
 let html = readFileSync(join(out, 'index.html'), 'utf8');

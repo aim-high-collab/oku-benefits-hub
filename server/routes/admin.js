@@ -59,7 +59,8 @@ export function adminRoutes({ db }) {
   // Mark / unmark a business as a verified participating partner.
   r.patch('/places/:id', (req, res) => {
     if (typeof req.body?.partner_verified !== 'boolean') throw new HttpError(422, 'partner_verified must be true or false.');
-    const info = db.prepare('UPDATE places SET partner_verified = ? WHERE id = ?').run(req.body.partner_verified ? 1 : 0, id(req));
+    const on = req.body.partner_verified;
+    const info = db.prepare(`UPDATE places SET partner_verified = ?, verified_at = ${on ? "date('now')" : 'NULL'} WHERE id = ?`).run(on ? 1 : 0, id(req));
     if (!info.changes) throw new HttpError(404, 'Place not found.');
     res.json({ ok: true });
   });

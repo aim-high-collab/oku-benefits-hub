@@ -18,7 +18,11 @@ const STATS_SQL = `
   (SELECT ROUND(AVG(rating), 1) FROM reviews r WHERE r.place_id = places.id) AS avg_rating,
   (SELECT COUNT(*) FROM reviews r WHERE r.place_id = places.id) AS review_count,
   (SELECT COUNT(*) FROM reviews r WHERE r.place_id = places.id AND discount_honoured = 'yes') AS honoured_yes,
-  (SELECT COUNT(*) FROM reviews r WHERE r.place_id = places.id AND discount_honoured = 'no') AS honoured_no`;
+  (SELECT COUNT(*) FROM reviews r WHERE r.place_id = places.id AND discount_honoured = 'no') AS honoured_no,
+  (SELECT COUNT(*) FROM visits v WHERE v.place_id = places.id AND worked = 'yes') AS visits_yes,
+  (SELECT COUNT(*) FROM visits v WHERE v.place_id = places.id AND worked = 'no') AS visits_no,
+  (SELECT COUNT(*) FROM visits v WHERE v.place_id = places.id AND worked = 'partly') AS visits_partly,
+  (SELECT MAX(created_at) FROM visits v WHERE v.place_id = places.id) AS last_visit_at`;
 
 export function attachOffers(db, places) {
   if (!places.length) return places;
@@ -30,6 +34,17 @@ export function attachOffers(db, places) {
     byPlace.get(o.place_id).push({ ...o });
   }
   for (const p of places) p.offers = byPlace.get(p.id) || [];
+  return attachAccessReports(db, places);
+}
+
+/** Visitors' Yes / No accessibility answers as { feature: { yes, no } } on each place. */
+export function attachAccessReports(db, places) {
+  if (!places.length) return places;
+  const rows = db.prepare(`SELECT place_id, feature, SUM(answer = 'yes') AS yes, SUM(answer = 'no') AS no FROM access_reports
+    WHERE place_id IN (${placeholders(places.length)}) GROUP BY place_id, feature`).all(...places.map((p) => p.id));
+  for (const p of places) p.access_reports = {};
+  const byId = new Map(places.map((p) => [p.id, p]));
+  for (const r of rows) byId.get(r.place_id).access_reports[r.feature] = { yes: r.yes, no: r.no };
   return places;
 }
 
@@ -61,16 +76,16 @@ export function getPlace(db, id) {
 }
 
 export function insertOffers(db, placeId, offers) {
-  const ins = db.prepare('INSERT INTO offers (place_id, title, kind, value_text, conditions) VALUES (?,?,?,?,?)');
-  for (const o of offers) ins.run(placeId, o.title, o.kind, o.value_text, o.conditions);
+  const ins = db.prepare('INSERT INTO offers (place_id, title, kind, value_text, conditions, valid_until) VALUES (?,?,?,?,?,?)');
+  for (const o of offers) ins.run(placeId, o.title, o.kind, o.value_text, o.conditions, o.valid_until ?? '');
 }
 
-export function insertPlace(db, data, { userId, status, isOwner = false, partnerVerified = false }) {
+export function insertPlace(db, data, { userId, status, isOwner = false, partnerVerified = false, source = '' }) {
   return tx(db, () => {
     const res = db.prepare(`INSERT INTO places (${PLACE_COLS.join(',')}, accessibility, status, submitter_is_owner,
-        partner_verified, submitted_by) VALUES (${placeholders(PLACE_COLS.length + 5)})`)
+        partner_verified, submitted_by, source) VALUES (${placeholders(PLACE_COLS.length + 6)})`)
       .run(...PLACE_COLS.map((c) => data[c]), JSON.stringify(data.accessibility), status,
-        isOwner ? 1 : 0, partnerVerified ? 1 : 0, userId ?? null);
+        isOwner ? 1 : 0, partnerVerified ? 1 : 0, userId ?? null, source);
     const id = Number(res.lastInsertRowid);
     insertOffers(db, id, data.offers);
     return id;
@@ -88,7 +103,7 @@ export const getBenefit = (db, id) => db.prepare('SELECT * FROM benefits WHERE i
 
 // ---------- edit requests ----------
 
-const offersKey = (list) => JSON.stringify(list.map((o) => [o.title, o.kind, o.value_text, o.conditions]));
+const offersKey = (list) => JSON.stringify(list.map((o) => [o.title, o.kind, o.value_text, o.conditions, o.valid_until ?? '']));
 
 /** Current values of the editable fields, in the same shape as an edit-request `changes` object. */
 export function editableSnapshot(db, type, id) {
@@ -96,7 +111,7 @@ export function editableSnapshot(db, type, id) {
     const p = getPlace(db, id);
     if (!p) return null;
     const snap = Object.fromEntries([...PLACE_COLS, 'accessibility', 'offers'].map((c) => [c, p[c]]));
-    snap.offers = p.offers.map(({ title, kind, value_text, conditions }) => ({ title, kind, value_text, conditions }));
+    snap.offers = p.offers.map(({ title, kind, value_text, conditions, valid_until }) => ({ title, kind, value_text, conditions, valid_until }));
     return snap;
   }
   const b = getBenefit(db, id);
