@@ -1,5 +1,7 @@
 // Interface text in Bahasa Malaysia, English and Chinese. Keys are the English text, so any string that has no
 // translation yet simply shows in English. Listing content (names, offers, descriptions) is shown as entered.
+import { CONTENT } from './i18n-content.js';
+
 export const LANGS = [['ms', 'BM', 'Bahasa Malaysia'], ['en', 'EN', 'English'], ['zh', '中文', '中文']];
 
 const KEY = 'oku-lang';
@@ -15,12 +17,16 @@ export function setLang(code) {
 }
 document.documentElement.lang = lang;
 
-/** t('{n} places', { n: 3 }) */
-export function t(text, vars) {
-  let s = (lang !== 'en' && DICT[text]?.[lang === 'ms' ? 0 : 1]) || text;
+/** The text in a given language (falls back to the English key). Used where all three are shown at once. */
+export function tIn(code, text, vars) {
+  const i = code === 'ms' ? 0 : 1;
+  let s = (code !== 'en' && text && (DICT[text] ?? CONTENT[text])?.[i]) || text;
   if (vars) for (const [k, v] of Object.entries(vars)) s = s.replaceAll(`{${k}}`, String(v));
   return s;
 }
+
+/** t('{n} places', { n: 3 }) */
+export const t = (text, vars) => tIn(lang, text, vars);
 
 // [Bahasa Malaysia, 中文]
 const DICT = {
@@ -173,4 +179,270 @@ const DICT = {
   'Link not yet checked': ['Pautan belum disemak', '链接尚未核实'],
   'Something out of date?': ['Ada yang sudah lapuk?', '有过时的信息吗？'],
   'Nothing matches.': ['Tiada padanan.', '没有符合的结果。'],
+
+  // labels from /api/meta: types of place
+  'Restaurant': ['Restoran', '餐厅'],
+  'Café': ['Kafe', '咖啡馆'],
+  'Grocery & supermarket': ['Kedai runcit & pasar raya', '杂货店与超市'],
+  'Retail & shopping': ['Runcit & membeli-belah', '零售与购物'],
+  'Healthcare & pharmacy': ['Kesihatan & farmasi', '医疗与药房'],
+  'Transport': ['Pengangkutan', '交通'],
+  'Attraction & museum': ['Tarikan & muzium', '景点与博物馆'],
+  'Entertainment & leisure': ['Hiburan & riadah', '娱乐与休闲'],
+  'Hotel & stay': ['Hotel & penginapan', '酒店与住宿'],
+  'Education & training': ['Pendidikan & latihan', '教育与培训'],
+  'Services': ['Perkhidmatan', '服务'],
+  'Social enterprise & volunteering': ['Perusahaan sosial & sukarelawan', '社会企业与义工'],
+  'Other': ['Lain-lain', '其他'],
+  // accessibility features
+  'Step-free entrance': ['Pintu masuk tanpa tangga', '无台阶入口'],
+  'Ramp': ['Tanjakan', '斜坡'],
+  'Lift / elevator': ['Lif', '电梯'],
+  'Accessible toilet': ['Tandas OKU', '无障碍厕所'],
+  'OKU parking bay': ['Petak letak kereta OKU', 'OKU停车位'],
+  'Wide aisles & doorways': ['Laluan & pintu yang luas', '宽敞的走道与门口'],
+  'Tactile paving': ['Laluan taktil', '导盲砖'],
+  'Braille / tactile signage': ['Papan tanda Braille / taktil', '盲文／触觉标识'],
+  'Hearing loop': ['Gelung pendengaran', '助听感应系统'],
+  'Staff trained to assist': ['Kakitangan terlatih untuk membantu', '员工受过协助培训'],
+  'Assistance animals welcome': ['Haiwan pembantu dialu-alukan', '欢迎辅助动物'],
+  'Quiet / low-sensory space': ['Ruang senyap / rendah rangsangan', '安静／低感官刺激空间'],
+  // kinds of offer
+  'Free / waived': ['Percuma / dikecualikan', '免费／豁免'],
+  'Priority service': ['Layanan keutamaan', '优先服务'],
+  'Freebie / add-on': ['Hadiah / tambahan', '赠品／附加'],
+  'Volunteer with us': ['Jadi sukarelawan bersama kami', '来当义工'],
+  'Other perk': ['Keistimewaan lain', '其他福利'],
+  // official help categories
+  'Financial assistance': ['Bantuan kewangan', '经济援助'],
+  'Tax relief': ['Pelepasan cukai', '税务减免'],
+  'Healthcare': ['Kesihatan', '医疗'],
+  'Education': ['Pendidikan', '教育'],
+  'Employment': ['Pekerjaan', '就业'],
+  'Vehicles & parking': ['Kenderaan & letak kereta', '车辆与停车'],
+  'Assistive devices': ['Alat bantu', '辅助器材'],
+
+  // app shell
+  'My contributions': ['Sumbangan saya', '我的贡献'],
+  'You are logged out.': ['Anda telah log keluar.', '你已退出登录。'],
+  'Page not found': ['Halaman tidak dijumpai', '找不到页面'],
+  'Back to the map': ['Kembali ke peta', '返回地图'],
+  'Not found': ['Tidak dijumpai', '找不到'],
+  'Something went wrong': ['Ada masalah', '出了点问题'],
+  'Error': ['Ralat', '错误'],
+  'We can’t reach the server': ['Kami tidak dapat menghubungi pelayan', '无法连接服务器'],
+  'Please check your connection and reload.': ['Sila semak sambungan anda dan muat semula.', '请检查网络连接后重新加载。'],
+  'OKU Benefits Hub, home': ['OKU Benefits Hub, laman utama', 'OKU Benefits Hub，首页'],
+  'Photo of {name}': ['Foto {name}', '{name}的照片'],
+  'Photo': ['Foto', '照片'],
+  'Rated {n} out of 5': ['Penilaian {n} daripada 5', '评分 {n}/5'],
+  'Accessibility rated {n} out of 5': ['Kebolehcapaian dinilai {n} daripada 5', '无障碍评分 {n}/5'],
+  'You are here': ['Anda di sini', '你在这里'],
+  'Your browser does not support location.': ['Pelayar anda tidak menyokong lokasi.', '你的浏览器不支持定位。'],
+  'We could not get your location. Check your browser’s location permission.': ['Kami tidak dapat mengesan lokasi anda. Semak kebenaran lokasi pelayar anda.', '无法取得你的位置。请检查浏览器的定位权限。'],
+
+  // place page (more)
+  'Partner badge removed.': ['Lencana rakan kongsi dibuang.', '已移除合作伙伴标记。'],
+  'Marked as business confirmed.': ['Ditanda sebagai disahkan peniaga.', '已标记为商家已确认。'],
+  'Remove business-confirmed label': ['Buang label disahkan peniaga', '移除“商家已确认”标签'],
+  'Mark as business confirmed': ['Tanda sebagai disahkan peniaga', '标记为商家已确认'],
+  'Breadcrumb': ['Laluan navigasi', '导航路径'],
+  'This listing is awaiting moderator approval. Only you and moderators can see it.': ['Senarai ini sedang menunggu kelulusan moderator. Hanya anda dan moderator boleh melihatnya.', '此地点正在等待审核员批准，只有你和审核员能看到。'],
+  'Map showing {name}': ['Peta menunjukkan {name}', '显示{name}的地图'],
+  'Open in Google Maps': ['Buka dalam Google Maps', '在Google地图中打开'],
+  'Open in OpenStreetMap': ['Buka dalam OpenStreetMap', '在OpenStreetMap中打开'],
+  '1 review': ['1 ulasan', '1 条评价'],
+  '{n} reviews': ['{n} ulasan', '{n} 条评价'],
+  'Discount honoured for {a} of {b} who tried it': ['Diskaun diberi kepada {a} daripada {b} yang mencuba', '{b} 位尝试者中有 {a} 位获得折扣'],
+  'Discount honoured': ['Diskaun diberi', '已获得折扣'],
+  'Discount not honoured': ['Diskaun tidak diberi', '未获得折扣'],
+  'Did not try the discount': ['Tidak mencuba diskaun', '没有尝试折扣'],
+  'Remove this review?': ['Buang ulasan ini?', '要删除这条评价吗？'],
+  'Remove review': ['Buang ulasan', '删除评价'],
+  'To write a longer review, log in or create an account. You can answer “Did the OKU offer work?” without one.': [
+    'Untuk menulis ulasan yang lebih panjang, log masuk atau buat akaun. Anda boleh menjawab “Adakah tawaran OKU berjaya?” tanpa akaun.',
+    '要写详细评价，请登录或注册账号。不需要账号也可以回答“OKU优惠有效吗？”。'],
+  'Create an account': ['Buat akaun', '注册账号'],
+  'Overall rating (1 = poor, 5 = excellent)': ['Penilaian keseluruhan (1 = lemah, 5 = cemerlang)', '总体评分（1 = 差，5 = 非常好）'],
+  'Accessibility rating (optional)': ['Penilaian kebolehcapaian (pilihan)', '无障碍评分（可选）'],
+  'Was the OKU offer honoured?': ['Adakah tawaran OKU diberi?', 'OKU优惠有兑现吗？'],
+  'I did not try it': ['Saya tidak mencubanya', '我没有尝试'],
+  'Your review (optional)': ['Ulasan anda (pilihan)', '你的评价（可选）'],
+  'What was access like? Was staff helpful? Please do not share personal details.': ['Bagaimana kemudahan aksesnya? Adakah kakitangan membantu? Jangan kongsi maklumat peribadi.', '无障碍情况如何？员工是否乐于帮忙？请不要分享个人资料。'],
+  'Update my review': ['Kemas kini ulasan saya', '更新我的评价'],
+  'Post review': ['Hantar ulasan', '发表评价'],
+  'Write a review': ['Tulis ulasan', '写评价'],
+  'Update your review': ['Kemas kini ulasan anda', '更新你的评价'],
+  'Thank you, your review is posted.': ['Terima kasih, ulasan anda telah disiarkan.', '谢谢，你的评价已发布。'],
+
+  // add a place / suggest an edit
+  'Log in to continue': ['Log masuk untuk teruskan', '登录以继续'],
+  'You need an account to {what}. It takes a minute and helps us keep listings trustworthy.': [
+    'Anda perlukan akaun untuk {what}. Ia hanya mengambil masa seminit dan membantu kami memastikan senarai boleh dipercayai.',
+    '你需要账号才能{what}。只需一分钟，也能帮助我们保持信息可靠。'],
+  'suggest an edit': ['mencadangkan suntingan', '建议修改'],
+  'add a benefit': ['menambah faedah', '添加福利'],
+  'Create account': ['Buat akaun', '注册账号'],
+  'Cancel': ['Batal', '取消'],
+  'Preview of the chosen photo': ['Pratonton foto yang dipilih', '所选照片的预览'],
+  'Photo removed.': ['Foto dibuang.', '照片已移除。'],
+  'Remove photo': ['Buang foto', '移除照片'],
+  'Uploading…': ['Memuat naik…', '上传中…'],
+  'Photo added. It will be checked with the rest of your submission.': ['Foto ditambah. Ia akan disemak bersama maklumat lain yang anda hantar.', '照片已添加，会和你提交的其他内容一起审核。'],
+  'We could not use that photo. Try a different one.': ['Kami tidak dapat menggunakan foto itu. Cuba foto lain.', '无法使用这张照片，请换一张。'],
+  'Photo (optional)': ['Foto (pilihan)', '照片（可选）'],
+  'A photo of the entrance or front helps people see if it will work for them. Only upload pictures you took yourself.': [
+    'Foto pintu masuk atau bahagian depan membantu orang lain menilai sama ada tempat itu sesuai untuk mereka. Muat naik foto yang anda ambil sendiri sahaja.',
+    '入口或门面的照片能帮助别人判断是否适合自己。请只上传你自己拍的照片。'],
+  'What is offered': ['Apa yang ditawarkan', '优惠内容'],
+  'e.g. 10% off total bill': ['cth. diskaun 10% untuk jumlah bil', '例如：总账单九折'],
+  'Type': ['Jenis', '类型'],
+  'Value (optional)': ['Nilai (pilihan)', '数值（可选）'],
+  'e.g. 10% off': ['cth. diskaun 10%', '例如：九折'],
+  'Conditions (optional)': ['Syarat (pilihan)', '条件（可选）'],
+  'e.g. show OKU card, dine-in only, weekdays': ['cth. tunjuk kad OKU, makan di kedai sahaja, hari bekerja', '例如：出示OKU卡、仅限堂食、平日'],
+  'Offer': ['Tawaran', '优惠'],
+  'Remove this offer': ['Buang tawaran ini', '移除此优惠'],
+  'Location picker map. Click or tap to place the pin, or use the search box or coordinate fields.': [
+    'Peta pemilih lokasi. Klik atau ketik untuk meletakkan pin, atau guna kotak carian atau medan koordinat.',
+    '位置选择地图。点击地图放置标记，或使用搜索框和坐标栏。'],
+  'Find address or landmark': ['Cari alamat atau mercu tanda', '查找地址或地标'],
+  'Searches {provider}. Then click the map to fine-tune the pin.': ['Mencari dalam {provider}. Kemudian klik peta untuk melaraskan pin.', '在{provider}中搜索，然后点击地图微调标记。'],
+  'Search results': ['Hasil carian', '搜索结果'],
+  'Selected location': ['Lokasi dipilih', '已选位置'],
+  'Searching…': ['Mencari…', '搜索中…'],
+  '{n} result(s). Choose one to move the pin.': ['{n} hasil. Pilih satu untuk mengalihkan pin.', '找到 {n} 个结果。选择一个来移动标记。'],
+  'No results. Try a nearby landmark or drop the pin on the map.': ['Tiada hasil. Cuba mercu tanda berdekatan atau letakkan pin pada peta.', '没有结果。试试附近的地标，或直接在地图上放置标记。'],
+  'Search is unavailable right now. Click the map to place the pin instead.': ['Carian tidak tersedia sekarang. Klik peta untuk meletakkan pin.', '搜索暂时无法使用，请直接点击地图放置标记。'],
+  'Search': ['Cari', '搜索'],
+  'Use my current location': ['Guna lokasi semasa saya', '使用我目前的位置'],
+  'Business or place name': ['Nama perniagaan atau tempat', '商家或地点名称'],
+  'Description (optional)': ['Keterangan (pilihan)', '描述（可选）'],
+  'What is it, and anything helpful for OKU visitors?': ['Apakah tempat ini, dan apa-apa yang berguna untuk pelawat OKU?', '这是什么地方？有什么对OKU访客有用的信息？'],
+  'Street address': ['Alamat jalan', '街道地址'],
+  'Town / city': ['Bandar', '城镇／城市'],
+  'State': ['Negeri', '州属'],
+  'Select state': ['Pilih negeri', '选择州属'],
+  'Phone (optional)': ['Telefon (pilihan)', '电话（可选）'],
+  'Website (optional)': ['Laman web (pilihan)', '网站（可选）'],
+  'Include https://': ['Sertakan https://', '请包含 https://'],
+  'Latitude': ['Latitud', '纬度'],
+  'Longitude': ['Longitud', '经度'],
+  'Accessibility features': ['Ciri kebolehcapaian', '无障碍设施'],
+  'Tick what you have seen or know is available.': ['Tanda apa yang anda pernah lihat atau tahu ada.', '勾选你见过或确定有的设施。'],
+  'Why are you suggesting this change?': ['Mengapa anda mencadangkan perubahan ini?', '你为什么建议这项修改？'],
+  'Optional but helps moderators verify quickly, e.g. “Visited on 3 March; the offer is now 15%.”': [
+    'Pilihan, tetapi membantu moderator menyemak dengan cepat, cth. “Melawat pada 3 Mac; tawaran kini 15%.”',
+    '可选，但能帮助审核员快速核实，例如：“3月3日到访，优惠现在是15%。”'],
+  'Submit for review': ['Hantar untuk semakan', '提交审核'],
+  'Send edit request': ['Hantar permintaan suntingan', '提交修改请求'],
+  'Please fix the highlighted fields.': ['Sila betulkan medan yang ditanda.', '请修正标出的栏位。'],
+  '1. About the place': ['1. Tentang tempat ini', '1. 关于这个地点'],
+  '2. Where is it?': ['2. Di mana lokasinya?', '2. 在哪里？'],
+  '3. OKU offers': ['3. Tawaran OKU', '3. OKU优惠'],
+  'Discounts, freebies, priority service, or a chance to volunteer. Leave empty if it is simply an accessible space.': [
+    'Diskaun, hadiah, layanan keutamaan, atau peluang menjadi sukarelawan. Biarkan kosong jika ia hanya ruang yang mesra OKU.',
+    '折扣、赠品、优先服务或义工机会。如果只是无障碍场所，可以留空。'],
+  'Add another offer': ['Tambah tawaran lain', '再添加一个优惠'],
+  '4. Accessibility & contact': ['4. Kebolehcapaian & hubungan', '4. 无障碍设施与联系方式'],
+  'Published.': ['Diterbitkan.', '已发布。'],
+  'Thanks! Your suggested edit is waiting for moderator review.': ['Terima kasih! Cadangan suntingan anda sedang menunggu semakan moderator.', '谢谢！你的修改建议正在等待审核。'],
+  'Change anything that is wrong or out of date. Nothing changes on the listing until a moderator approves your request.': [
+    'Ubah apa-apa yang salah atau lapuk. Tiada apa yang berubah pada senarai sehingga moderator meluluskan permintaan anda.',
+    '修改任何错误或过时的信息。审核员批准之前，页面内容不会改变。'],
+  'Benefit name': ['Nama faedah', '福利名称'],
+  'Agency or provider': ['Agensi atau penyedia', '机构或提供者'],
+  'e.g. JKM, LHDN, a local council': ['cth. JKM, LHDN, pihak berkuasa tempatan', '例如：JKM、LHDN、地方政府'],
+  'Category': ['Kategori', '类别'],
+  'What does it offer?': ['Apa yang ditawarkan?', '提供什么？'],
+  'Who can apply? (optional)': ['Siapa boleh memohon? (pilihan)', '谁可以申请？（可选）'],
+  'How to apply (optional)': ['Cara memohon (pilihan)', '如何申请（可选）'],
+  'Official web page (optional)': ['Laman web rasmi (pilihan)', '官方网页（可选）'],
+  'Link to the agency page so others can confirm. Include https://': ['Pautan ke halaman agensi supaya orang lain boleh mengesahkan. Sertakan https://', '附上机构网页链接，方便别人核实。请包含 https://'],
+  'A source link or date helps moderators verify.': ['Pautan sumber atau tarikh membantu moderator menyemak.', '附上来源链接或日期能帮助审核员核实。'],
+  'Thank you! A moderator will review it shortly.': ['Terima kasih! Moderator akan menyemaknya tidak lama lagi.', '谢谢！审核员很快会进行审核。'],
+  'Add a government benefit': ['Tambah faedah kerajaan', '添加政府福利'],
+  'Share a benefit, allowance, concession or relief that OKU cardholders can claim. Please include an official source where you can.': [
+    'Kongsi faedah, elaun, konsesi atau pelepasan yang boleh dituntut oleh pemegang kad OKU. Sertakan sumber rasmi jika boleh.',
+    '分享OKU卡持有人可以申请的福利、津贴、优惠或减免。请尽量附上官方来源。'],
+  'Add a benefit': ['Tambah faedah', '添加福利'],
+
+  // my contributions
+  'Awaiting review': ['Menunggu semakan', '等待审核'],
+  'Approved': ['Diluluskan', '已批准'],
+  'Not accepted': ['Tidak diterima', '未被接受'],
+  'Nothing here yet.': ['Belum ada apa-apa.', '暂时没有内容。'],
+  'Signed in as {name} ({email}).': ['Log masuk sebagai {name} ({email}).', '已登录：{name}（{email}）。'],
+  'Places I submitted': ['Tempat yang saya hantar', '我提交的地点'],
+  'Benefits I submitted': ['Faedah yang saya hantar', '我提交的福利'],
+  'Edits I suggested': ['Suntingan yang saya cadangkan', '我建议的修改'],
+  '(removed listing)': ['(senarai telah dibuang)', '（已删除的地点）'],
+  'Moderator note': ['Nota moderator', '审核员备注'],
+
+  // log in / sign up
+  'Display name': ['Nama paparan', '显示名称'],
+  'Shown next to your reviews. Use a nickname if you prefer.': ['Dipaparkan di sebelah ulasan anda. Guna nama samaran jika mahu.', '会显示在你的评价旁边，可以用昵称。'],
+  'Email': ['E-mel', '电邮'],
+  'Password': ['Kata laluan', '密码'],
+  'At least 8 characters.': ['Sekurang-kurangnya 8 aksara.', '至少8个字符。'],
+  'Welcome! Your account is ready.': ['Selamat datang! Akaun anda sudah sedia.', '欢迎！你的账号已开通。'],
+  'Welcome back.': ['Selamat kembali.', '欢迎回来。'],
+  'Log in to add places, suggest edits and write reviews.': ['Log masuk untuk menambah tempat, mencadangkan suntingan dan menulis ulasan.', '登录后可以添加地点、建议修改和写评价。'],
+  'New here?': ['Baru di sini?', '第一次来？'],
+  'Free. Lets you contribute listings, suggest edits and review places.': ['Percuma. Membolehkan anda menyumbang senarai, mencadangkan suntingan dan mengulas tempat.', '免费。可以提交地点、建议修改和评价地点。'],
+  'Already have an account?': ['Sudah ada akaun?', '已经有账号？'],
+
+  // official help (more)
+  'e.g. allowance, tax, transport': ['cth. elaun, cukai, pengangkutan', '例如：津贴、税务、交通'],
+  'All categories': ['Semua kategori', '所有类别'],
+  '1 link': ['1 pautan', '1 个链接'],
+  '{n} links': ['{n} pautan', '{n} 个链接'],
+
+  // for businesses
+  'Got a discount, a ramp or an open door?': ['Ada diskaun, tanjakan atau pintu yang terbuka?', '有折扣、斜坡，或敞开的大门吗？'],
+  'If you give OKU cardholders free entry, a discount, or a little extra help, put it on the map. Listing is free, and people planning a trip will find you.': [
+    'Jika anda memberi pemegang kad OKU masuk percuma, diskaun, atau sedikit bantuan tambahan, letakkannya di peta. Penyenaraian adalah percuma, dan orang yang merancang perjalanan akan menjumpai anda.',
+    '如果你为OKU卡持有人提供免费入场、折扣或额外协助，就把它放上地图吧。刊登免费，计划出行的人就能找到你。'],
+  'List your place': ['Senaraikan tempat anda', '刊登你的地点'],
+  'See the map': ['Lihat peta', '查看地图'],
+  'How it works': ['Cara ia berfungsi', '如何运作'],
+  'Make an account': ['Buat akaun', '注册账号'],
+  'Choose “Add a place” and tick the box saying you own or manage it.': ['Pilih “Tambah tempat” dan tanda kotak yang menyatakan anda pemilik atau pengurusnya.', '选择“添加地点”，并勾选你是店主或管理者。'],
+  'Say what you offer': ['Nyatakan tawaran anda', '说明你提供什么'],
+  'Drop a pin, add a photo, describe the offer and tick the accessibility features you really have.': ['Letak pin, tambah foto, terangkan tawaran dan tanda ciri kebolehcapaian yang benar-benar ada.', '放置标记、添加照片、描述优惠，并勾选你确实具备的无障碍设施。'],
+  'We check it': ['Kami semak', '我们审核'],
+  'A person reviews it. Owner listings can become verified partners and show up first.': ['Seorang moderator menyemaknya. Senarai pemilik boleh menjadi rakan kongsi disahkan dan dipaparkan dahulu.', '由真人审核。店主刊登的地点可成为认证合作伙伴并优先显示。'],
+  'What makes a good listing': ['Ciri senarai yang baik', '好的刊登信息包括'],
+  'A simple offer your staff can remember: “10% off the bill with an OKU card”.': ['Tawaran ringkas yang mudah diingati kakitangan: “Diskaun 10% dengan kad OKU”.', '员工容易记住的简单优惠：“凭OKU卡账单九折”。'],
+  'A real photo of your entrance. It helps people decide if the place will work for them.': ['Foto sebenar pintu masuk anda. Ia membantu orang menilai sama ada tempat itu sesuai untuk mereka.', '入口的真实照片，帮助人们判断这里是否适合自己。'],
+  'Honest accessibility details. Visitors say whether the offer was honoured and how access really was, so it pays to brief your team.': ['Maklumat kebolehcapaian yang jujur. Pelawat akan melaporkan sama ada tawaran diberi dan bagaimana aksesnya, jadi taklimatkan pasukan anda.', '如实填写无障碍信息。访客会反馈优惠是否兑现、通行是否方便，所以记得提前告知你的团队。'],
+  'Volunteer slots or jobs for people with disabilities? Add them as an offer so people can find and support you.': ['Ada slot sukarelawan atau pekerjaan untuk OKU? Tambahkannya sebagai tawaran supaya orang boleh mencari dan menyokong anda.', '有义工名额或为残障人士提供的工作吗？把它添加为优惠，让大家找到并支持你。'],
+  'Already listed by a customer? Log in and use “Suggest an edit” on your page, and mention that you are the owner.': ['Sudah disenaraikan oleh pelanggan? Log masuk dan guna “Cadang suntingan” pada halaman anda, dan nyatakan bahawa anda pemiliknya.', '已经被顾客添加了？登录后在你的页面使用“建议修改”，并注明你是店主。'],
+
+  // messages from the server
+  'Please log in to do that.': ['Sila log masuk untuk berbuat demikian.', '请先登录。'],
+  'Enter a valid email address.': ['Masukkan alamat e-mel yang sah.', '请输入有效的电邮地址。'],
+  'Password must be 8–200 characters.': ['Kata laluan mestilah 8–200 aksara.', '密码须为8至200个字符。'],
+  'Enter your password.': ['Masukkan kata laluan anda.', '请输入密码。'],
+  'Choose a valid state.': ['Pilih negeri yang sah.', '请选择有效的州属。'],
+  'Enter a valid phone number.': ['Masukkan nombor telefon yang sah.', '请输入有效的电话号码。'],
+  'Enter a full web address starting with http:// or https://': ['Masukkan alamat web penuh bermula dengan http:// atau https://', '请输入以 http:// 或 https:// 开头的完整网址'],
+  'Enter a date like 2026-12-31.': ['Masukkan tarikh seperti 2026-12-31.', '请按 2026-12-31 的格式输入日期。'],
+  'Pick the location on the map.': ['Pilih lokasi pada peta.', '请在地图上选择位置。'],
+  'Add at least one offer or one accessibility feature.': ['Tambah sekurang-kurangnya satu tawaran atau satu ciri kebolehcapaian.', '请至少添加一个优惠或一项无障碍设施。'],
+  'Add at least one offer, or tick an accessibility feature.': ['Tambah sekurang-kurangnya satu tawaran, atau tanda satu ciri kebolehcapaian.', '请至少添加一个优惠，或勾选一项无障碍设施。'],
+  'Choose a rating from 1 to 5.': ['Pilih penilaian dari 1 hingga 5.', '请选择1到5的评分。'],
+  'You have not changed anything.': ['Anda belum mengubah apa-apa.', '你没有修改任何内容。'],
+  'Choose a JPEG, PNG or WebP photo.': ['Pilih foto JPEG, PNG atau WebP.', '请选择JPEG、PNG或WebP照片。'],
+  'That photo is too large (2 MB maximum).': ['Foto itu terlalu besar (maksimum 2 MB).', '照片太大（最大2 MB）。'],
+  'That file is not a valid JPEG, PNG or WebP image.': ['Fail itu bukan imej JPEG, PNG atau WebP yang sah.', '该文件不是有效的JPEG、PNG或WebP图片。'],
+  'Too many requests. Please slow down and try again shortly.': ['Terlalu banyak permintaan. Sila perlahan dan cuba lagi sebentar nanti.', '请求过多，请稍后再试。'],
+  'Something went wrong on our side.': ['Ada masalah di pihak kami.', '我们这边出了问题。'],
+  'An account with that email already exists.': ['Akaun dengan e-mel itu sudah wujud.', '该电邮已注册账号。'],
+  'Main': ['Utama', '主导航'],
+  'Map data ©': ['Data peta ©', '地图数据 ©'],
+  'contributors.': ['penyumbang.', '贡献者。'],
+  'Zoom in': ['Zum masuk', '放大'],
+  'Zoom out': ['Zum keluar', '缩小'],
+  'Already registered, try logging in.': ['Sudah berdaftar, cuba log masuk.', '已注册，请尝试登录。'],
 };

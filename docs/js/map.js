@@ -1,5 +1,7 @@
 // Map provider adapter. Google Maps (JavaScript API) when the server sends a key in /api/meta,
 // otherwise Leaflet (global `L`) with OpenStreetMap tiles. Views only use the handle returned by createMap.
+import { t } from './i18n.js';
+
 export const MALAYSIA_CENTER = [4.2105, 108.0];
 export const MALAYSIA_ZOOM = 6;
 
@@ -50,7 +52,8 @@ function leafletIcon(tone, label) {
 function leafletMap(el, center, zoom) {
   // Zoom animation is off: Leaflet's delayed zoom-end callback throws if the map is removed during the
   // animation (we tear maps down on every route change), and it is kinder to reduced-motion users.
-  const map = L.map(el, { center, zoom, worldCopyJump: true, zoomAnimation: false, markerZoomAnimation: false });
+  const map = L.map(el, { center, zoom, worldCopyJump: true, zoomAnimation: false, markerZoomAnimation: false, zoomControl: false });
+  L.control.zoom({ zoomInTitle: t('Zoom in'), zoomOutTitle: t('Zoom out') }).addTo(map);
   L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
     maxZoom: 19,
     attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
@@ -69,7 +72,7 @@ function leafletMap(el, center, zoom) {
     },
     addYouMarker(lat, lng) {
       const m = L.circleMarker([lat, lng], { radius: 8, color: '#fff', weight: 3, fillColor: '#2563eb', fillOpacity: 1 })
-        .bindTooltip('You are here').addTo(map);
+        .bindTooltip(t('You are here')).addTo(map);
       return { remove: () => m.remove() };
     },
     fitTo(points, maxZoom) {
@@ -152,7 +155,7 @@ async function googleMap(el, [lat, lng], zoom) {
     addYouMarker(la, ln) {
       const dot = document.createElement('span');
       dot.className = 'you-dot';
-      const m = marker({ lat: la, lng: ln }, dot, 'You are here');
+      const m = marker({ lat: la, lng: ln }, dot, t('You are here'));
       return { remove: () => { m.map = null; markers.delete(m); } };
     },
     fitTo(points, maxZoom) {
@@ -214,10 +217,10 @@ export const osmUrl = (p) => `https://www.openstreetmap.org/?mlat=${p.lat}&mlon=
 
 export function locate() {
   return new Promise((resolve, reject) => {
-    if (!navigator.geolocation) return reject(new Error('Your browser does not support location.'));
+    if (!navigator.geolocation) return reject(new Error(t('Your browser does not support location.')));
     navigator.geolocation.getCurrentPosition(
       (pos) => resolve({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
-      () => reject(new Error('We could not get your location. Check your browser’s location permission.')),
+      () => reject(new Error(t('We could not get your location. Check your browser’s location permission.'))),
       { timeout: 10000, maximumAge: 60000 },
     );
   });

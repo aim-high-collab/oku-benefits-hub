@@ -265,6 +265,8 @@ details.more[open] summary::after { transform: rotate(-135deg); }
 .place-sub { font-size: 1.05rem; margin: 0; }
 .place-head h1 { margin-bottom: .3rem; }
 .place-head .pills { margin: 0; }
+.photo-credit { margin: .4rem 0 0; font-size: .85rem; color: var(--muted); }
+.photo-credit a { color: inherit; }
 .place-actions { display: flex; flex-wrap: wrap; gap: .75rem; }
 .place-grid { display: grid; gap: 2.5rem; grid-template-columns: 1fr; align-items: start; }
 @media (min-width: 60rem) { .place-grid { grid-template-columns: 1fr 23rem; } .place-side { position: sticky; top: calc(var(--header-h) + 1.25rem); } }

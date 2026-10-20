@@ -6,8 +6,8 @@ import { t } from '../i18n.js';
 /** "Official help": a short, clearly-labelled set of links out to government agencies, not a portal of our own. */
 export async function benefitsView(ctx, root) {
   const { meta } = ctx.state;
-  const q = field({ label: t('Search official help'), name: 'q', type: 'search', attrs: { placeholder: 'e.g. allowance, tax, transport', autocomplete: 'off' } });
-  const category = field({ label: 'Category', name: 'category', tag: 'select', options: [['', 'All categories'], ...Object.entries(meta.benefitCategories)] });
+  const q = field({ label: t('Search official help'), name: 'q', type: 'search', attrs: { placeholder: t('e.g. allowance, tax, transport'), autocomplete: 'off' } });
+  const category = field({ label: t('Category'), name: 'category', tag: 'select', options: [['', t('All categories')], ...Object.entries(meta.benefitCategories)] });
   const count = h('p', { class: 'result-count', role: 'status' });
   const list = h('ul', { class: 'benefit-list', 'aria-label': t('Official help') });
 
@@ -28,22 +28,22 @@ export async function benefitsView(ctx, root) {
 
   async function load() {
     const { benefits } = await api('GET', `/benefits${qs({ q: q.input.value.trim(), category: category.input.value })}`);
-    count.textContent = benefits.length === 1 ? '1 link' : `${benefits.length} links`;
+    count.textContent = benefits.length === 1 ? t('1 link') : t('{n} links', { n: benefits.length });
     clear(list);
     if (!benefits.length) list.append(h('li', { class: 'empty' }, t('Nothing matches.')));
     for (const b of benefits) {
       list.append(h('li', { class: 'card benefit' },
         h('div', { class: 'benefit-body' },
-          h('p', { class: 'agency' }, h('strong', {}, b.agency), ' · ', meta.benefitCategories[b.category]),
-          h('h2', {}, b.title),
-          h('p', {}, b.summary),
+          h('p', { class: 'agency' }, h('strong', {}, t(b.agency)), ' · ', meta.benefitCategories[b.category]),
+          h('h2', {}, t(b.title)),
+          h('p', {}, t(b.summary)),
           b.eligibility || b.how_to_apply ? h('dl', { class: 'facts' },
-            b.eligibility ? [h('dt', {}, t('Who can apply')), h('dd', {}, b.eligibility)] : null,
-            b.how_to_apply ? [h('dt', {}, t('How to apply')), h('dd', {}, b.how_to_apply)] : null) : null,
+            b.eligibility ? [h('dt', {}, t('Who can apply')), h('dd', {}, t(b.eligibility))] : null,
+            b.how_to_apply ? [h('dt', {}, t('How to apply')), h('dd', {}, t(b.how_to_apply))] : null) : null,
           h('div', { class: 'actions' },
             b.url ? h('a', { class: 'btn btn--small', href: b.url, target: '_blank', rel: 'noopener noreferrer' }, t('Official website (opens in a new tab)'), ' ', icon('external', 16)) : null,
             b.last_verified ? badge(t('Link checked {date}', { date: fmtDate(b.last_verified) }), 'badge--ok') : badge(t('Link not yet checked'), 'badge--warn'),
-            h('a', { class: 'linkbtn', href: `#/benefits/${b.id}/edit`, 'aria-label': `${t('Suggest an edit')}: ${b.title}` }, t('Suggest an edit'))))));
+            h('a', { class: 'linkbtn', href: `#/benefits/${b.id}/edit`, 'aria-label': `${t('Suggest an edit')}: ${t(b.title)}` }, t('Suggest an edit'))))));
     }
   }
 

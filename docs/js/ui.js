@@ -1,5 +1,5 @@
 import { h } from './dom.js';
-import { t, getLang } from './i18n.js';
+import { t, tIn, getLang } from './i18n.js';
 
 export const announce = (msg) => {
   const live = document.getElementById('live');
@@ -35,7 +35,7 @@ export const badge = (text, cls = '') => h('span', { class: `badge ${cls}` }, te
 
 export function stars(value, label) {
   const n = Math.round(value);
-  return h('span', { class: 'stars', role: 'img', 'aria-label': `${label ?? 'Rated'} ${value} out of 5` },
+  return h('span', { class: 'stars', role: 'img', 'aria-label': t(label ?? 'Rated {n} out of 5', { n: value }) },
     h('span', { 'aria-hidden': 'true' }, '★'.repeat(n) + '☆'.repeat(5 - n)));
 }
 
@@ -98,13 +98,16 @@ export function radioGroup({ legend, name, options, value, hint }) {
 export function errorSummary(message, fields = {}) {
   const items = [...new Set(Object.values(fields))];
   return h('div', { class: 'error-summary', role: 'alert', tabindex: '-1' },
-    h('strong', {}, message),
-    items.length ? h('ul', {}, items.map((m) => h('li', {}, m))) : null);
+    h('strong', {}, t(message)),
+    items.length ? h('ul', {}, items.map((m) => h('li', {}, t(m)))) : null);
 }
 
 // Shows "value · title", but not when the title already says the value ("10% off" / "10% off drinks").
-export const offerLine = (o) => (!o.value_text || o.title.toLowerCase().includes(o.value_text.toLowerCase())
-  ? o.title : `${o.value_text} · ${o.title}`);
+export function offerLine(o, code = getLang()) {
+  const title = tIn(code, o.title);
+  const value = tIn(code, o.value_text);
+  return !value || title.toLowerCase().includes(value.toLowerCase()) ? title : `${value} · ${title}`;
+}
 
 // ---------- icons (stroke icons, 24x24 viewBox) ----------
 const NS = 'http://www.w3.org/2000/svg';
@@ -156,9 +159,21 @@ export function placeImage(place, cls = '') {
   return h('img', {
     class: `photo ${place.image ? '' : 'photo--cover'} ${cls}`.replace(/\s+/g, ' ').trim(),
     src: place.image || `img/cover/${groupOf(place.category)}.svg`,
-    alt: place.image ? `Photo of ${place.name}` : '',
+    alt: place.image ? t('Photo of {name}', { name: place.name }) : '',
     loading: 'lazy', width: 640, height: 256,
   });
+}
+
+// Credits for the freely licensed photos in img/places/ (author, licence, source page), keyed by file name.
+let credits = null;
+export const loadPhotoCredits = () => fetch('img/places/credits.json').then((r) => (r.ok ? r.json() : {})).catch(() => ({})).then((c) => { credits = c; });
+
+/** "Photo: author, licence" with a link to the source, for photos that need attribution. */
+export function photoCredit(place) {
+  const c = place.image && !isCalm() ? credits?.[place.image.split('/').pop()] : null;
+  if (!c) return null;
+  return h('p', { class: 'photo-credit' }, `${t('Photo')}: ${c.author} · `,
+    h('a', { href: c.source, target: '_blank', rel: 'noopener noreferrer' }, c.license), ` · Wikimedia Commons`);
 }
 
 export const offerIcon = (kind) => icon(kind === 'volunteer' ? 'heart' : 'check', 18);

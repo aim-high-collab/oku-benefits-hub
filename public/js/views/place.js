@@ -1,8 +1,8 @@
 import { h, clear } from '../dom.js';
 import { api } from '../api.js';
-import { badge, stars, fmtDate, field, radioGroup, errorSummary, offerLine, icon, groupOf, placeImage, offerIcon,
+import { badge, stars, fmtDate, field, radioGroup, errorSummary, offerLine, icon, groupOf, placeImage, photoCredit, offerIcon,
   trustOf, trustStamp, workedCounts, workedMeter, mobileNumber } from '../ui.js';
-import { t } from '../i18n.js';
+import { t, tIn } from '../i18n.js';
 import { createMap, destroyMap, directionsUrl, googleMapsUrl, osmUrl, usingGoogle } from '../map.js';
 
 const HONOURED = { yes: 'Discount honoured', no: 'Discount not honoured', not_tried: 'Did not try the discount' };
@@ -29,16 +29,16 @@ export async function placeView(ctx, root, [id]) {
 
   const verifyBtn = isAdmin ? h('button', { type: 'button', class: 'btn btn--ghost', onclick: async () => {
     await api('PATCH', `/admin/places/${p.id}`, { partner_verified: !p.partner_verified });
-    ctx.toast(p.partner_verified ? 'Partner badge removed.' : 'Marked as business confirmed.');
+    ctx.toast(p.partner_verified ? t('Partner badge removed.') : t('Marked as business confirmed.'));
     refresh();
-  } }, p.partner_verified ? 'Remove business-confirmed label' : 'Mark as business confirmed') : null;
+  } }, p.partner_verified ? t('Remove business-confirmed label') : t('Mark as business confirmed')) : null;
 
   // ----- "Show the cashier": a large card to turn round at the till -----
   const cashier = h('dialog', { class: 'cashier', 'aria-labelledby': 'cashier-h' },
     h('p', { class: 'hint', id: 'cashier-h' }, t('Turn your phone round to show this.')),
-    h('p', { class: 'cashier-big', lang: 'ms' }, `Saya pemegang kad OKU. Boleh saya dapat tawaran OKU${first ? `: ${offerLine(first)}` : ''}?`),
-    h('p', { lang: 'en' }, `I have an OKU card. Can I get the OKU offer${first ? `: ${offerLine(first)}` : ''}?`),
-    h('p', { lang: 'zh' }, `我是OKU卡持有人。可以给我OKU优惠吗${first ? `：${offerLine(first)}` : ''}？`),
+    h('p', { class: 'cashier-big', lang: 'ms' }, `Saya pemegang kad OKU. Boleh saya dapat tawaran OKU${first ? `: ${offerLine(first, 'ms')}` : ''}?`),
+    h('p', { lang: 'en' }, `I have an OKU card. Can I get the OKU offer${first ? `: ${offerLine(first, 'en')}` : ''}?`),
+    h('p', { lang: 'zh' }, `我是OKU卡持有人。可以给我OKU优惠吗${first ? `：${offerLine(first, 'zh')}` : ''}？`),
     trustStamp(p, { detail: true }),
     h('form', { method: 'dialog' }, h('button', { class: 'btn btn--ghost', type: 'submit' }, t('Close'))));
 
@@ -86,20 +86,20 @@ export async function placeView(ctx, root, [id]) {
     h('a', { class: 'btn btn--ghost', href: directionsUrl(p), target: '_blank', rel: 'noopener noreferrer' }, icon('directions', 18), t('Directions')));
 
   root.append(h('div', { class: 'page page--wide' },
-    h('nav', { class: 'crumbs', 'aria-label': 'Breadcrumb' }, h('a', { href: '#/' }, t('Places')), h('span', { 'aria-hidden': 'true' }, '/'), h('span', {}, p.city || p.state || meta.categories[p.category])),
-    p.status !== 'approved' ? h('p', { class: 'notice' }, 'This listing is awaiting moderator approval. Only you and moderators can see it.') : null,
+    h('nav', { class: 'crumbs', 'aria-label': t('Breadcrumb') }, h('a', { href: '#/' }, t('Places')), h('span', { 'aria-hidden': 'true' }, '/'), h('span', {}, p.city || p.state || meta.categories[p.category])),
+    p.status !== 'approved' ? h('p', { class: 'notice' }, t('This listing is awaiting moderator approval. Only you and moderators can see it.')) : null,
     h('header', { class: `place-head tone-${groupOf(p.category)}` },
       placeImage(p, 'place-banner'),
       h('div', {},
         h('h1', {}, p.name),
-        h('p', { class: 'muted place-sub' }, [meta.categories[p.category], [p.address, p.city].filter(Boolean).join(', ')].filter(Boolean).join(' · ')))),
+        h('p', { class: 'muted place-sub' }, [meta.categories[p.category], [p.address, p.city].filter(Boolean).join(', ')].filter(Boolean).join(' · ')), photoCredit(p))),
     h('div', { class: 'place-grid' },
       h('div', { class: 'place-main' },
         h('section', { class: 'glance', 'aria-labelledby': 'glance-h' },
           h('h2', { id: 'glance-h' }, t('At a glance')),
           first ? [
             h('p', { class: 'glance-offer' }, offerIcon(first.kind), h('strong', {}, offerLine(first))),
-            first.conditions ? h('p', {}, first.conditions) : null,
+            first.conditions ? h('p', {}, t(first.conditions)) : null,
             first.valid_until ? h('p', {}, h('strong', {}, t('Valid until {date}', { date: fmtDate(first.valid_until) }))) : null,
             first.kind !== 'volunteer' ? h('p', {}, t('Bring your OKU card.')) : null,
           ] : h('p', { class: 'muted' }, t('Nothing listed yet.')),
@@ -120,7 +120,7 @@ export async function placeView(ctx, root, [id]) {
           h('ul', { class: 'offer-list' }, p.offers.map((o) => h('li', { class: `offer-card offer-card--${o.kind}` },
             h('div', { class: 'offer-kind' }, offerIcon(o.kind), meta.offerKinds[o.kind]),
             h('strong', {}, offerLine(o)),
-            o.conditions ? h('p', {}, o.conditions) : null,
+            o.conditions ? h('p', {}, t(o.conditions)) : null,
             o.valid_until ? h('p', {}, t('Valid until {date}', { date: fmtDate(o.valid_until) })) : null)))) : null,
         h('section', { class: 'block', 'aria-labelledby': 'acc-h' },
           h('h2', { id: 'acc-h' }, t('Accessibility')),
@@ -128,19 +128,19 @@ export async function placeView(ctx, root, [id]) {
             ? h('ul', { class: 'feature-grid' }, p.accessibility.map((f) => h('li', {}, icon('check', 14), meta.features[f])))
             : h('p', { class: 'unknown' }, icon('question', 18), h('span', {}, t('Not known yet. Ask the place before you go, or'), ' ',
               h('a', { href: `#/place/${p.id}/edit` }, t('add what you know')), '.'))),
-        p.description ? h('section', { class: 'block', 'aria-labelledby': 'about-h' }, h('h2', { id: 'about-h' }, t('About this place')), h('p', { class: 'place-about' }, p.description)) : null,
+        p.description ? h('section', { class: 'block', 'aria-labelledby': 'about-h' }, h('h2', { id: 'about-h' }, t('About this place')), h('p', { class: 'place-about' }, t(p.description))) : null,
         reviewsSection()),
       h('aside', { class: 'place-side', 'aria-label': t('Location and contact') },
         trustPanel,
         h('p', { class: 'hint side-note' }, t('Offer ended or wrong? Answer “No” above, or suggest an edit.')),
         h('div', { class: 'side-map' },
-          h('div', { id: 'mini-map', role: 'region', 'aria-label': `Map showing ${p.name}` }),
+          h('div', { id: 'mini-map', role: 'region', 'aria-label': t('Map showing {name}', { name: p.name }) }),
           h('ul', { class: 'contact-list' },
             h('li', {}, icon('pin', 18), h('span', {}, [p.address, p.city, p.state].filter(Boolean).join(', '))),
             p.website ? h('li', {}, icon('globe', 18), h('a', { href: p.website, rel: 'noopener noreferrer nofollow', target: '_blank' }, p.website.replace(/^https?:\/\//, '').replace(/\/$/, ''))) : null),
           h('p', { class: 'side-link' }, usingGoogle()
-            ? h('a', { href: googleMapsUrl(p), target: '_blank', rel: 'noopener noreferrer' }, 'Open in Google Maps')
-            : h('a', { href: osmUrl(p), target: '_blank', rel: 'noopener noreferrer' }, 'Open in OpenStreetMap'))))),
+            ? h('a', { href: googleMapsUrl(p), target: '_blank', rel: 'noopener noreferrer' }, t('Open in Google Maps'))
+            : h('a', { href: osmUrl(p), target: '_blank', rel: 'noopener noreferrer' }, t('Open in OpenStreetMap')))))),
     cashier));
 
   function reviewsSection() {
@@ -149,8 +149,8 @@ export async function placeView(ctx, root, [id]) {
     if (p.review_count) {
       wrap.append(h('div', { class: 'review-summary' },
         h('div', { class: 'big-rating' }, p.avg_rating),
-        h('div', {}, stars(p.avg_rating), h('p', { class: 'muted' }, `${p.review_count} review${p.review_count === 1 ? '' : 's'}`,
-          honouredTotal ? ` · Discount honoured for ${p.honoured_yes} of ${honouredTotal} who tried it` : ''))));
+        h('div', {}, stars(p.avg_rating), h('p', { class: 'muted' }, p.review_count === 1 ? t('1 review') : t('{n} reviews', { n: p.review_count }),
+          honouredTotal ? ` · ${t('Discount honoured for {a} of {b} who tried it', { a: p.honoured_yes, b: honouredTotal })}` : ''))));
     }
     wrap.append(reviewForm());
     if (!reviews.length) wrap.append(h('p', { class: 'muted' }, t('No reviews yet')));
@@ -158,32 +158,33 @@ export async function placeView(ctx, root, [id]) {
       wrap.append(h('article', { class: 'review' },
         h('header', {}, h('strong', {}, r.author), stars(r.rating), h('span', { class: 'muted' }, fmtDate(r.created_at))),
         h('div', { class: 'pills' },
-          badge(HONOURED[r.discount_honoured], r.discount_honoured === 'yes' ? 'badge--ok' : r.discount_honoured === 'no' ? 'badge--danger' : 'badge--muted'),
-          r.access_rating ? h('span', { class: 'muted' }, 'Accessibility ', stars(r.access_rating, 'Accessibility rated')) : null),
+          badge(t(HONOURED[r.discount_honoured]), r.discount_honoured === 'yes' ? 'badge--ok' : r.discount_honoured === 'no' ? 'badge--danger' : 'badge--muted'),
+          r.access_rating ? h('span', { class: 'muted' }, `${t('Accessibility')} `, stars(r.access_rating, 'Accessibility rated {n} out of 5')) : null),
         r.body ? h('p', {}, r.body) : null,
         isAdmin ? h('button', { type: 'button', class: 'btn btn--danger btn--small', onclick: async () => {
-          if (!confirm('Remove this review?')) return;
+          if (!confirm(t('Remove this review?'))) return;
           await api('DELETE', `/admin/reviews/${r.id}`);
           refresh();
-        } }, 'Remove review') : null));
+        } }, t('Remove review')) : null));
     }
     return wrap;
   }
 
   function reviewForm() {
     if (!state.user) {
-      return h('p', { class: 'notice notice--info' }, h('a', { href: '#/login' }, t('Log in')), ' or ', h('a', { href: '#/register' }, 'create an account'), ' to write a longer review. You can answer “Did the OKU offer work?” without one.');
+      return h('div', { class: 'notice notice--info' }, h('p', {}, t('To write a longer review, log in or create an account. You can answer “Did the OKU offer work?” without one.')),
+        h('p', {}, h('a', { href: '#/login' }, t('Log in')), ' · ', h('a', { href: '#/register' }, t('Create an account'))));
     }
     const mine = reviews.find((r) => r.author === state.user.name);
-    const rating = radioGroup({ legend: 'Overall rating (1 = poor, 5 = excellent)', name: 'rating', value: String(mine?.rating ?? ''), options: [1, 2, 3, 4, 5].map((n) => [String(n), String(n)]) });
-    const access = radioGroup({ legend: 'Accessibility rating (optional)', name: 'access', value: String(mine?.access_rating ?? ''), options: [1, 2, 3, 4, 5].map((n) => [String(n), String(n)]) });
-    const honoured = radioGroup({ legend: 'Was the OKU offer honoured?', name: 'honoured', value: mine?.discount_honoured ?? 'not_tried',
-      options: [['yes', 'Yes'], ['no', 'No'], ['not_tried', 'I did not try it']] });
-    const body = field({ label: 'Your review (optional)', name: 'body', tag: 'textarea', maxlength: 1000, value: mine?.body ?? '',
-      hint: 'What was access like? Was staff helpful? Please do not share personal details.' });
+    const rating = radioGroup({ legend: t('Overall rating (1 = poor, 5 = excellent)'), name: 'rating', value: String(mine?.rating ?? ''), options: [1, 2, 3, 4, 5].map((n) => [String(n), String(n)]) });
+    const access = radioGroup({ legend: t('Accessibility rating (optional)'), name: 'access', value: String(mine?.access_rating ?? ''), options: [1, 2, 3, 4, 5].map((n) => [String(n), String(n)]) });
+    const honoured = radioGroup({ legend: t('Was the OKU offer honoured?'), name: 'honoured', value: mine?.discount_honoured ?? 'not_tried',
+      options: [['yes', t('Yes')], ['no', t('No')], ['not_tried', t('I did not try it')]] });
+    const body = field({ label: t('Your review (optional)'), name: 'body', tag: 'textarea', maxlength: 1000, value: mine?.body ?? '',
+      hint: t('What was access like? Was staff helpful? Please do not share personal details.') });
     const errs = h('div');
-    const submit = h('button', { class: 'btn', type: 'submit' }, mine ? 'Update my review' : 'Post review');
-    return h('form', { class: 'review-form', 'aria-label': 'Write a review', novalidate: true, onsubmit: async (e) => {
+    const submit = h('button', { class: 'btn', type: 'submit' }, mine ? t('Update my review') : t('Post review'));
+    return h('form', { class: 'review-form', 'aria-label': t('Write a review'), novalidate: true, onsubmit: async (e) => {
       e.preventDefault();
       clear(errs);
       submit.disabled = true;
@@ -194,7 +195,7 @@ export async function placeView(ctx, root, [id]) {
           discount_honoured: honoured.value(),
           body: body.input.value,
         });
-        ctx.toast('Thank you, your review is posted.');
+        ctx.toast(t('Thank you, your review is posted.'));
         refresh();
       } catch (err) {
         const s = errorSummary(err.message, err.fields);
@@ -202,7 +203,7 @@ export async function placeView(ctx, root, [id]) {
         s.focus();
         submit.disabled = false;
       }
-    } }, h('h3', {}, mine ? 'Update your review' : 'Write a review'), errs, rating.el, access.el, honoured.el, body.el, h('div', { class: 'actions' }, submit));
+    } }, h('h3', {}, mine ? t('Update your review') : t('Write a review')), errs, rating.el, access.el, honoured.el, body.el, h('div', { class: 'actions' }, submit));
   }
 
   return {
