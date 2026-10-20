@@ -465,7 +465,8 @@ details.more[open] summary::after { transform: rotate(-135deg); }
 
 /* ---------- Calm mode: no art, no motion, bigger text; doubles as a data saver ---------- */
 html.calm body { background-image: none; font-size: 1.1875rem; }
-html.calm * { box-shadow: none !important; transform: none !important; transition: none !important; animation: none !important; }
+html.calm * { box-shadow: none !important; transition: none !important; animation: none !important; }
+/* Only stop the hover/press movement: the map (Leaflet), pins, toasts and ticks rely on transforms to draw at all. */
+html.calm .btn:hover, html.calm .btn:active, html.calm .result:hover, html.calm .chip-btn:hover, html.calm .brand:hover img { transform: none; }
 html.calm :focus-visible { box-shadow: 0 0 0 6px var(--sun) !important; }
 html.calm .photo, html.calm .result-thumb, html.calm .place-banner { display: none; }
-html.calm .brand img { filter: grayscale(1); }
