@@ -46,6 +46,13 @@ export const OFFER_KINDS = {
   other: 'Other perk',
 };
 
+// "How do you know about this offer?" asked when someone adds a place. It sets the listing's trust label.
+export const SOURCES = {
+  used_it: 'I used it myself',
+  owner: 'I own or manage it, or the business told me',
+  heard: 'I saw it online or heard about it',
+};
+
 export const BENEFIT_CATEGORIES = {
   financial: 'Financial assistance',
   tax: 'Tax relief',
@@ -71,6 +78,7 @@ export const meta = (config) => ({
   states: STATES,
   features: FEATURES,
   offerKinds: OFFER_KINDS,
+  sources: SOURCES,
   benefitCategories: BENEFIT_CATEGORIES,
   bounds: MY_BOUNDS,
   maps: mapsConfig(config),

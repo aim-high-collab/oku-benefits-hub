@@ -1,6 +1,7 @@
 import { h, clear } from '../dom.js';
 import { api } from '../api.js';
-import { field, checkboxGroup, errorSummary } from '../ui.js';
+import { field, checkboxGroup, errorSummary, icon } from '../ui.js';
+import { t } from '../i18n.js';
 import { createMap, destroyMap, locate, searchPlaces, usingGoogle, MALAYSIA_CENTER, MALAYSIA_ZOOM } from '../map.js';
 
 // ---------- shared plumbing ----------
@@ -94,9 +95,10 @@ function offerRow(meta, offer, onRemove) {
   const kind = field({ label: 'Type', name: 'offer-kind', tag: 'select', value: offer.kind, options: Object.entries(meta.offerKinds) });
   const value = field({ label: 'Value (optional)', name: 'offer-value', value: offer.value_text, maxlength: 60, attrs: { placeholder: 'e.g. 10% off' } });
   const cond = field({ label: 'Conditions (optional)', name: 'offer-cond', value: offer.conditions, maxlength: 300, hint: 'e.g. show OKU card, dine-in only, weekdays' });
-  const el = h('div', { class: 'offer-row', role: 'group', 'aria-label': 'Offer' }, h('div', { class: 'grid-2' }, title.el, kind.el), h('div', { class: 'grid-2' }, value.el, cond.el),
+  const until = field({ label: t('Valid until (optional)'), name: 'offer-until', type: 'date', value: offer.valid_until || '', hint: t('Leave empty if there is no end date.') });
+  const el = h('div', { class: 'offer-row', role: 'group', 'aria-label': 'Offer' }, h('div', { class: 'grid-2' }, title.el, kind.el), h('div', { class: 'grid-2' }, value.el, cond.el), until.el,
     h('button', { type: 'button', class: 'btn btn--ghost btn--small', onclick: () => onRemove(el) }, 'Remove this offer'));
-  return { el, fields: { title, kind, value_text: value, conditions: cond }, read: () => ({ title: title.input.value, kind: kind.input.value, value_text: value.input.value, conditions: cond.input.value }) };
+  return { el, fields: { title, kind, value_text: value, conditions: cond, valid_until: until }, read: () => ({ title: title.input.value, kind: kind.input.value, value_text: value.input.value, conditions: cond.input.value, valid_until: until.input.value }) };
 }
 
 function locationPicker(meta, initial, lat, lng) {
@@ -172,6 +174,33 @@ function locationPicker(meta, initial, lat, lng) {
   };
 }
 
+// ---------- "How do you know?" ----------
+
+const SOURCE_HINTS = {
+  used_it: 'Shows as “Community reported”.',
+  owner: 'A moderator contacts the business to confirm.',
+  heard: 'Shows as “Not yet checked”.',
+};
+
+/** Required for new places: the answer decides which trust stamp the listing starts with. */
+function sourcePicker(meta) {
+  const errEl = h('p', { class: 'field-error', hidden: true });
+  const inputs = Object.entries(meta.sources).map(([v, text]) => {
+    const id = `src-${v}`;
+    const input = h('input', { type: 'radio', name: 'source', id, value: v, 'aria-describedby': `${id}-hint` });
+    return { input, el: h('div', { class: 'check check--card' }, input,
+      h('label', { for: id }, h('strong', {}, t(text)), h('span', { class: 'hint', id: `${id}-hint` }, t(SOURCE_HINTS[v])))) };
+  });
+  const el = h('fieldset', { class: 'group' }, h('legend', {}, t('How do you know about this offer?')),
+    h('p', { class: 'hint' }, t('Your answer sets the label other people see.')), errEl,
+    h('div', { class: 'check-stack' }, inputs.map((i) => i.el)));
+  return {
+    el,
+    value: () => inputs.find((i) => i.input.checked)?.input.value ?? '',
+    setError: (m) => { errEl.textContent = m || ''; errEl.hidden = !m; if (m) inputs[0].input.focus(); },
+  };
+}
+
 function placeForm(ctx, initial, { mode, onSubmit }) {
   const { meta } = ctx.state;
   const f = {
@@ -187,7 +216,9 @@ function placeForm(ctx, initial, { mode, onSubmit }) {
   const lat = field({ label: 'Latitude', name: 'lat', type: 'number', value: initial.lat ?? '', required: true, attrs: { step: 'any' } });
   const lng = field({ label: 'Longitude', name: 'lng', type: 'number', value: initial.lng ?? '', required: true, attrs: { step: 'any' } });
   const picker = locationPicker(meta, initial, lat, lng);
-  const photo = photoPicker(initial.image);
+  const guest = !ctx.state.user;
+  const photo = guest ? { el: h('p', { class: 'hint note-box' }, icon('question', 18), ' ', t('Log in to add a photo. You can still send everything else.')), value: () => '' } : photoPicker(initial.image);
+  const source = mode === 'create' ? sourcePicker(meta) : null;
   const feats = checkboxGroup({ legend: 'Accessibility features', name: 'features', options: Object.entries(meta.features), selected: initial.accessibility, hint: 'Tick what you have seen or know is available.' });
   const offersBox = h('div');
   const offerRows = new Set();
@@ -201,26 +232,29 @@ function placeForm(ctx, initial, { mode, onSubmit }) {
   if (!initial.offers.length && mode === 'create') addOffer();
   const offersErr = h('p', { class: 'field-error', hidden: true });
 
-  const owner = mode === 'create'
-    ? h('div', { class: 'check' }, h('input', { type: 'checkbox', id: 'is-owner' }),
-      h('label', { for: 'is-owner' }, 'I own or manage this business and want to be listed as a participating partner. A moderator will verify this.'))
-    : null;
   const reason = mode === 'edit'
     ? field({ label: 'Why are you suggesting this change?', name: 'reason', tag: 'textarea', rows: 3, maxlength: 500, hint: 'Optional but helps moderators verify quickly, e.g. “Visited on 3 March; the offer is now 15%.”' })
     : null;
 
-  const fields = { ...f, lat, lng, offers: { setError: (m) => { offersErr.textContent = m || ''; offersErr.hidden = !m; } } };
+  const fields = { ...f, lat, lng, ...(source ? { source } : {}), offers: { setError: (m) => { offersErr.textContent = m || ''; offersErr.hidden = !m; } } };
   const form = formShell({
     fields,
     submitLabel: mode === 'create' ? 'Submit for review' : 'Send edit request',
-    onSubmit: () => onSubmit({
+    onSubmit: () => {
+      if (source && !source.value()) {
+        const err = new Error('Please fix the highlighted fields.');
+        err.fields = { source: t('Choose how you know about this place.') };
+        throw err;
+      }
+      return onSubmit({
       ...Object.fromEntries(Object.entries(f).map(([k, v]) => [k, v.input.value])),
       lat: lat.input.value === '' ? null : Number(lat.input.value),
       lng: lng.input.value === '' ? null : Number(lng.input.value),
       accessibility: feats.values(),
       image: photo.value(),
       offers: [...offerRows].map((r) => r.read()),
-    }, { is_owner: owner ? owner.querySelector('input').checked : false, reason: reason?.input.value ?? '' }),
+    }, { source: source?.value() ?? '', reason: reason?.input.value ?? '' });
+    },
     children: [
       h('fieldset', { class: 'group' }, h('legend', {}, '1. About the place'), f.name.el, f.category.el, f.description.el, photo.el),
       h('fieldset', { class: 'group' }, h('legend', {}, '2. Where is it?'), f.address.el, h('div', { class: 'grid-2' }, f.city.el, f.state.el),
@@ -230,7 +264,7 @@ function placeForm(ctx, initial, { mode, onSubmit }) {
         offersBox, offersErr,
         h('div', { class: 'actions' }, h('button', { type: 'button', class: 'btn btn--ghost btn--small', onclick: () => addOffer().fields.title.input.focus() }, 'Add another offer'))),
       h('fieldset', { class: 'group' }, h('legend', {}, '4. Accessibility & contact'), feats.el, h('div', { class: 'grid-2' }, f.phone.el, f.website.el)),
-      owner, reason?.el,
+      source?.el, reason?.el,
     ],
   });
   return { form, picker };
@@ -239,18 +273,18 @@ function placeForm(ctx, initial, { mode, onSubmit }) {
 const blankPlace = { image: '', name: '', category: 'restaurant', description: '', address: '', city: '', state: '', phone: '', website: '', accessibility: [], offers: [] };
 
 export async function submitPlaceView(ctx, root) {
-  if (needLogin(ctx, root, 'add a place')) return { title: 'Log in' };
   const { form, picker } = placeForm(ctx, blankPlace, {
     mode: 'create',
     onSubmit: async (data, extra) => {
-      const res = await api('POST', '/places', { ...data, is_owner: extra.is_owner });
-      ctx.toast(res.status === 'approved' ? 'Published.' : 'Thank you! A moderator will review it shortly.');
-      ctx.go(res.status === 'approved' ? `#/place/${res.id}` : '#/account');
+      const res = await api('POST', '/places', { ...data, source: extra.source, is_owner: extra.source === 'owner' });
+      ctx.toast(res.status === 'approved' ? 'Published.' : t('Thank you! A moderator will check it before it appears.'));
+      ctx.go(res.status === 'approved' ? `#/place/${res.id}` : ctx.state.user ? '#/account' : '#/');
     },
   });
-  root.append(h('div', { class: 'page page--narrow' }, h('h1', {}, 'Add a place'),
-    h('p', { class: 'lede' }, 'Know a business that gives OKU discounts, a place that is genuinely accessible, or a group that welcomes volunteers? Add it so others can find it. A person checks every submission before it appears.'), form));
-  return { title: 'Add a place', mounted: () => picker.mount(), destroy: () => picker.destroy() };
+  root.append(h('div', { class: 'page page--narrow' }, h('h1', {}, t('Add a place')),
+    h('p', { class: 'lede' }, t('Know a business that gives OKU discounts, a place that is genuinely accessible, or a group that welcomes volunteers? Add it so others can find it.')),
+    h('p', { class: 'note-box' }, icon('shield', 18), ' ', t('No account needed. A moderator checks every suggestion before it appears.')), form));
+  return { title: t('Add a place'), mounted: () => picker.mount(), destroy: () => picker.destroy() };
 }
 
 export async function editPlaceView(ctx, root, [id]) {

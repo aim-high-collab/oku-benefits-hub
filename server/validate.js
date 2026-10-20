@@ -60,11 +60,18 @@ const features = (v, errors, key) => {
   return Object.keys(FEATURES).filter((f) => v.includes(f)); // canonical order, de-duplicated
 };
 
+const isoDate = (v, errors, key) => {
+  const s = typeof v === 'string' ? v.trim() : '';
+  if (s && (!/^\d{4}-\d{2}-\d{2}$/.test(s) || Number.isNaN(Date.parse(s)))) errors[key] = 'Enter a date like 2026-12-31.';
+  return s;
+};
+
 const offerSpec = {
   title: text({ min: 2, max: 100, label: 'Offer title' }),
   kind: oneOf(OFFER_KINDS, 'offer type'),
   value_text: text({ max: 60, label: 'Offer value' }),
   conditions: text({ max: 300, label: 'Conditions' }),
+  valid_until: isoDate,
 };
 
 const offers = (v, errors, key) => {

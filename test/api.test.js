@@ -95,8 +95,8 @@ test('auth: register, duplicate, wrong password, me, logout', async () => {
   assert.equal((await c.get('/api/auth/me')).body.user, null);
 });
 
-test('writes require login, JSON content type and same origin', async () => {
-  assert.equal((await client().post('/api/places', validPlace())).status, 401);
+test('writes require login (except suggesting a place), JSON content type and same origin', async () => {
+  assert.equal((await client().post('/api/benefits', { title: 'Something', agency: 'JKM', category: 'other', summary: 'A long enough summary.' })).status, 401);
   const res = await fetch(`${base}/api/auth/logout`, { method: 'POST', headers: { 'content-type': 'text/plain' }, body: '{}' });
   assert.equal(res.status, 415);
   const cross = await fetch(`${base}/api/auth/logout`, { method: 'POST', headers: { 'content-type': 'application/json', origin: 'https://evil.example' }, body: '{}' });
@@ -130,6 +130,45 @@ test('submission → pending → hidden → moderator approves → public', asyn
 
   assert.equal((await mod.patch(`/api/admin/places/${id}`, { partner_verified: true })).status, 200);
   assert.equal((await anon.get(`/api/places/${id}`)).body.place.partner_verified, true);
+});
+
+test('guests can suggest a place: it waits for a moderator and keeps how they know', async () => {
+  const anon = client();
+  const sub = await anon.post('/api/places', validPlace({ name: 'Kedai Kopi Seng Lee', source: 'used_it',
+    offers: [{ title: 'Free kopi-o with any meal', kind: 'freebie', value_text: '', conditions: 'Show OKU card', valid_until: '2027-03-31' }] }));
+  assert.equal(sub.status, 201);
+  assert.equal(sub.body.status, 'pending');
+  assert.equal((await anon.get(`/api/places/${sub.body.id}`)).status, 404); // hidden until approved
+  assert.equal((await anon.post('/api/places', validPlace({ source: 'rumour' }))).status, 422);
+  assert.equal((await anon.post('/api/places', validPlace({ offers: [{ title: '10% off', kind: 'discount', valid_until: 'soon' }] }))).status, 422);
+  assert.equal((await anon.post('/api/places', validPlace({ image: '/uploads/' + 'a'.repeat(32) + '.png' }))).status, 422);
+
+  const mod = await admin();
+  const queued = (await mod.get('/api/admin/queue')).body.places.find((p) => p.id === sub.body.id);
+  assert.equal(queued.submitter, null);
+  assert.equal(queued.source, 'used_it');
+  await mod.post(`/api/admin/places/${sub.body.id}/approve`);
+  const place = (await anon.get(`/api/places/${sub.body.id}`)).body.place;
+  assert.equal(place.offers[0].valid_until, '2027-03-31');
+
+  assert.equal((await mod.patch(`/api/admin/places/${place.id}`, { partner_verified: true })).status, 200);
+  assert.match((await anon.get(`/api/places/${place.id}`)).body.place.verified_at, /^\d{4}-\d{2}-\d{2}$/);
+  await mod.patch(`/api/admin/places/${place.id}`, { partner_verified: false });
+  assert.equal((await anon.get(`/api/places/${place.id}`)).body.place.verified_at, null);
+});
+
+test('"Did it work?" needs no account and is counted per place', async () => {
+  const anon = client();
+  const p = (await anon.get('/api/places?q=Zoo')).body.places[0];
+  assert.equal((await anon.post(`/api/places/${p.id}/visits`, { worked: 'maybe' })).status, 422);
+  assert.equal((await anon.post(`/api/places/${p.id}/visits`, { worked: 'yes' })).status, 201);
+  await anon.post(`/api/places/${p.id}/visits`, { worked: 'yes' });
+  const last = await anon.post(`/api/places/${p.id}/visits`, { worked: 'partly' });
+  assert.deepEqual([last.body.visits_yes, last.body.visits_no, last.body.visits_partly], [2, 0, 1]);
+  const listed = (await anon.get('/api/places?q=Zoo')).body.places[0];
+  assert.equal(listed.visits_yes, 2);
+  assert.ok(listed.last_visit_at);
+  assert.equal((await anon.post('/api/places/999999/visits', { worked: 'yes' })).status, 404);
 });
 
 test('place validation reports field errors', async () => {

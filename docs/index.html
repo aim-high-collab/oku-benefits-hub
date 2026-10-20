@@ -9,23 +9,27 @@
   <link rel="icon" type="image/svg+xml" href="img/logo-mark.svg">
   <link rel="stylesheet" href="vendor/leaflet/leaflet.css">
   <link rel="stylesheet" href="css/app.css">
+  <script src="js/prefs.js"></script>
 </head>
 <body>
   <p class="demo-banner"><b>Preview.</b> Sample data only. Anything you add or review stays in your own browser.</p>
-  <a class="skip-link" href="#main">Skip to main content</a>
+  <a class="skip-link" id="skip" href="#main">Skip to main content</a>
   <header class="site-header">
     <a class="brand" href="#/" aria-label="OKU Benefits Hub, home">
       <img src="img/logo-mark.svg" alt="" width="44" height="44">
-      <span class="wordmark"><b>OKU</b> Benefits Hub</span>
+      <span class="wordmark"><b>OKU</b> <span class="wordmark-rest">Benefits Hub</span></span>
     </a>
-    <nav id="nav" aria-label="Main"></nav>
-    <div id="account" class="account"></div>
+    <div id="menu" class="menu">
+      <nav id="nav" aria-label="Main"></nav>
+      <div id="account" class="account"></div>
+    </div>
+    <div id="tools" class="tools"></div>
   </header>
   <main id="main" tabindex="-1"><p class="loading">Loading…</p></main>
   <footer class="site-footer">
     <div class="footer-inner">
       <p class="footer-brand">OKU Benefits Hub</p>
-      <p>A community project, not affiliated with JKM or any government agency. Always confirm with the provider before you travel.</p>
+      <p id="footer-note">A community project, not affiliated with JKM or any government agency. Always confirm with the provider before you travel.</p>
       <p>Map data © <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors.</p>
     </div>
   </footer>

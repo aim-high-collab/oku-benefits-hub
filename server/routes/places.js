@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import { HttpError, requireUser } from '../http.js';
 import { clean, cleanReason, PLACE_SPEC } from '../validate.js';
-import { FEATURES, CATEGORIES, OFFER_KINDS } from '../meta.js';
+import { FEATURES, CATEGORIES, OFFER_KINDS, SOURCES } from '../meta.js';
 import { listPlaces, getPlace, insertPlace, createEditRequest } from '../store.js';
 import { uploadExists } from '../uploads.js';
 
@@ -29,19 +29,24 @@ export function placeRoutes({ db, config, writeLimiter }) {
 
   r.get('/:id', (req, res) => res.json({ place: loadVisible(req) }));
 
-  r.post('/', requireUser, writeLimiter, (req, res) => {
+  // Anyone can suggest a place, signed in or not. Every submission waits for a moderator either way.
+  r.post('/', writeLimiter, (req, res) => {
     const data = clean(req.body, PLACE_SPEC);
+    const source = req.body?.source ?? '';
+    if (source !== '' && !Object.hasOwn(SOURCES, source)) throw new HttpError(422, 'Please fix the highlighted fields.', { source: 'Choose how you know about this place.' });
+    if (!req.user && data.image) throw new HttpError(422, 'Log in to add a photo.', { image: 'Log in to add a photo.' });
     if (!uploadExists(config.uploadDir, data.image)) throw new HttpError(422, 'Upload the photo again.', { image: 'Upload the photo again.' });
     if (!data.offers.length && !data.accessibility.length) {
       throw new HttpError(422, 'Add at least one OKU offer or one accessibility feature.', {
         offers: 'Add at least one offer, or tick an accessibility feature.',
       });
     }
-    const isAdmin = req.user.role === 'admin';
+    const isAdmin = req.user?.role === 'admin';
     const id = insertPlace(db, data, {
-      userId: req.user.id,
+      userId: req.user?.id,
       status: isAdmin ? 'approved' : 'pending',
-      isOwner: req.body?.is_owner === true,
+      isOwner: req.body?.is_owner === true || source === 'owner',
+      source,
     });
     res.status(201).json({ id, status: isAdmin ? 'approved' : 'pending' });
   });
@@ -55,6 +60,18 @@ export function placeRoutes({ db, config, writeLimiter }) {
     const reason = cleanReason(req.body?.reason);
     const id = createEditRequest(db, { type: 'place', id: place.id, user: req.user, changes, reason });
     res.status(201).json({ id, status: 'pending' });
+  });
+
+  // ---------- "Did it work?" (no account needed) ----------
+
+  r.post('/:id/visits', writeLimiter, (req, res) => {
+    const place = loadVisible(req);
+    if (place.status !== 'approved') throw new HttpError(409, 'This listing is still awaiting review.');
+    const worked = req.body?.worked;
+    if (!['yes', 'no', 'partly'].includes(worked)) throw new HttpError(422, 'Choose yes, no or partly.', { worked: 'Choose yes, no or partly.' });
+    db.prepare('INSERT INTO visits (place_id, worked) VALUES (?, ?)').run(place.id, worked);
+    const p = getPlace(db, place.id);
+    res.status(201).json({ visits_yes: p.visits_yes, visits_no: p.visits_no, visits_partly: p.visits_partly, last_visit_at: p.last_visit_at });
   });
 
   // ---------- reviews ----------

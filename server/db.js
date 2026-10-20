@@ -31,6 +31,8 @@ CREATE TABLE IF NOT EXISTS places (
   phone TEXT NOT NULL DEFAULT '',
   website TEXT NOT NULL DEFAULT '',
   image TEXT NOT NULL DEFAULT '',
+  source TEXT NOT NULL DEFAULT '',
+  verified_at TEXT,
   accessibility TEXT NOT NULL DEFAULT '[]',
   status TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending','approved','rejected')),
   submitter_is_owner INTEGER NOT NULL DEFAULT 0,
@@ -48,7 +50,8 @@ CREATE TABLE IF NOT EXISTS offers (
   title TEXT NOT NULL,
   kind TEXT NOT NULL,
   value_text TEXT NOT NULL DEFAULT '',
-  conditions TEXT NOT NULL DEFAULT ''
+  conditions TEXT NOT NULL DEFAULT '',
+  valid_until TEXT NOT NULL DEFAULT ''
 );
 CREATE INDEX IF NOT EXISTS offers_place ON offers(place_id);
 
@@ -94,7 +97,24 @@ CREATE TABLE IF NOT EXISTS edit_requests (
   reviewed_at TEXT
 );
 CREATE INDEX IF NOT EXISTS edit_requests_status ON edit_requests(status);
+
+-- One-tap "Did the OKU offer work?" answers. No account needed, so they are counted, not attributed.
+CREATE TABLE IF NOT EXISTS visits (
+  id INTEGER PRIMARY KEY,
+  place_id INTEGER NOT NULL REFERENCES places(id) ON DELETE CASCADE,
+  worked TEXT NOT NULL CHECK (worked IN ('yes','no','partly')),
+  created_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+CREATE INDEX IF NOT EXISTS visits_place ON visits(place_id);
 `;
+
+// Columns added after the first release; older databases get them on start.
+const LATER_COLUMNS = [
+  ['places', 'image', "TEXT NOT NULL DEFAULT ''"],
+  ['places', 'source', "TEXT NOT NULL DEFAULT ''"], // how the submitter knows: used_it | owner | heard
+  ['places', 'verified_at', 'TEXT'], // when a moderator marked it business-confirmed
+  ['offers', 'valid_until', "TEXT NOT NULL DEFAULT ''"],
+];
 
 export function openDb(file = ':memory:') {
   if (file !== ':memory:') mkdirSync(dirname(file), { recursive: true });
@@ -102,9 +122,10 @@ export function openDb(file = ':memory:') {
   db.exec('PRAGMA foreign_keys = ON;');
   if (file !== ':memory:') db.exec('PRAGMA journal_mode = WAL;');
   db.exec(SCHEMA);
-  // Databases created before photos existed.
-  if (!db.prepare('PRAGMA table_info(places)').all().some((c) => c.name === 'image')) {
-    db.exec("ALTER TABLE places ADD COLUMN image TEXT NOT NULL DEFAULT ''");
+  for (const [table, col, ddl] of LATER_COLUMNS) {
+    if (!db.prepare(`PRAGMA table_info(${table})`).all().some((c) => c.name === col)) {
+      db.exec(`ALTER TABLE ${table} ADD COLUMN ${col} ${ddl}`);
+    }
   }
   return db;
 }

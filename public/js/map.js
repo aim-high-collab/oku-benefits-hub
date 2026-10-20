@@ -29,16 +29,22 @@ export function destroyMap(map) {
   map?.destroy();
 }
 
-function pinEl(tone = '') {
+// `label` (e.g. the result number) is drawn inside the pin so list and map can be matched without colour.
+function pinEl(tone = '', label = '') {
   const span = document.createElement('span');
-  span.className = `pin ${tone}`;
+  span.className = `pin ${tone}${label ? ' pin--label' : ''}`;
+  if (label) {
+    const b = document.createElement('b');
+    b.textContent = label;
+    span.append(b);
+  }
   return span;
 }
 
 // ---------- Leaflet ----------
 
-function leafletIcon(tone) {
-  return L.divIcon({ className: 'pin-wrap', html: pinEl(tone).outerHTML, iconSize: [32, 38], iconAnchor: [16, 36], popupAnchor: [0, -32] });
+function leafletIcon(tone, label) {
+  return L.divIcon({ className: 'pin-wrap', html: pinEl(tone, label).outerHTML, iconSize: [36, 40], iconAnchor: [18, 38], popupAnchor: [0, -34] });
 }
 
 function leafletMap(el, center, zoom) {
@@ -50,8 +56,8 @@ function leafletMap(el, center, zoom) {
     attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
   }).addTo(map);
   return {
-    addMarker({ lat, lng, tone, title, popup, draggable = false, onClick, onDragEnd }) {
-      const m = L.marker([lat, lng], { icon: leafletIcon(tone), title, alt: title, keyboard: true, draggable }).addTo(map);
+    addMarker({ lat, lng, tone, label, title, popup, draggable = false, onClick, onDragEnd }) {
+      const m = L.marker([lat, lng], { icon: leafletIcon(tone, label), title, alt: title, keyboard: true, draggable }).addTo(map);
       if (popup) m.bindPopup(popup);
       if (onClick) m.on('click', onClick);
       if (onDragEnd) m.on('dragend', () => { const p = m.getLatLng(); onDragEnd(p.lat, p.lng); });
@@ -126,10 +132,10 @@ async function googleMap(el, [lat, lng], zoom) {
   };
 
   return {
-    addMarker({ lat: la, lng: ln, tone, title, popup, draggable = false, onClick, onDragEnd }) {
+    addMarker({ lat: la, lng: ln, tone, label, title, popup, draggable = false, onClick, onDragEnd }) {
       const wrap = document.createElement('div');
       wrap.className = 'pin-wrap gm-pin';
-      wrap.append(pinEl(tone));
+      wrap.append(pinEl(tone, label));
       const m = marker({ lat: la, lng: ln }, wrap, title, { gmpDraggable: draggable });
       const openPopup = () => {
         info.setContent(popup());
