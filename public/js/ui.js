@@ -194,7 +194,7 @@ export function trustOf(p) {
   if (p.hub_verified) {
     return { tier: 'hub', icon: 'verified', label: t('Checked by OKU Benefits Hub'), detail: [
       p.hub_verified_at && t('Checked on {date}', { date: fmtDate(p.hub_verified_at) }),
-      p.hub_checked && t('What we checked: {what}', { what: p.hub_checked })] };
+      p.hub_checked && t('What we checked: {what}', { what: t(p.hub_checked) })] };
   }
   if (p.partner_verified) {
     return { tier: 'business', icon: 'shield', label: t('Confirmed by business'), detail: [

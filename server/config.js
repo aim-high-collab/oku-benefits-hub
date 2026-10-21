@@ -18,6 +18,8 @@ export function loadConfig(env = process.env) {
     googleMapId: env.GOOGLE_MAPS_MAP_ID || 'DEMO_MAP_ID',
     // OAuth client ID (type "Web application") for "Continue with Google". Unset: email login only.
     googleClientId: env.GOOGLE_CLIENT_ID || '',
+    // Made-up members, businesses and places for trying the prototype. On by default, except in production.
+    sampleData: env.SAMPLE_DATA ? env.SAMPLE_DATA !== '0' : !production,
     generatePassword: () => randomBytes(9).toString('base64url'),
   };
 }

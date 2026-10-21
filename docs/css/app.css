@@ -485,6 +485,7 @@ details.more[open] summary::after { transform: rotate(-135deg); }
 .result-num { display: grid; place-items: center; width: 34px; height: 34px; border-radius: 50%; background: var(--pink); border: 2px solid var(--ink); font: 800 1rem var(--sans); }
 .result-thumb { width: 64px; height: 64px; aspect-ratio: 1; border: 2px solid var(--ink); border-radius: 12px; }
 .result-meta { color: var(--muted); font-weight: 500; margin: 0 0 .35rem; }
+.result-kind { display: flex; align-items: center; gap: .4rem; margin: .2rem 0 .15rem; font-weight: 800; font-size: .9rem; text-transform: uppercase; letter-spacing: .05em; }
 .result-offer { display: flex; align-items: flex-start; gap: .45rem; margin: 0; line-height: 1.35; }
 .result-offer .icon { margin-top: 2px; }
 

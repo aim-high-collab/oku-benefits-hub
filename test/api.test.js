@@ -419,3 +419,32 @@ test('seed: official-source samples, two Zoo offers, KTM as official help, old r
   assert.equal(row(edited).name, 'Muzium Negara (National Museum)');
   assert.equal(old.prepare("SELECT COUNT(*) n FROM places WHERE name LIKE 'Zoo Negara%'").get().n, 1);
 });
+
+test('sample data: all three labels, owners, counts and saves, and it can be removed again', async () => {
+  const { seedSampleData, removeSampleData, SAMPLE_PASSWORD } = await import('../server/sample-data.js');
+  const sdb = openDb(':memory:');
+  seedPlaces(sdb);
+  assert.equal(await seedSampleData(sdb), 5);
+  assert.equal(await seedSampleData(sdb), 0); // only once
+  const rows = sdb.prepare("SELECT name, hub_verified, partner_verified, source FROM places WHERE submitted_by IS NOT NULL").all();
+  assert.equal(rows.filter((r) => r.hub_verified).length, 2);
+  assert.equal(rows.filter((r) => r.partner_verified).length, 2);
+  assert.equal(rows.filter((r) => r.source === 'owner').length, 2);
+  assert.ok(sdb.prepare('SELECT COUNT(*) n FROM visits').get().n > 0 && sdb.prepare('SELECT COUNT(*) n FROM saved_places').get().n > 0);
+  // real listings are untouched: no visits, reviews or labels added to them
+  assert.equal(sdb.prepare('SELECT COUNT(*) n FROM places WHERE submitted_by IS NULL AND (hub_verified = 1 OR partner_verified = 1)').get().n, 0);
+  assert.equal(sdb.prepare('SELECT COUNT(*) n FROM visits v JOIN places p ON p.id = v.place_id WHERE p.submitted_by IS NULL').get().n, 0);
+
+  const app = createApp({ db: sdb, config: { secureCookies: false, rateLimitScale: 1000, uploadDir: mkdtempSync(join(tmpdir(), 'oku-s-')) } });
+  const srv = await new Promise((resolve) => { const s = app.listen(0, () => resolve(s)); });
+  const res = await fetch(`http://127.0.0.1:${srv.address().port}/api/auth/login`, { method: 'POST',
+    headers: { 'content-type': 'application/json', origin: `http://127.0.0.1:${srv.address().port}` },
+    body: JSON.stringify({ email: 'aisyah@sample.okuhub.test', password: SAMPLE_PASSWORD }) });
+  srv.close();
+  assert.equal(res.status, 200);
+
+  assert.equal(removeSampleData(sdb), 5);
+  assert.equal(sdb.prepare("SELECT COUNT(*) n FROM users WHERE email LIKE '%@sample.okuhub.test'").get().n, 0);
+  assert.equal(sdb.prepare('SELECT COUNT(*) n FROM visits').get().n, 0);
+  assert.ok(sdb.prepare('SELECT COUNT(*) n FROM places').get().n >= 16);
+});
