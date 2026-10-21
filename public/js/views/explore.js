@@ -4,7 +4,7 @@ import { field, distanceKm, fmtDistance, offerLine, icon, groupOf, placeImage, o
 import { t } from '../i18n.js';
 import { createMap, destroyMap, locate } from '../map.js';
 
-const KIND_CHIPS = { free: 'Free', discount: 'Discount', priority: 'Priority', freebie: 'Freebie', volunteer: 'Volunteer' };
+const KIND_CHIPS = { free: 'Free', discount: 'Discount', priority: 'Priority', freebie: 'Freebie', volunteer: 'Volunteer opportunities' };
 const TRUST = [['hub', 'Checked by OKU Benefits Hub'], ['business', 'Confirmed by business'], ['community', 'Shared by the community']];
 const TRUST_RANK = { hub: 0, business: 1, community: 2 };
 // What each trust label means, for the "Label guide" key beside the count.
@@ -93,7 +93,7 @@ export async function exploreView(ctx, root) {
     options: [['recommended', t('Recommended')], ['nearest', t('Nearest to me'), 'locate'], ['access', t('Best access')]],
     onChange: (v) => { if (v === 'nearest' && !state.loc) useLocation(); } });
   sortTiles.el.classList.add('tile-group--seg');
-  const kindTiles = tiles({ label: t('Kind of offer'), value: filters.kind,
+  const kindTiles = tiles({ label: t('Type of offer'), value: filters.kind,
     options: Object.entries({ '': 'All', ...KIND_CHIPS }).map(([v, text]) => [v, t(text)]),
     onChange: (v) => setKind(v) });
   const categoryTiles = tiles({ label: t('Category'), value: filters.category, limit: 6,
@@ -161,7 +161,7 @@ export async function exploreView(ctx, root) {
   const form = h('form', { role: 'search', 'aria-label': t('Search places'), onsubmit: (e) => { e.preventDefault(); refresh(); } },
     h('div', { class: 'search-row' }, q.el, locBtn),
     locStatus,
-    h('div', { class: 'chip-row', role: 'group', 'aria-label': t('Kind of offer') }, filtersBtn, kindBtns.map((k) => k.btn)),
+    h('div', { class: 'chip-row', role: 'group', 'aria-label': t('Type of offer') }, filtersBtn, kindBtns.map((k) => k.btn)),
     pills);
   // the dialog lives outside the form so its buttons never submit it
   root.append(sheet);
