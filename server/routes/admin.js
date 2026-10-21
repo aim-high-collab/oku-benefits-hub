@@ -61,8 +61,12 @@ export function adminRoutes({ db }) {
     const flags = [['partner_verified', 'verified_at'], ['hub_verified', 'hub_verified_at']].filter(([k]) => k in (req.body ?? {}));
     if (!flags.length) throw new HttpError(422, 'Send partner_verified or hub_verified.');
     for (const [k] of flags) if (typeof req.body[k] !== 'boolean') throw new HttpError(422, `${k} must be true or false.`);
-    const sets = flags.map(([k, at]) => `${k} = ${req.body[k] ? 1 : 0}, ${at} = ${req.body[k] ? "date('now')" : 'NULL'}`).join(', ');
-    const info = db.prepare(`UPDATE places SET ${sets} WHERE id = ?`).run(id(req));
+    const checked = req.body.hub_checked ?? '';
+    if (typeof checked !== 'string' || checked.length > 200) throw new HttpError(422, 'hub_checked must be text of 200 characters or fewer.');
+    const sets = flags.map(([k, at]) => `${k} = ${req.body[k] ? 1 : 0}, ${at} = ${req.body[k] ? "date('now')" : 'NULL'}`);
+    if ('hub_verified' in req.body) sets.push('hub_checked = ?');
+    const args = 'hub_verified' in req.body ? [req.body.hub_verified ? checked.trim() : ''] : [];
+    const info = db.prepare(`UPDATE places SET ${sets.join(', ')} WHERE id = ?`).run(...args, id(req));
     if (!info.changes) throw new HttpError(404, 'Place not found.');
     res.json({ ok: true });
   });

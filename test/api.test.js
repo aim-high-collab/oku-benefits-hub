@@ -130,10 +130,11 @@ test('submission → pending → hidden → moderator approves → public', asyn
 
   assert.equal((await mod.patch(`/api/admin/places/${id}`, { partner_verified: true })).status, 200);
   assert.equal((await anon.get(`/api/places/${id}`)).body.place.partner_verified, true);
-  assert.equal((await mod.patch(`/api/admin/places/${id}`, { hub_verified: true })).status, 200);
+  assert.equal((await mod.patch(`/api/admin/places/${id}`, { hub_verified: true, hub_checked: 'Offer and ramp, by visit' })).status, 200);
   const checked = (await anon.get(`/api/places/${id}`)).body.place;
   assert.equal(checked.hub_verified, true);
   assert.ok(checked.hub_verified_at);
+  assert.equal(checked.hub_checked, 'Offer and ramp, by visit');
   assert.equal((await mod.patch(`/api/admin/places/${id}`, { hub_verified: 'yes' })).status, 422);
   assert.equal((await mod.patch(`/api/admin/places/${id}`, {})).status, 422);
 });

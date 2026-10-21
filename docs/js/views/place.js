@@ -49,7 +49,12 @@ export async function placeView(ctx, root, [id]) {
     refresh();
   } }, p.partner_verified ? t('Remove business-confirmed label') : t('Mark as business confirmed')) : null;
   const hubBtn = isAdmin ? h('button', { type: 'button', class: 'btn btn--ghost', onclick: async () => {
-    await api('PATCH', `/admin/places/${p.id}`, { hub_verified: !p.hub_verified });
+    let hub_checked = '';
+    if (!p.hub_verified) {
+      hub_checked = window.prompt(t('What did our team check? For example: offer, ramp and toilet, by visit.'));
+      if (hub_checked === null) return;
+    }
+    await api('PATCH', `/admin/places/${p.id}`, { hub_verified: !p.hub_verified, hub_checked });
     ctx.toast(p.hub_verified ? t('Team-checked label removed.') : t('Marked as checked by our team.'));
     refresh();
   } }, p.hub_verified ? t('Remove team-checked label') : t('Mark as checked by our team')) : null;

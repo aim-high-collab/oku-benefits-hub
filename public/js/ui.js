@@ -188,23 +188,29 @@ export const workedCounts = (p) => {
 /** Which of the three trust levels a listing is at, with a short explanation. */
 export function trustOf(p) {
   const { yes, total } = workedCounts(p);
+  // detail: short lines shown under the label on the place page, dates first.
   if (p.hub_verified) {
-    return { tier: 'hub', icon: 'verified', label: t('Checked by OKU Benefits Hub'), detail: p.hub_verified_at ? t('checked by our team · {date}', { date: fmtDate(p.hub_verified_at) }) : '' };
+    return { tier: 'hub', icon: 'verified', label: t('Checked by OKU Benefits Hub'), detail: [
+      p.hub_verified_at && t('Checked on {date}', { date: fmtDate(p.hub_verified_at) }),
+      p.hub_checked && t('What we checked: {what}', { what: p.hub_checked })] };
   }
   if (p.partner_verified) {
-    return { tier: 'business', icon: 'shield', label: t('Confirmed by business'), detail: p.verified_at ? t('by the business · {date}', { date: fmtDate(p.verified_at) }) : '' };
+    return { tier: 'business', icon: 'shield', label: t('Confirmed by business'), detail: [
+      p.verified_at && t('The business confirmed it on {date}', { date: fmtDate(p.verified_at) })] };
   }
-  // Every other listing was added by someone in the community.
-  const detail = yes ? t('{n} visits said it worked', { n: yes })
-    : p.source === 'used_it' ? t('suggested by a visitor who used it') : t('not yet independently verified · confirm before you go');
-  return { tier: 'community', icon: 'users', label: t('Shared by the community'), detail };
+  // Every other listing was shared by someone in the community, and nobody has checked it independently.
+  return { tier: 'community', icon: 'users', label: t('Shared by the community'), detail: [
+    t('Not yet independently verified'),
+    (p.updated_at || p.created_at) && t('Last updated {date}', { date: fmtDate(p.updated_at || p.created_at) }),
+    p.last_visit_at ? t('A member last used it on {date}', { date: fmtDate(p.last_visit_at) })
+      : p.source === 'used_it' && !total ? t('Shared by someone who used it') : null] };
 }
 
 /** The trust label: icon, word and border style all differ, so colour is never the only cue. */
 export function trustStamp(p, { detail = false, cls = '' } = {}) {
   const tr = trustOf(p);
   return h('span', { class: `stamp stamp--${tr.tier} ${cls}`.trim() }, icon(tr.icon, 18),
-    h('span', {}, h('strong', {}, tr.label), detail && tr.detail ? h('span', { class: 'stamp-detail' }, tr.detail) : null));
+    h('span', {}, h('strong', {}, tr.label), detail ? tr.detail.filter(Boolean).map((line) => h('span', { class: 'stamp-detail' }, line)) : null));
 }
 
 /** "Worked 3 of 4 visits" for a list card, or nothing when no one has reported a visit yet. */

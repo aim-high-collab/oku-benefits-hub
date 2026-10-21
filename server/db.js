@@ -126,6 +126,7 @@ const LATER_COLUMNS = [
   ['offers', 'valid_until', "TEXT NOT NULL DEFAULT ''"],
   ['places', 'hub_verified', 'INTEGER NOT NULL DEFAULT 0'], // our own team checked it
   ['places', 'hub_verified_at', 'TEXT'],
+  ['places', 'hub_checked', "TEXT NOT NULL DEFAULT ''"], // what our team checked, shown with the label
 ];
 
 export function openDb(file = ':memory:') {
