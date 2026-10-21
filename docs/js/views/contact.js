@@ -23,7 +23,7 @@ export async function contactView(_ctx, root) {
     h('ul', { class: 'tick-list' },
       h('li', {}, t('Wrong details on a place? Open the place and tap “Suggest an edit”.')),
       h('li', {}, t('Own a business?'), ' ', h('a', { href: '#/how-it-works' }, t('See how to list your place'))),
-      h('li', {}, t('Looking for government aid?'), ' ', h('a', { href: '#/benefits' }, t('See Official help')))),
+      h('li', {}, t('Looking for government aid?'), ' ', h('a', { href: '#/benefits' }, t('See Government resources')))),
     h('p', { class: 'notice notice--info' }, t('We are a small community team, not a government agency. For your OKU card or JKM aid, contact JKM directly.'))));
   return { title: t('Contact us') };
 }

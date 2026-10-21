@@ -3,13 +3,13 @@ import { api, qs } from '../api.js';
 import { field, badge, fmtDate, icon } from '../ui.js';
 import { t } from '../i18n.js';
 
-/** "Official help": a short, clearly-labelled set of links out to government agencies, not a portal of our own. */
+/** "Government resources": a short, clearly-labelled set of links out to government agencies, not a portal of our own. */
 export async function benefitsView(ctx, root) {
   const { meta } = ctx.state;
   const q = field({ label: t('Search official help'), name: 'q', type: 'search', attrs: { placeholder: t('e.g. allowance, tax, transport'), autocomplete: 'off' } });
   const category = field({ label: t('Category'), name: 'category', tag: 'select', options: [['', t('All categories')], ...Object.entries(meta.benefitCategories)] });
   const count = h('p', { class: 'result-count', role: 'status' });
-  const list = h('ul', { class: 'benefit-list', 'aria-label': t('Official help') });
+  const list = h('ul', { class: 'benefit-list', 'aria-label': t('Government resources') });
 
   root.append(h('div', { class: 'page page--mid' },
     h('h1', {}, t('Government help for OKU')),
@@ -48,5 +48,5 @@ export async function benefitsView(ctx, root) {
   }
 
   await load();
-  return { title: t('Official help'), destroy() { clearTimeout(timer); } };
+  return { title: t('Government resources'), destroy() { clearTimeout(timer); } };
 }

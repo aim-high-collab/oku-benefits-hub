@@ -52,12 +52,12 @@ const routes = [
   [/^\/business$/, () => { location.replace('#/how-it-works'); return { title: '' }; }], // old link, kept working
 ];
 
-// "Official help" is a short page of links to government schemes; the product itself is a directory of places.
+// "Government resources" is a short page of links to government schemes; the product itself is a directory of places.
 const NAV = [
   ['#/', 'Discover', /^\/?$|^\/place\/\d+$/],
   ['#/submit/place', 'Add a place', /^\/submit\/place/],
   ['#/how-it-works', 'How it works', /^\/how-it-works/],
-  ['#/benefits', 'Official help', /^\/benefits/],
+  ['#/benefits', 'Government resources', /^\/benefits/],
   ['#/contact', 'Contact', /^\/contact/],
 ];
 
