@@ -4,7 +4,7 @@ import { field, distanceKm, fmtDistance, offerLine, icon, groupOf, placeImage, o
 import { t } from '../i18n.js';
 import { createMap, destroyMap, locate } from '../map.js';
 
-const KIND_CHIPS = { free: 'Free', discount: 'Discount', priority: 'Priority', freebie: 'Freebie', volunteer: 'Volunteer opportunities' };
+const KIND_CHIPS = { free: 'Free entry', discount: 'Discount', priority: 'Priority', freebie: 'Free gift', volunteer: 'Volunteer opportunities' };
 const TRUST = [['hub', 'Checked by OKU Benefits Hub'], ['business', 'Confirmed by business'], ['community', 'Shared by the community']];
 const TRUST_RANK = { hub: 0, business: 1, community: 2 };
 // What each trust label means, for the "Label guide" key beside the count.
