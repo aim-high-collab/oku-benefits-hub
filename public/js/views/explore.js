@@ -5,13 +5,13 @@ import { t } from '../i18n.js';
 import { createMap, destroyMap, locate } from '../map.js';
 
 const KIND_CHIPS = { free: 'Free', discount: 'Discount', priority: 'Priority', freebie: 'Freebie', volunteer: 'Volunteer' };
-const TRUST = [['hub', 'OKU Benefits Hub verified'], ['business', 'Business confirmed'], ['community', 'Community reported']];
+const TRUST = [['hub', 'Checked by OKU Benefits Hub'], ['business', 'Confirmed by business'], ['community', 'Shared by the community']];
 const TRUST_RANK = { hub: 0, business: 1, community: 2 };
 // What each trust label means, for the "Who checked?" key beside the count.
 const TRUST_KEY = [
-  ['hub', 'verified', 'OKU Benefits Hub verified', 'Our own team checked it, by visiting or calling.'],
-  ['business', 'shield', 'Business confirmed', 'The business itself told us the offer is on.'],
-  ['community', 'users', 'Community reported', 'Added or tried by visitors. Check before you go.'],
+  ['hub', 'verified', 'Checked by OKU Benefits Hub', 'Our team checked this information directly with the business or through an in-person visit.'],
+  ['business', 'shield', 'Confirmed by business', 'The business confirmed that this offer is available.'],
+  ['community', 'users', 'Shared by the community', 'Shared by a community member. The details have not yet been independently verified.'],
 ];
 // The list opens on one area so the count can say where it is for. Klang Valley holds most listings today.
 const AREAS = { klang: ['Selangor', 'W.P. Kuala Lumpur', 'W.P. Putrajaya'], all: null };

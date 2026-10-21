@@ -177,9 +177,9 @@ function locationPicker(meta, initial, lat, lng) {
 // ---------- "How do you know?" ----------
 
 const SOURCE_HINTS = {
-  used_it: 'Shows as “Community reported”.',
+  used_it: 'Shows as “Shared by the community”.',
   owner: 'A moderator contacts the business to confirm.',
-  heard: 'Shows as “Community reported”. Others can confirm it after they visit.',
+  heard: 'Shows as “Shared by the community”. Others can confirm it after they visit.',
 };
 
 /** Required for new places: the answer decides which trust stamp the listing starts with. */

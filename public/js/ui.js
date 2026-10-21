@@ -189,15 +189,15 @@ export const workedCounts = (p) => {
 export function trustOf(p) {
   const { yes, total } = workedCounts(p);
   if (p.hub_verified) {
-    return { tier: 'hub', icon: 'verified', label: t('OKU Benefits Hub verified'), detail: p.hub_verified_at ? t('checked by our team · {date}', { date: fmtDate(p.hub_verified_at) }) : '' };
+    return { tier: 'hub', icon: 'verified', label: t('Checked by OKU Benefits Hub'), detail: p.hub_verified_at ? t('checked by our team · {date}', { date: fmtDate(p.hub_verified_at) }) : '' };
   }
   if (p.partner_verified) {
-    return { tier: 'business', icon: 'shield', label: t('Business confirmed'), detail: p.verified_at ? t('by the business · {date}', { date: fmtDate(p.verified_at) }) : '' };
+    return { tier: 'business', icon: 'shield', label: t('Confirmed by business'), detail: p.verified_at ? t('by the business · {date}', { date: fmtDate(p.verified_at) }) : '' };
   }
   // Every other listing was added by someone in the community.
   const detail = yes ? t('{n} visits said it worked', { n: yes })
-    : p.source === 'used_it' ? t('suggested by a visitor who used it') : t('added by the community · confirm before you go');
-  return { tier: 'community', icon: 'users', label: t('Community reported'), detail };
+    : p.source === 'used_it' ? t('suggested by a visitor who used it') : t('not yet independently verified · confirm before you go');
+  return { tier: 'community', icon: 'users', label: t('Shared by the community'), detail };
 }
 
 /** The trust label: icon, word and border style all differ, so colour is never the only cue. */
