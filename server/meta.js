@@ -91,4 +91,5 @@ export const meta = (config) => ({
   benefitCategories: BENEFIT_CATEGORIES,
   bounds: MY_BOUNDS,
   maps: mapsConfig(config),
+  googleClientId: config.googleClientId || '',
 });

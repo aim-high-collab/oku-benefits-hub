@@ -2,6 +2,7 @@ import { h, clear } from '../dom.js';
 import { api } from '../api.js';
 import { field, checkboxGroup, errorSummary, icon } from '../ui.js';
 import { t } from '../i18n.js';
+import { googleSignIn } from '../google-signin.js';
 import { createMap, destroyMap, locate, searchPlaces, usingGoogle, MALAYSIA_CENTER, MALAYSIA_ZOOM } from '../map.js';
 
 // ---------- shared plumbing ----------
@@ -12,6 +13,7 @@ function needLogin(ctx, root, what) {
   sessionStorage.setItem('afterLogin', location.hash);
   root.append(h('div', { class: 'page page--narrow' }, h('h1', {}, t('Log in to continue')),
     h('p', {}, t('You need an account to {what}. It takes a minute and helps us keep listings trustworthy.', { what: t(what) })),
+    googleSignIn(ctx),
     h('div', { class: 'actions' }, h('a', { class: 'btn', href: '#/login' }, t('Log in')), h('a', { class: 'btn btn--ghost', href: '#/register' }, t('Create account')))));
   return true;
 }
@@ -273,17 +275,18 @@ function placeForm(ctx, initial, { mode, onSubmit }) {
 const blankPlace = { image: '', name: '', category: 'restaurant', description: '', address: '', city: '', state: '', phone: '', website: '', accessibility: [], offers: [] };
 
 export async function submitPlaceView(ctx, root) {
+  if (needLogin(ctx, root, 'add a place')) return { title: t('Log in') };
   const { form, picker } = placeForm(ctx, blankPlace, {
     mode: 'create',
     onSubmit: async (data, extra) => {
       const res = await api('POST', '/places', { ...data, source: extra.source, is_owner: extra.source === 'owner' });
       ctx.toast(res.status === 'approved' ? t('Published.') : t('Thank you! A moderator will check it before it appears.'));
-      ctx.go(res.status === 'approved' ? `#/place/${res.id}` : ctx.state.user ? '#/account' : '#/');
+      ctx.go(res.status === 'approved' ? `#/place/${res.id}` : '#/account');
     },
   });
   root.append(h('div', { class: 'page page--narrow' }, h('h1', {}, t('Add a place')),
     h('p', { class: 'lede' }, t('Know a business that gives OKU discounts, a place that is genuinely accessible, or a group that welcomes volunteers? Add it so others can find it.')),
-    h('p', { class: 'note-box' }, icon('shield', 18), ' ', t('No account needed. A moderator checks every suggestion before it appears.')), form));
+    h('p', { class: 'note-box' }, icon('shield', 18), ' ', t('A moderator checks every suggestion before it appears.')), form));
   return { title: t('Add a place'), mounted: () => picker.mount(), destroy: () => picker.destroy() };
 }
 

@@ -17,7 +17,12 @@ before(async () => {
   db.prepare("INSERT INTO users (name, email, password_hash, role) VALUES ('Mod', 'mod@x.my', ?, 'admin')")
     .run(await hashPassword('moderator-pass'));
   const uploadDir = mkdtempSync(join(tmpdir(), 'oku-uploads-'));
-  const app = createApp({ db, config: { secureCookies: false, rateLimitScale: 1000, uploadDir } });
+  // Google sign-in with a stand-in verifier: the token "good:<email>:<name>" is accepted, anything else rejected.
+  const verifyGoogleToken = async (cred, clientId) => {
+    const [ok, email, name] = cred.split(':');
+    return ok === 'good' && clientId === 'test-client' ? { email, name } : null;
+  };
+  const app = createApp({ db, config: { secureCookies: false, rateLimitScale: 1000, uploadDir, googleClientId: 'test-client', verifyGoogleToken } });
   await new Promise((resolve) => { server = app.listen(0, resolve); });
   base = `http://127.0.0.1:${server.address().port}`;
 });
@@ -139,29 +144,31 @@ test('submission → pending → hidden → moderator approves → public', asyn
   assert.equal((await mod.patch(`/api/admin/places/${id}`, {})).status, 422);
 });
 
-test('guests can suggest a place: it waits for a moderator and keeps how they know', async () => {
-  const anon = client();
-  const sub = await anon.post('/api/places', validPlace({ name: 'Kedai Kopi Seng Lee', source: 'used_it',
+test('adding a place needs an account; it waits for a moderator and keeps how they know', async () => {
+  const guest = client();
+  assert.equal((await guest.post('/api/places', validPlace())).status, 401);
+  const member = await register('seng');
+  const sub = await member.post('/api/places', validPlace({ name: 'Kedai Kopi Seng Lee', source: 'used_it',
     offers: [{ title: 'Free kopi-o with any meal', kind: 'freebie', value_text: '', conditions: 'Show OKU card', valid_until: '2027-03-31' }] }));
   assert.equal(sub.status, 201);
   assert.equal(sub.body.status, 'pending');
-  assert.equal((await anon.get(`/api/places/${sub.body.id}`)).status, 404); // hidden until approved
-  assert.equal((await anon.post('/api/places', validPlace({ source: 'rumour' }))).status, 422);
-  assert.equal((await anon.post('/api/places', validPlace({ offers: [{ title: '10% off', kind: 'discount', valid_until: 'soon' }] }))).status, 422);
-  assert.equal((await anon.post('/api/places', validPlace({ image: '/uploads/' + 'a'.repeat(32) + '.png' }))).status, 422);
+  assert.equal((await guest.get(`/api/places/${sub.body.id}`)).status, 404); // hidden until approved
+  assert.equal((await member.post('/api/places', validPlace({ source: 'rumour' }))).status, 422);
+  assert.equal((await member.post('/api/places', validPlace({ offers: [{ title: '10% off', kind: 'discount', valid_until: 'soon' }] }))).status, 422);
+  assert.equal((await member.post('/api/places', validPlace({ image: '/uploads/' + 'a'.repeat(32) + '.png' }))).status, 422);
 
   const mod = await admin();
   const queued = (await mod.get('/api/admin/queue')).body.places.find((p) => p.id === sub.body.id);
-  assert.equal(queued.submitter, null);
+  assert.equal(queued.submitter, 'seng');
   assert.equal(queued.source, 'used_it');
   await mod.post(`/api/admin/places/${sub.body.id}/approve`);
-  const place = (await anon.get(`/api/places/${sub.body.id}`)).body.place;
+  const place = (await member.get(`/api/places/${sub.body.id}`)).body.place;
   assert.equal(place.offers[0].valid_until, '2027-03-31');
 
   assert.equal((await mod.patch(`/api/admin/places/${place.id}`, { partner_verified: true })).status, 200);
-  assert.match((await anon.get(`/api/places/${place.id}`)).body.place.verified_at, /^\d{4}-\d{2}-\d{2}$/);
+  assert.match((await member.get(`/api/places/${place.id}`)).body.place.verified_at, /^\d{4}-\d{2}-\d{2}$/);
   await mod.patch(`/api/admin/places/${place.id}`, { partner_verified: false });
-  assert.equal((await anon.get(`/api/places/${place.id}`)).body.place.verified_at, null);
+  assert.equal((await member.get(`/api/places/${place.id}`)).body.place.verified_at, null);
 });
 
 test('"Did it work?" needs no account and is counted per place', async () => {
@@ -356,4 +363,20 @@ test('maps default to OpenStreetMap; a Google Maps key switches provider and CSP
   } finally {
     srv.close();
   }
+});
+
+test('Continue with Google creates the account once, then logs the same person back in', async () => {
+  const c = client();
+  const first = await c.post('/api/auth/google', { credential: 'good:Aina@Gmail.com:Aina' });
+  assert.equal(first.status, 201);
+  assert.equal(first.body.user.email, 'aina@gmail.com');
+  assert.equal((await c.get('/api/auth/me')).body.user.name, 'Aina');
+  assert.equal((await c.post('/api/places', validPlace({ name: 'Aina Cafe' }))).status, 201);
+  const again = await client().post('/api/auth/google', { credential: 'good:aina@gmail.com:Aina' });
+  assert.equal(again.status, 200);
+  assert.equal(again.body.user.id, first.body.user.id);
+  assert.equal((await client().post('/api/auth/google', { credential: 'forged' })).status, 401);
+  const pw = await client().post('/api/auth/login', { email: 'aina@gmail.com', password: 'password123' });
+  assert.equal(pw.status, 401);
+  assert.match(pw.body.error, /Google/);
 });

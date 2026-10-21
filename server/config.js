@@ -16,6 +16,8 @@ export function loadConfig(env = process.env) {
     googleMapsKey: env.GOOGLE_MAPS_API_KEY || '',
     // Advanced markers need a map ID; DEMO_MAP_ID works for testing, create your own for production.
     googleMapId: env.GOOGLE_MAPS_MAP_ID || 'DEMO_MAP_ID',
+    // OAuth client ID (type "Web application") for "Continue with Google". Unset: email login only.
+    googleClientId: env.GOOGLE_CLIENT_ID || '',
     generatePassword: () => randomBytes(9).toString('base64url'),
   };
 }

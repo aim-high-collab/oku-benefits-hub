@@ -123,12 +123,12 @@ export async function handle(method, path, body = {}) {
   // ----- places -----
   if (p === '/places' && method === 'GET') return { places: listPlaces(q) };
   if (p === '/places' && method === 'POST') {
-    const user = store.user; // suggesting a place needs no account
+    const user = need();
     requireFields(body, { name: [2, 'Name'], address: [3, 'Address'] });
     if (!Number.isFinite(body.lat) || !Number.isFinite(body.lng)) throw fail(422, 'Please fix the highlighted fields.', { lat: 'Pick the location on the map.', lng: 'Pick the location on the map.' });
     if (!(body.offers?.length || body.accessibility?.length)) throw fail(422, 'Add at least one offer or one accessibility feature.', { offers: 'Add at least one offer, or tick an accessibility feature.' });
     const place = { ...body, id: store.next++, status: 'approved', partner_verified: false, verified_at: null, hub_verified: false, hub_verified_at: null, hub_checked: '', updated_at: new Date().toISOString(), source: body.source || '',
-      submitter_is_owner: body.is_owner === true || body.source === 'owner', submitted_by: user?.id ?? null,
+      submitter_is_owner: body.is_owner === true || body.source === 'owner', submitted_by: user.id,
       offers: (body.offers || []).map((o, i) => ({ ...o, id: i })), accessibility: body.accessibility || [], created_at: new Date().toISOString() };
     store.places.push(place);
     save();

@@ -30,12 +30,11 @@ export function placeRoutes({ db, config, writeLimiter }) {
 
   r.get('/:id', (req, res) => res.json({ place: loadVisible(req) }));
 
-  // Anyone can suggest a place, signed in or not. Every submission waits for a moderator either way.
-  r.post('/', writeLimiter, (req, res) => {
+  // Adding a place needs an account (email or Google). Every submission still waits for a moderator.
+  r.post('/', requireUser, writeLimiter, (req, res) => {
     const data = clean(req.body, PLACE_SPEC);
     const source = req.body?.source ?? '';
     if (source !== '' && !Object.hasOwn(SOURCES, source)) throw new HttpError(422, 'Please fix the highlighted fields.', { source: 'Choose how you know about this place.' });
-    if (!req.user && data.image) throw new HttpError(422, 'Log in to add a photo.', { image: 'Log in to add a photo.' });
     if (!uploadExists(config.uploadDir, data.image)) throw new HttpError(422, 'Upload the photo again.', { image: 'Upload the photo again.' });
     if (!data.offers.length && !data.accessibility.length) {
       throw new HttpError(422, 'Add at least one OKU offer or one accessibility feature.', {
@@ -44,7 +43,7 @@ export function placeRoutes({ db, config, writeLimiter }) {
     }
     const isAdmin = req.user?.role === 'admin';
     const id = insertPlace(db, data, {
-      userId: req.user?.id,
+      userId: req.user.id,
       status: isAdmin ? 'approved' : 'pending',
       isOwner: req.body?.is_owner === true || source === 'owner',
       source,

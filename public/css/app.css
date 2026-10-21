@@ -539,3 +539,9 @@ html.calm .btn:hover, html.calm .btn:active, html.calm .result:hover, html.calm 
 html.calm :focus-visible { box-shadow: 0 0 0 6px var(--sun) !important; }
 html.calm .photo, html.calm .result-thumb, html.calm .place-banner { display: none; }
 html.calm .btn:not(.btn--ghost):not(.btn--danger), html.calm .result-num, html.calm .hl, html.calm .wordmark b, html.calm .pin { background: var(--pink-light); }
+
+/* ---------- Continue with Google ---------- */
+.google-signin { margin: 1.25rem 0 .5rem; }
+.google-btn { min-height: 44px; }
+.or-line { display: flex; align-items: center; gap: .75rem; margin: 1.25rem 0 .25rem; color: var(--muted); font-weight: 600; }
+.or-line::before, .or-line::after { content: ''; flex: 1; border-top: 2px solid var(--rule); }

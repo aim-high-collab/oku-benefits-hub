@@ -198,7 +198,7 @@ export async function exploreView(ctx, root) {
 
   const addCard = h('aside', { class: 'add-card', 'aria-labelledby': 'add-card-h' },
     h('h2', { id: 'add-card-h' }, t('Know a place that says yes?')),
-    h('p', {}, t('Add it in two minutes. No account needed.')),
+    h('p', {}, t('Add it in two minutes. Log in with Google or email.')),
     h('a', { class: 'btn', href: '#/submit/place' }, icon('plus', 18), t('Add a place')));
   const mapEl = h('div', { id: 'map', role: 'region', 'aria-label': t('Map of places. The same places are in the list, with the same numbers.') });
   const tabs = ['list', 'map'].map((v) => h('button', { type: 'button', role: 'tab', 'aria-selected': String(state.view === v), 'aria-controls': `${v}-panel`, id: `${v}-tab`,

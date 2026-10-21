@@ -160,7 +160,7 @@ const DICT = {
   'The business confirmed that this offer is available.': ['Peniaga telah mengesahkan tawaran ini tersedia.', '商家已确认此优惠有效。'],
   'Show {n} more places': ['Tunjuk {n} lagi tempat', '再显示 {n} 个地点'],
   'Know a place that says yes?': ['Tahu tempat yang terima kad OKU?', '知道哪里接受OKU卡吗？'],
-  'Add it in two minutes. No account needed.': ['Tambah dalam dua minit. Tiada akaun diperlukan.', '两分钟即可添加，无需账户。'],
+  'Add it in two minutes. Log in with Google or email.': ['Tambah dalam dua minit. Log masuk dengan Google atau e-mel.', '两分钟即可添加，可用 Google 或电子邮件登录。'],
   'Accessibility': ['Kebolehcapaian', '无障碍设施'],
   'Not known yet. Ask the place before you go, or': ['Belum diketahui. Tanya tempat itu dahulu, atau', '尚不清楚。出发前请先询问，或'],
   'add what you know': ['tambah apa yang anda tahu', '补充你知道的信息'],
@@ -177,8 +177,11 @@ const DICT = {
   'Location and contact': ['Lokasi dan hubungan', '位置与联系方式'],
 
   // add a place
-  'No account needed. A moderator checks every suggestion before it appears.': [
-    'Tidak perlu akaun. Moderator menyemak setiap cadangan sebelum ia dipaparkan.', '不需要账号。每条建议都会先由审核员检查再显示。'],
+  'A moderator checks every suggestion before it appears.': ['Moderator menyemak setiap cadangan sebelum ia dipaparkan.', '每条建议都会先由审核员检查再显示。'],
+  'add a place': ['menambah tempat', '添加地点'],
+  'or use email': ['atau guna e-mel', '或使用电子邮件'],
+  'Welcome, {name}.': ['Selamat datang, {name}.', '欢迎，{name}。'],
+  'Google sign-in could not load. You can still use email.': ['Log masuk Google tidak dapat dimuatkan. Anda masih boleh guna e-mel.', '无法加载 Google 登录，你仍可使用电子邮件。'],
   'How do you know about this offer?': ['Bagaimana anda tahu tentang tawaran ini?', '你怎么知道这个优惠？'],
   'Your answer sets the label other people see.': ['Jawapan anda menentukan label yang orang lain lihat.', '你的回答决定其他人看到的标签。'],
   'I used it myself': ['Saya pernah guna sendiri', '我自己用过'],
