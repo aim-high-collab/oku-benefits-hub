@@ -96,6 +96,7 @@ const DICT = {
   'What did our team check? For example: offer, ramp and toilet, by visit.': ['Apa yang pasukan kami semak? Contoh: tawaran, tanjakan dan tandas, melalui lawatan.', '我们团队核实了什么？例如：优惠、坡道和厕所（实地到访）。'],
   'Information source': ['Sumber maklumat', '资料来源'],
   'Label guide': ['Panduan label', '标签说明'],
+  'Could not reach the site. Check your connection and try again.': ['Tidak dapat menghubungi laman. Semak sambungan anda dan cuba lagi.', '无法连接网站。请检查网络后再试。'],
   'Nearest to me': ['Paling dekat', '离我最近'],
   'Top rated': ['Penilaian tertinggi', '评分最高'],
   'Only show places with all ticked features.': ['Tunjuk tempat yang ada semua ciri yang ditanda sahaja.', '只显示具备所有已勾选设施的地点。'],
