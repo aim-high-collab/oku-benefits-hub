@@ -55,10 +55,10 @@ const routes = [
 // "Government resources" is a short page of links to government schemes; the product itself is a directory of places.
 const NAV = [
   ['#/', 'Discover', /^\/?$|^\/place\/\d+$/, 'compass'],
-  ['#/submit/place', 'Add a place', /^\/submit\/place/],
-  ['#/how-it-works', 'How it works', /^\/how-it-works/],
-  ['#/benefits', 'Government resources', /^\/benefits/],
-  ['#/contact', 'Contact', /^\/contact/],
+  ['#/submit/place', 'Add a place', /^\/submit\/place/, 'plus-circle'],
+  ['#/how-it-works', 'How it works', /^\/how-it-works/, 'question'],
+  ['#/benefits', 'Government resources', /^\/benefits/, 'landmark'],
+  ['#/contact', 'Contact', /^\/contact/, 'mail'],
 ];
 
 function renderNav() {
@@ -66,7 +66,7 @@ function renderNav() {
   const account = document.getElementById('account');
   clear(nav);
   clear(account);
-  // Only Discover has an icon; it is decorative (aria-hidden), so the link's name is just its text.
+  // Each link has a small decorative icon (aria-hidden), so its accessible name is just its text.
   for (const [href, label, re, ic] of NAV) {
     nav.append(h('a', { href, 'aria-current': re.test(path) ? 'page' : null }, ic ? icon(ic, 18) : null, t(label)));
   }
