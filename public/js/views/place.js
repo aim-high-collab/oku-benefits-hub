@@ -74,7 +74,7 @@ export async function placeView(ctx, root, [id]) {
   const meterBox = h('div', { class: 'worked' });
   const drawMeter = () => clear(meterBox).append(...(counts.total
     ? [workedMeter(counts.yes, counts.total), h('p', {}, h('strong', {}, workedText(counts.yes, counts.total)))]
-    : [h('p', { class: 'muted' }, t('No visitor has told us yet whether the offer worked.'))]));
+    : [h('p', { class: 'muted' }, t('No visitor has told us yet whether they got the offer.'))]));
   drawMeter();
 
   const voteStatus = h('p', { class: 'hint', role: 'status' });
@@ -101,7 +101,7 @@ export async function placeView(ctx, root, [id]) {
     trustStamp(p, { detail: true, cls: 'stamp--big' }),
     meterBox,
     p.status === 'approved' ? h('div', { class: 'did-it-work' },
-      h('h3', {}, t('Been here? Did the OKU offer work?')),
+      h('h3', {}, t('Been here? Did you get the OKU offer?')),
       h('p', { class: 'hint' }, t('No account needed. Your answer updates the count above.')),
       h('div', { class: 'vote-row' }, voteBtns), voteStatus,
       votedFor(p.id) && !answeredFor(ACCESS_KEY, p.id) ? accessQuestions() : null) : null);
@@ -249,7 +249,7 @@ export async function placeView(ctx, root, [id]) {
 
   function reviewForm() {
     if (!state.user) {
-      return h('div', { class: 'notice notice--info' }, h('p', {}, t('To write a longer review, log in or create an account. You can answer “Did the OKU offer work?” without one.')),
+      return h('div', { class: 'notice notice--info' }, h('p', {}, t('To write a longer review, log in or create an account. You can answer “Did you get the OKU offer?” without one.')),
         h('p', {}, h('a', { href: '#/login' }, t('Log in')), ' · ', h('a', { href: '#/register' }, t('Create an account'))));
     }
     const mine = reviews.find((r) => r.author === state.user.name);
