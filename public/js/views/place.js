@@ -1,7 +1,7 @@
 import { h, clear } from '../dom.js';
 import { api } from '../api.js';
 import { badge, stars, fmtDate, field, radioGroup, errorSummary, offerLine, icon, groupOf, placeImage, photoCredit, offerIcon,
-  trustOf, trustStamp, workedCounts, workedMeter, mobileNumber, visitorVerdict } from '../ui.js';
+  trustOf, trustStamp, workedCounts, workedMeter, mobileNumber, visitorVerdict, workedText } from '../ui.js';
 import { t, tIn } from '../i18n.js';
 import { createMap, destroyMap, directionsUrl, googleMapsUrl, osmUrl, usingGoogle } from '../map.js';
 
@@ -73,8 +73,8 @@ export async function placeView(ctx, root, [id]) {
   const counts = { ...workedCounts(p) };
   const meterBox = h('div', { class: 'worked' });
   const drawMeter = () => clear(meterBox).append(...(counts.total
-    ? [workedMeter(counts.yes, counts.total), h('p', {}, h('strong', {}, t('Worked {a} of {b} visits', { a: counts.yes, b: counts.total })))]
-    : [h('p', { class: 'muted' }, t('No one has reported a visit yet.'))]));
+    ? [workedMeter(counts.yes, counts.total), h('p', {}, h('strong', {}, workedText(counts.yes, counts.total)))]
+    : [h('p', { class: 'muted' }, t('No visitor has told us yet whether the offer worked.'))]));
   drawMeter();
 
   const voteStatus = h('p', { class: 'hint', role: 'status' });

@@ -213,10 +213,16 @@ export function trustStamp(p, { detail = false, cls = '' } = {}) {
     h('span', {}, h('strong', {}, tr.label), detail ? tr.detail.filter(Boolean).map((line) => h('span', { class: 'stamp-detail' }, line)) : null));
 }
 
-/** "Worked 3 of 4 visits" for a list card, or nothing when no one has reported a visit yet. */
+/** "3 of 4 visitors said the OKU offer worked", in plain words. */
+export function workedText(yes, total) {
+  if (total === 1) return yes ? t('1 visitor said the OKU offer worked') : t('1 visitor said the OKU offer did not work');
+  return t('{a} of {b} visitors said the OKU offer worked', { a: yes, b: total });
+}
+
+/** "3 of 4 visitors said the OKU offer worked" for a list card, or nothing when no one has reported a visit yet. */
 export function workedLine(p) {
   const { yes, total } = workedCounts(p);
-  return total ? h('span', { class: 'worked-line' }, icon('check', 16), t('Worked {a} of {b} visits', { a: yes, b: total })) : null;
+  return total ? h('span', { class: 'worked-line' }, icon('check', 16), workedText(yes, total)) : null;
 }
 
 /** What visitors said about one feature: 'yes' or 'no' by majority, or null when no one has answered. */

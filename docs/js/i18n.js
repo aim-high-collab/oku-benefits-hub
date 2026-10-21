@@ -120,9 +120,10 @@ const DICT = {
   // trust
   'Confirmed by business': ['Disahkan oleh peniaga', '商家已确认'],
   'Shared by the community': ['Dikongsi oleh komuniti', '社区分享'],
-  '{n} visits said it worked': ['{n} lawatan kata ia berjaya', '{n} 次到访表示有效'],
-  'Worked {a} of {b} visits': ['Berjaya {a} daripada {b} lawatan', '{b} 次到访中有 {a} 次有效'],
-  'No one has reported a visit yet.': ['Belum ada yang melaporkan lawatan.', '还没有人报告到访。'],
+  '{a} of {b} visitors said the OKU offer worked': ['{a} daripada {b} pengunjung kata tawaran OKU berjaya', '{b} 位访客中有 {a} 位表示 OKU 优惠有效'],
+  '1 visitor said the OKU offer worked': ['1 pengunjung kata tawaran OKU berjaya', '1 位访客表示 OKU 优惠有效'],
+  '1 visitor said the OKU offer did not work': ['1 pengunjung kata tawaran OKU tidak berjaya', '1 位访客表示 OKU 优惠无效'],
+  'No visitor has told us yet whether the offer worked.': ['Belum ada pengunjung memberitahu sama ada tawaran ini berjaya.', '还没有访客告诉我们优惠是否有效。'],
   'Been here? Did the OKU offer work?': ['Pernah ke sini? Adakah tawaran OKU berjaya?', '来过这里吗？OKU优惠有效吗？'],
   'No account needed. Your answer updates the count above.': ['Tidak perlu akaun. Jawapan anda mengemas kini kiraan di atas.', '不需要账号。你的回答会更新上面的统计。'],
   'Yes': ['Ya', '有效'],
