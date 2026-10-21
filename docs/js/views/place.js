@@ -169,7 +169,7 @@ export async function placeView(ctx, root, [id]) {
     h('a', { class: 'btn btn--ghost', href: directionsUrl(p), target: '_blank', rel: 'noopener noreferrer' }, icon('directions', 18), t('Directions')));
 
   root.append(h('div', { class: 'page page--wide' },
-    h('nav', { class: 'crumbs', 'aria-label': t('Breadcrumb') }, h('a', { href: '#/' }, t('Places')), h('span', { 'aria-hidden': 'true' }, '/'), h('span', {}, p.city || p.state || meta.categories[p.category])),
+    h('nav', { class: 'crumbs', 'aria-label': t('Breadcrumb') }, h('a', { href: '#/' }, t('Discover')), h('span', { 'aria-hidden': 'true' }, '/'), h('span', {}, p.city || p.state || meta.categories[p.category])),
     p.status !== 'approved' ? h('p', { class: 'notice' }, t('This listing is awaiting moderator approval. Only you and moderators can see it.')) : null,
     h('header', { class: `place-head tone-${groupOf(p.category)}` },
       placeImage(p, 'place-banner'),

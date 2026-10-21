@@ -47,7 +47,7 @@ const routes = [
 
 // "Official help" is a short page of links to government schemes; the product itself is a directory of places.
 const NAV = [
-  ['#/', 'Places', /^\/?$|^\/place\/\d+$/],
+  ['#/', 'Discover', /^\/?$|^\/place\/\d+$/],
   ['#/submit/place', 'Add a place', /^\/submit\/place/],
   ['#/business', 'For businesses', /^\/business/],
   ['#/benefits', 'Official help', /^\/benefits/],

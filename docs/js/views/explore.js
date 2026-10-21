@@ -373,7 +373,7 @@ export async function exploreView(ctx, root) {
   WIDE.addEventListener('change', onResize);
 
   return {
-    title: t('Places'),
+    title: t('Discover'),
     async mounted() {
       if (WIDE.matches || state.view === 'map') ensureMap();
       await refresh();

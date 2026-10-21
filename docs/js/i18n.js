@@ -32,6 +32,7 @@ export const t = (text, vars) => tIn(lang, text, vars);
 const DICT = {
   // header & navigation
   'Places': ['Tempat', '地点'],
+  'Discover': ['Teroka', '探索'],
   'Add a place': ['Tambah tempat', '添加地点'],
   'For businesses': ['Untuk peniaga', '商家专区'],
   'Official help': ['Bantuan rasmi', '官方援助'],
