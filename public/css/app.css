@@ -516,7 +516,7 @@ fieldset.group--inner > legend { padding: 0; margin-bottom: .6rem; font-weight: 
 .stamp .icon { margin-top: 1px; }
 .stamp--business { background: var(--mint); }
 .stamp--community { background: var(--sky); }
-.stamp--hub { background: var(--pink-light); }
+.stamp--hub { background: var(--pink); }
 .stamp-detail { display: block; font-weight: 500; font-size: 1rem; }
 .stamp--big { border-width: 4px; border-style: double; padding: .6rem .9rem; font-size: 1.1rem; width: 100%; }
 .meter { display: inline-flex; gap: 3px; margin: .2rem 0 .3rem; }
