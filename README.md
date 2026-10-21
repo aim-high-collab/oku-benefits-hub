@@ -46,7 +46,21 @@ variables are required). See `.env.example`.
 
 `UPLOAD_DIR` (default: `uploads` next to the database), and environment variables (set them in your shell; on Windows PowerShell use `$env:PORT=3000`, in `cmd` use `set PORT=3000`): `PORT`, `DB_PATH` (default `data/oku.db`), `NODE_ENV=production` (secure cookies),
 `TRUST_PROXY` (set to `1` behind a reverse proxy), `ADMIN_EMAIL`, `ADMIN_PASSWORD`, `GOOGLE_MAPS_API_KEY`,
-`GOOGLE_MAPS_MAP_ID`.
+`GOOGLE_MAPS_MAP_ID`, `GOOGLE_CLIENT_ID`.
+
+## Google sign-in
+
+Adding a place needs an account. People can sign up with email, or with one tap through **Continue with Google**
+once a client ID is set:
+
+1. In the [Google Cloud console](https://console.cloud.google.com/apis/credentials), configure the OAuth consent
+   screen (External; app name, support email), then *Create credentials > OAuth client ID*, type **Web application**.
+2. Under *Authorized JavaScript origins* add `http://localhost:3000` and `http://localhost` for development, and your
+   live site (e.g. `https://your-app.onrender.com`). No redirect URI is needed.
+3. Set `GOOGLE_CLIENT_ID` to the client ID (it ends in `.apps.googleusercontent.com`; it is not a secret) and restart.
+
+The server checks each Google sign-in with Google, then logs in the account with that email, creating it the first
+time. Accounts made this way have no password and always use the Google button.
 
 ## Google Maps
 
