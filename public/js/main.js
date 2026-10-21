@@ -54,7 +54,7 @@ const routes = [
 
 // "Government resources" is a short page of links to government schemes; the product itself is a directory of places.
 const NAV = [
-  ['#/', 'Discover', /^\/?$|^\/place\/\d+$/],
+  ['#/', 'Discover', /^\/?$|^\/place\/\d+$/, 'compass'],
   ['#/submit/place', 'Add a place', /^\/submit\/place/],
   ['#/how-it-works', 'How it works', /^\/how-it-works/],
   ['#/benefits', 'Government resources', /^\/benefits/],
@@ -66,8 +66,9 @@ function renderNav() {
   const account = document.getElementById('account');
   clear(nav);
   clear(account);
-  for (const [href, label, re] of NAV) {
-    nav.append(h('a', { href, 'aria-current': re.test(path) ? 'page' : null }, t(label)));
+  // Only Discover has an icon; it is decorative (aria-hidden), so the link's name is just its text.
+  for (const [href, label, re, ic] of NAV) {
+    nav.append(h('a', { href, 'aria-current': re.test(path) ? 'page' : null }, ic ? icon(ic, 18) : null, t(label)));
   }
   if (state.user) {
     if (state.user.role === 'admin') nav.append(h('a', { href: '#/admin', 'aria-current': path === '/admin' ? 'page' : null }, t('Moderation')));
