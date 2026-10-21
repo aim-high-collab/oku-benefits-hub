@@ -205,7 +205,7 @@ function placeForm(ctx, initial, { mode, onSubmit }) {
   const { meta } = ctx.state;
   const f = {
     name: field({ label: t('Business or place name'), name: 'name', value: initial.name, required: true, maxlength: 120 }),
-    category: field({ label: t('Type of place'), name: 'category', tag: 'select', value: initial.category, options: Object.entries(meta.categories) }),
+    category: field({ label: t('Category'), name: 'category', tag: 'select', value: initial.category, options: Object.entries(meta.categories) }),
     description: field({ label: t('Description (optional)'), name: 'description', tag: 'textarea', value: initial.description, maxlength: 1000, rows: 3, hint: t('What is it, and anything helpful for OKU visitors?') }),
     address: field({ label: t('Street address'), name: 'address', value: initial.address, required: true, maxlength: 250 }),
     city: field({ label: t('Town / city'), name: 'city', value: initial.city, maxlength: 80 }),

@@ -7,7 +7,7 @@ import { createMap, destroyMap, locate } from '../map.js';
 const KIND_CHIPS = { free: 'Free', discount: 'Discount', priority: 'Priority', freebie: 'Freebie', volunteer: 'Volunteer' };
 const TRUST = [['hub', 'Checked by OKU Benefits Hub'], ['business', 'Confirmed by business'], ['community', 'Shared by the community']];
 const TRUST_RANK = { hub: 0, business: 1, community: 2 };
-// What each trust label means, for the "Who checked?" key beside the count.
+// What each trust label means, for the "Label guide" key beside the count.
 const TRUST_KEY = [
   ['hub', 'verified', 'Checked by OKU Benefits Hub', 'Our team checked this information directly with the business or through an in-person visit.'],
   ['business', 'shield', 'Confirmed by business', 'The business confirmed that this offer is available.'],
@@ -96,15 +96,15 @@ export async function exploreView(ctx, root) {
   const kindTiles = tiles({ label: t('Kind of offer'), value: filters.kind,
     options: Object.entries({ '': 'All', ...KIND_CHIPS }).map(([v, text]) => [v, t(text)]),
     onChange: (v) => setKind(v) });
-  const categoryTiles = tiles({ label: t('Type of place'), value: filters.category, limit: 6,
-    options: [['', t('All types')], ...Object.entries(meta.categories).map(([v, text]) => [v, t(text)])] });
+  const categoryTiles = tiles({ label: t('Category'), value: filters.category, limit: 6,
+    options: [['', t('All categories')], ...Object.entries(meta.categories).map(([v, text]) => [v, t(text)])] });
   const featTiles = tiles({ label: t('Accessibility'), multi: true, value: filters.features, limit: 6,
     options: Object.entries(meta.features).map(([v, text]) => [v, t(text)]) });
   // Only matters once a feature is ticked: should places nobody has told us about yet still show?
   const unknownInput = h('input', { type: 'checkbox', id: 'cb-unknown', role: 'switch', checked: filters.includeUnknown, onchange: () => refresh() });
   const unknownRow = h('div', { class: 'switch-row', hidden: !filters.features.length }, h('label', { for: 'cb-unknown' }, h('strong', {}, t('Include places with no accessibility info yet')),
     h('span', { class: 'hint' }, t('Nobody has told us about these features there yet, so ask before you go.'))), unknownInput);
-  const trustTiles = tiles({ label: t('Who checked it'), multi: true, value: filters.trust,
+  const trustTiles = tiles({ label: t('Information source'), multi: true, value: filters.trust,
     options: TRUST_KEY.map(([v, ic, text]) => [v, t(text), ic]) });
 
   const sheetId = 'filter-sheet';
@@ -194,7 +194,7 @@ export async function exploreView(ctx, root) {
   const keyBtn = h('button', { type: 'button', class: 'linkbtn key-btn', 'aria-expanded': 'false', 'aria-controls': keyId, onclick: () => {
     key.hidden = !key.hidden;
     keyBtn.setAttribute('aria-expanded', String(!key.hidden));
-  } }, icon('question', 18), t('Who checked?'));
+  } }, icon('question', 18), t('Label guide'));
 
   const addCard = h('aside', { class: 'add-card', 'aria-labelledby': 'add-card-h' },
     h('h2', { id: 'add-card-h' }, t('Know a place that says yes?')),

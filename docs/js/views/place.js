@@ -97,7 +97,7 @@ export async function placeView(ctx, root, [id]) {
   if (votedFor(p.id)) voteStatus.textContent = t('You already answered for this place on this device.');
 
   const trustPanel = h('section', { class: `trust-panel trust-panel--${tr.tier}`, 'aria-labelledby': 'trust-h' },
-    h('h2', { id: 'trust-h' }, t('Who checked this?')),
+    h('h2', { id: 'trust-h' }, t('Information source')),
     trustStamp(p, { detail: true, cls: 'stamp--big' }),
     meterBox,
     p.status === 'approved' ? h('div', { class: 'did-it-work' },
