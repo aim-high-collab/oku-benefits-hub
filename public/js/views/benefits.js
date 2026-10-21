@@ -42,7 +42,7 @@ export async function benefitsView(ctx, root) {
             b.how_to_apply ? [h('dt', {}, t('How to apply')), h('dd', {}, t(b.how_to_apply))] : null) : null,
           h('div', { class: 'actions' },
             b.url ? h('a', { class: 'btn btn--small', href: b.url, target: '_blank', rel: 'noopener noreferrer' }, t('Official website (opens in a new tab)'), ' ', icon('external', 16)) : null,
-            b.last_verified ? badge(t('Link checked {date}', { date: fmtDate(b.last_verified) }), 'badge--ok') : badge(t('Link not yet checked'), 'badge--warn'),
+            b.last_verified ? badge(t('Link checked {date}', { date: fmtDate(b.last_verified) }), 'badge--ok') : null,
             h('a', { class: 'linkbtn', href: `#/benefits/${b.id}/edit`, 'aria-label': `${t('Suggest an edit')}: ${t(b.title)}` }, t('Suggest an edit'))))));
     }
   }

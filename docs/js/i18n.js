@@ -276,7 +276,6 @@ const DICT = {
   'Who can apply': ['Siapa boleh memohon', '谁可以申请'],
   'How to apply': ['Cara memohon', '如何申请'],
   'Link checked {date}': ['Pautan disemak {date}', '链接核实于 {date}'],
-  'Link not yet checked': ['Pautan belum disemak', '链接尚未核实'],
   'Something out of date?': ['Ada yang sudah lapuk?', '有过时的信息吗？'],
   'Nothing matches.': ['Tiada padanan.', '没有符合的结果。'],
 
