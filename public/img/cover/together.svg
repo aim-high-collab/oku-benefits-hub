@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 360" preserveAspectRatio="xMidYMid slice">
+  <rect width="640" height="360" fill="#FF9EC4"/>
+  <circle cx="90" cy="60" r="120" fill="#FFB6D2"/><circle cx="570" cy="330" r="120" fill="#FFB6D2"/>
+  <g stroke="#17203D" stroke-width="5" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M118 340a62 88 0 0 1 124 0Z" fill="#FFCF33"/>
+    <path d="M258 340a62 88 0 0 1 124 0Z" fill="#5B8CFF"/>
+    <path d="M398 340a62 88 0 0 1 124 0Z" fill="#6EE0B0"/>
+    <circle cx="180" cy="196" r="38" fill="#FFF6E3"/><circle cx="320" cy="196" r="38" fill="#FFF6E3"/><circle cx="460" cy="196" r="38" fill="#FFF6E3"/>
+    <path d="M166 204q14 14 28 0M306 204q14 14 28 0M446 204q14 14 28 0" fill="none" stroke-width="4"/>
+    <path d="M320 128c-20-15-27-27-15-37 8-6 15-2 15 5 0-7 7-11 15-5 12 10 5 22-15 37z" fill="#FF6B5B" stroke-width="4"/>
+  </g>
+  <g fill="#17203D"><circle cx="168" cy="190" r="4"/><circle cx="192" cy="190" r="4"/><circle cx="308" cy="190" r="4"/><circle cx="332" cy="190" r="4"/><circle cx="448" cy="190" r="4"/><circle cx="472" cy="190" r="4"/></g>
+</svg>

@@ -1,0 +1,153 @@
+import { DatabaseSync } from 'node:sqlite';
+import { mkdirSync } from 'node:fs';
+import { dirname } from 'node:path';
+
+const SCHEMA = `
+CREATE TABLE IF NOT EXISTS users (
+  id INTEGER PRIMARY KEY,
+  name TEXT NOT NULL,
+  email TEXT NOT NULL UNIQUE,
+  password_hash TEXT NOT NULL,
+  role TEXT NOT NULL DEFAULT 'user' CHECK (role IN ('user','admin')),
+  created_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
+CREATE TABLE IF NOT EXISTS sessions (
+  token_hash TEXT PRIMARY KEY,
+  user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  expires_at TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS places (
+  id INTEGER PRIMARY KEY,
+  name TEXT NOT NULL,
+  category TEXT NOT NULL,
+  description TEXT NOT NULL DEFAULT '',
+  address TEXT NOT NULL,
+  city TEXT NOT NULL DEFAULT '',
+  state TEXT NOT NULL DEFAULT '',
+  lat REAL NOT NULL,
+  lng REAL NOT NULL,
+  phone TEXT NOT NULL DEFAULT '',
+  website TEXT NOT NULL DEFAULT '',
+  image TEXT NOT NULL DEFAULT '',
+  source TEXT NOT NULL DEFAULT '',
+  verified_at TEXT,
+  accessibility TEXT NOT NULL DEFAULT '[]',
+  status TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending','approved','rejected')),
+  submitter_is_owner INTEGER NOT NULL DEFAULT 0,
+  partner_verified INTEGER NOT NULL DEFAULT 0,
+  is_demo INTEGER NOT NULL DEFAULT 0, -- legacy: placeholder rows from early versions, purged on start
+  submitted_by INTEGER REFERENCES users(id) ON DELETE SET NULL,
+  created_at TEXT NOT NULL DEFAULT (datetime('now')),
+  updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+CREATE INDEX IF NOT EXISTS places_status ON places(status);
+
+CREATE TABLE IF NOT EXISTS offers (
+  id INTEGER PRIMARY KEY,
+  place_id INTEGER NOT NULL REFERENCES places(id) ON DELETE CASCADE,
+  title TEXT NOT NULL,
+  kind TEXT NOT NULL,
+  value_text TEXT NOT NULL DEFAULT '',
+  conditions TEXT NOT NULL DEFAULT '',
+  valid_until TEXT NOT NULL DEFAULT ''
+);
+CREATE INDEX IF NOT EXISTS offers_place ON offers(place_id);
+
+CREATE TABLE IF NOT EXISTS benefits (
+  id INTEGER PRIMARY KEY,
+  title TEXT NOT NULL,
+  agency TEXT NOT NULL,
+  category TEXT NOT NULL,
+  summary TEXT NOT NULL,
+  eligibility TEXT NOT NULL DEFAULT '',
+  how_to_apply TEXT NOT NULL DEFAULT '',
+  url TEXT NOT NULL DEFAULT '',
+  status TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending','approved','rejected')),
+  submitted_by INTEGER REFERENCES users(id) ON DELETE SET NULL,
+  last_verified TEXT,
+  created_at TEXT NOT NULL DEFAULT (datetime('now')),
+  updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
+CREATE TABLE IF NOT EXISTS reviews (
+  id INTEGER PRIMARY KEY,
+  place_id INTEGER NOT NULL REFERENCES places(id) ON DELETE CASCADE,
+  user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  rating INTEGER NOT NULL CHECK (rating BETWEEN 1 AND 5),
+  access_rating INTEGER CHECK (access_rating BETWEEN 1 AND 5),
+  discount_honoured TEXT NOT NULL DEFAULT 'not_tried' CHECK (discount_honoured IN ('yes','no','not_tried')),
+  body TEXT NOT NULL DEFAULT '',
+  created_at TEXT NOT NULL DEFAULT (datetime('now')),
+  UNIQUE (place_id, user_id)
+);
+
+CREATE TABLE IF NOT EXISTS edit_requests (
+  id INTEGER PRIMARY KEY,
+  target_type TEXT NOT NULL CHECK (target_type IN ('place','benefit')),
+  target_id INTEGER NOT NULL,
+  user_id INTEGER REFERENCES users(id) ON DELETE SET NULL,
+  changes TEXT NOT NULL,
+  reason TEXT NOT NULL DEFAULT '',
+  status TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending','approved','rejected')),
+  review_note TEXT NOT NULL DEFAULT '',
+  reviewed_by INTEGER REFERENCES users(id) ON DELETE SET NULL,
+  created_at TEXT NOT NULL DEFAULT (datetime('now')),
+  reviewed_at TEXT
+);
+CREATE INDEX IF NOT EXISTS edit_requests_status ON edit_requests(status);
+
+-- One-tap "Did the OKU offer work?" answers. No account needed, so they are counted, not attributed.
+CREATE TABLE IF NOT EXISTS visits (
+  id INTEGER PRIMARY KEY,
+  place_id INTEGER NOT NULL REFERENCES places(id) ON DELETE CASCADE,
+  worked TEXT NOT NULL CHECK (worked IN ('yes','no','partly')),
+  created_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+CREATE INDEX IF NOT EXISTS visits_place ON visits(place_id);
+
+-- Quick Yes / No accessibility answers from visitors (no account). "Not sure" is simply not stored.
+CREATE TABLE IF NOT EXISTS access_reports (
+  id INTEGER PRIMARY KEY,
+  place_id INTEGER NOT NULL REFERENCES places(id) ON DELETE CASCADE,
+  feature TEXT NOT NULL,
+  answer TEXT NOT NULL CHECK (answer IN ('yes','no')),
+  created_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+CREATE INDEX IF NOT EXISTS access_reports_place ON access_reports(place_id);
+`;
+
+// Columns added after the first release; older databases get them on start.
+const LATER_COLUMNS = [
+  ['places', 'image', "TEXT NOT NULL DEFAULT ''"],
+  ['places', 'source', "TEXT NOT NULL DEFAULT ''"], // how the submitter knows: used_it | owner | heard
+  ['places', 'verified_at', 'TEXT'], // when a moderator marked it business-confirmed
+  ['offers', 'valid_until', "TEXT NOT NULL DEFAULT ''"],
+];
+
+export function openDb(file = ':memory:') {
+  if (file !== ':memory:') mkdirSync(dirname(file), { recursive: true });
+  const db = new DatabaseSync(file);
+  db.exec('PRAGMA foreign_keys = ON;');
+  if (file !== ':memory:') db.exec('PRAGMA journal_mode = WAL;');
+  db.exec(SCHEMA);
+  for (const [table, col, ddl] of LATER_COLUMNS) {
+    if (!db.prepare(`PRAGMA table_info(${table})`).all().some((c) => c.name === col)) {
+      db.exec(`ALTER TABLE ${table} ADD COLUMN ${col} ${ddl}`);
+    }
+  }
+  return db;
+}
+
+export function tx(db, fn) {
+  db.exec('BEGIN');
+  try {
+    const out = fn();
+    db.exec('COMMIT');
+    return out;
+  } catch (err) {
+    db.exec('ROLLBACK');
+    throw err;
+  }
+}

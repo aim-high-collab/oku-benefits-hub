@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 360" preserveAspectRatio="xMidYMid slice">
+  <rect width="640" height="360" fill="#8FD0FF"/>
+  <g stroke="#17203D" stroke-width="5" stroke-linecap="round" stroke-linejoin="round">
+    <circle cx="545" cy="78" r="44" fill="#FFCF33"/>
+    <path d="M60 90q10-30 45-24 20-26 55-8 30-4 36 22z" fill="#FFF6E3"/>
+    <path d="M0 305Q170 225 330 292T640 270V360H0Z" fill="#37B26C"/>
+    <path d="M255 178L190 310M255 178L320 310" fill="none" stroke-width="7"/>
+    <circle cx="255" cy="178" r="106" fill="none" stroke-width="6"/>
+    <path d="M255 72V284M149 178H361M180 103L330 253M330 103L180 253" fill="none" stroke-width="3"/>
+    <circle cx="255" cy="178" r="12" fill="#FFF6E3"/>
+  </g>
+  <g stroke="#17203D" stroke-width="4">
+    <circle cx="361" cy="178" r="15" fill="#FF6B5B"/><circle cx="330" cy="253" r="15" fill="#FFCF33"/><circle cx="255" cy="284" r="15" fill="#FF9EC4"/>
+    <circle cx="180" cy="253" r="15" fill="#6EE0B0"/><circle cx="149" cy="178" r="15" fill="#FF6B5B"/><circle cx="180" cy="103" r="15" fill="#FFCF33"/>
+    <circle cx="255" cy="72" r="15" fill="#FF9EC4"/><circle cx="330" cy="103" r="15" fill="#6EE0B0"/>
+  </g>
+</svg>

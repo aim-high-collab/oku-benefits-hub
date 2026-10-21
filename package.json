@@ -1,0 +1,22 @@
+{
+  "name": "oku-benefits-hub",
+  "version": "0.1.0",
+  "description": "Community directory and map of government benefits, merchant discounts and accessible spaces for Malaysian OKU cardholders.",
+  "type": "module",
+  "private": true,
+  "engines": {
+    "node": ">=22.13"
+  },
+  "scripts": {
+    "start": "node server/index.js",
+    "build:static": "node --no-warnings scripts/build-static.js",
+    "dev": "node --watch server/index.js",
+    "test": "node --test --no-warnings test/*.test.js"
+  },
+  "dependencies": {
+    "@fontsource-variable/bricolage-grotesque": "^5.3.0",
+    "@fontsource-variable/figtree": "^5.3.0",
+    "express": "^5.2.1",
+    "leaflet": "1.9"
+  }
+}
