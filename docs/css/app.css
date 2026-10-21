@@ -514,6 +514,8 @@ details.more[open] summary::after { transform: rotate(-135deg); }
 .trust-panel { background: var(--paper); border: 2px solid var(--rule); border-radius: var(--radius); padding: 1.2rem 1.2rem .4rem; }
 .trust-panel h2 { font-size: 1.3rem; }
 .trust-panel h3 { font-size: 1.1rem; margin-top: 1rem; }
+.source-link { display: flex; flex-wrap: wrap; align-items: center; gap: .35rem; margin: .6rem 0 0; }
+.source-link a { display: inline-flex; align-items: center; min-height: 44px; overflow-wrap: anywhere; }
 .worked p { margin: 0 0 .4rem; }
 .worked { margin-top: .9rem; }
 .did-it-work { border-top: 2px dashed var(--rule); margin-top: .8rem; }

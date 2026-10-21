@@ -95,6 +95,7 @@ const DICT = {
   'Shared by someone who used it': ['Dikongsi oleh orang yang pernah menggunakannya', '由使用过的人分享'],
   'What did our team check? For example: offer, ramp and toilet, by visit.': ['Apa yang pasukan kami semak? Contoh: tawaran, tanjakan dan tandas, melalui lawatan.', '我们团队核实了什么？例如：优惠、坡道和厕所（实地到访）。'],
   'Information source': ['Sumber maklumat', '资料来源'],
+  'Official source:': ['Sumber rasmi:', '官方来源：'],
   'Label guide': ['Panduan label', '标签说明'],
   'Could not reach the site. Check your connection and try again.': ['Tidak dapat menghubungi laman. Semak sambungan anda dan cuba lagi.', '无法连接网站。请检查网络后再试。'],
   'Save': ['Simpan', '收藏'],

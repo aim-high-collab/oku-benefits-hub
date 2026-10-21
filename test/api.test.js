@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { openDb } from '../server/db.js';
 import { createApp } from '../server/app.js';
 import { hashPassword } from '../server/http.js';
-import { seedBenefits, seedPlaces } from '../server/seed.js';
+import { seedBenefits, seedPlaces, SUPERSEDED } from '../server/seed.js';
 import { mkdtempSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -77,14 +77,14 @@ test('meta and public listings work without login', async () => {
 test('filters: text, category, offer kind, accessibility features', async () => {
   const c = client();
   const ids = async (qs) => (await c.get(`/api/places?${qs}`)).body.places.map((p) => p.name);
-  assert.deepEqual(await ids('q=zoo'), ['Zoo Negara']);
+  assert.deepEqual(await ids('q=zoo'), ['Zoo Negara Malaysia']);
   assert.deepEqual(await ids('category=cafe'), []);
-  assert.equal((await ids('category=attraction')).length, 6);
+  assert.equal((await ids('category=attraction')).length, 7);
   assert.deepEqual((await ids('category=social')).sort(), ['Autism Café Project', 'Bake with Dignity', 'Tender Hearts Café']);
-  assert.deepEqual((await ids('kind=volunteer')).sort(), ['Bake with Dignity', 'Tender Hearts Café']);
+  assert.deepEqual((await ids('kind=volunteer')).sort(), ['Bake with Dignity', 'Kechara Soup Kitchen', 'SPCA Selangor', 'Tender Hearts Café', 'The Kuala Lumpur Performing Arts Centre (klpac)']);
   const free = await ids('kind=free');
-  assert.ok(free.includes('Zoo Negara') && free.includes('Petrosains, The Discovery Centre') && !free.includes('Muzium Negara (National Museum)'));
-  assert.deepEqual(await ids('features=lift'), ['Muzium Negara (National Museum)']);
+  assert.ok(free.includes('Zoo Negara Malaysia') && free.includes('National Science Centre (Pusat Sains Negara)') && !free.includes('Petrosains, The Discovery Centre'));
+  assert.deepEqual(await ids('features=lift'), []); // no seed claims a feature it has not confirmed
   assert.deepEqual(await ids('features=quiet_space'), ['Sunway Putra Mall']);
   assert.deepEqual(await ids('features=lift,tactile_paving'), []);
   assert.deepEqual(await ids('q=_'), []); // LIKE wildcards are escaped, not treated as 'match anything'
@@ -227,10 +227,10 @@ test('edit request: only real changes, moderator approval applies them, rejectio
   const queue = (await mod.get('/api/admin/queue')).body;
   const edit = queue.edits.find((e) => e.id === r1.body.id);
   assert.deepEqual(Object.keys(edit.changes).sort(), ['offers', 'phone']); // unchanged `name` dropped
-  assert.equal(edit.current.phone, '');
+  assert.equal(edit.current.phone, target.phone);
 
   // Nothing changes until approval
-  assert.equal((await client().get(`/api/places/${target.id}`)).body.place.phone, '');
+  assert.equal((await client().get(`/api/places/${target.id}`)).body.place.phone, target.phone);
   assert.equal((await mod.post(`/api/admin/edits/${edit.id}/approve`, { note: 'thanks' })).status, 200);
   const after = (await client().get(`/api/places/${target.id}`)).body.place;
   assert.equal(after.phone, '03-9999 0000');
@@ -393,4 +393,29 @@ test('saving places: only for members, only approved places, newest first, and u
   assert.equal((await c.put('/api/me/saved/999999')).status, 404);
   await c.del(`/api/me/saved/${b.id}`);
   assert.deepEqual((await c.get('/api/me/saved')).body.places.map((p) => p.id), [a.id]);
+});
+
+test('seed: official-source samples, two Zoo offers, KTM as official help, old rows refreshed only if untouched', async () => {
+  const c = client();
+  const zoo = (await c.get('/api/places?q=Zoo%20Negara')).body.places[0]; // its offers were edited by an earlier test
+  const fresh = openDb(':memory:');
+  seedPlaces(fresh);
+  const zooOffers = fresh.prepare("SELECT o.kind, o.value_text FROM offers o JOIN places p ON p.id = o.place_id WHERE p.name = 'Zoo Negara Malaysia' ORDER BY o.kind").all();
+  assert.deepEqual(zooOffers.map((o) => ({ ...o })), [{ kind: 'discount', value_text: '' }, { kind: 'free', value_text: 'Free' }]); // unconfirmed amount not shown
+  assert.equal(zoo.source_url, 'https://www.zoonegara.my/visitor-guide/tickets');
+  assert.equal(zoo.hub_verified, false);
+  assert.ok(!(await c.get('/api/places?q=KTM')).body.places.length, 'no single pin for a rail network');
+  const ktm = (await c.get('/api/benefits')).body.benefits.find((b) => /KTM Komuter/.test(b.title));
+  assert.equal(ktm.category, 'transport');
+
+  const old = openDb(':memory:');
+  const ins = old.prepare("INSERT INTO places (name, category, description, address, lat, lng, status) VALUES (?, 'attraction', ?, 'x', 3.1, 101.7, 'approved')");
+  const untouched = ins.run('Zoo Negara', SUPERSEDED['Zoo Negara']).lastInsertRowid;
+  const edited = ins.run('Muzium Negara (National Museum)', 'A moderator rewrote this.').lastInsertRowid;
+  seedPlaces(old);
+  const row = (id) => old.prepare('SELECT name, phone, source, source_url FROM places WHERE id = ?').get(id);
+  assert.deepEqual({ ...row(untouched) }, { name: 'Zoo Negara Malaysia', phone: '+603-4108 3422', source: 'heard', source_url: 'https://www.zoonegara.my/visitor-guide/tickets' });
+  assert.equal(old.prepare('SELECT COUNT(*) n FROM offers WHERE place_id = ?').get(untouched).n, 2);
+  assert.equal(row(edited).name, 'Muzium Negara (National Museum)');
+  assert.equal(old.prepare("SELECT COUNT(*) n FROM places WHERE name LIKE 'Zoo Negara%'").get().n, 1);
 });

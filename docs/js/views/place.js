@@ -100,6 +100,9 @@ export async function placeView(ctx, root, [id]) {
   const trustPanel = h('section', { class: `trust-panel trust-panel--${tr.tier}`, 'aria-labelledby': 'trust-h' },
     h('h2', { id: 'trust-h' }, t('Information source')),
     trustStamp(p, { detail: true, cls: 'stamp--big' }),
+    // Where the listing's details were taken from; this says nothing about who has checked them.
+    /^https?:\/\//.test(p.source_url || '') ? h('p', { class: 'source-link' }, icon('globe', 18), t('Official source:'), ' ',
+      h('a', { href: p.source_url, rel: 'noopener noreferrer nofollow', target: '_blank' }, new URL(p.source_url).hostname.replace(/^www\./, ''))) : null,
     meterBox,
     p.status === 'approved' ? h('div', { class: 'did-it-work' },
       h('h3', {}, t('Been here? Did you get the OKU offer?')),
