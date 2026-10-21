@@ -7,6 +7,17 @@ import { createMap, destroyMap, locate } from '../map.js';
 const KIND_CHIPS = { free: 'Free', discount: 'Discount', priority: 'Priority', freebie: 'Freebie', volunteer: 'Volunteer' };
 const TRUST = [['business', 'Business confirmed'], ['community', 'Community reported'], ['unverified', 'Not yet checked']];
 const TRUST_RANK = { business: 0, community: 1, unverified: 2 };
+// What each trust label means, for the "How sure?" key beside the count.
+const TRUST_KEY = [
+  ['business', 'shield', 'Business confirmed', 'The business itself told us the offer is on.'],
+  ['community', 'users', 'Community reported', 'Visitors used it and told us if it worked.'],
+  ['unverified', 'question', 'Not yet checked', 'Found online or from a tip. Check before you go.'],
+];
+// The list opens on one area so the count can say where it is for. Klang Valley holds most listings today.
+const AREAS = { klang: ['Selangor', 'W.P. Kuala Lumpur', 'W.P. Putrajaya'], all: null };
+const AREA_LABEL = { klang: 'Klang Valley', all: 'All of Malaysia' };
+// On a phone the list shows this many places, then a "Show more" button.
+const FIRST_PAGE = 5;
 // Below this width the list and the map are two tabs, and the map only loads when its tab is opened.
 const WIDE = window.matchMedia('(min-width: 64rem)');
 
@@ -21,6 +32,9 @@ export async function exploreView(ctx, root) {
   const markers = new Map();
   const cards = new Map();
   let loadToken = 0;
+  let showAll = false;
+  filters.area ??= 'klang';
+  const areaName = (a) => (AREA_LABEL[a] ? t(AREA_LABEL[a]) : a);
 
   // ----- search and quick filters -----
   const q = field({ label: t('Search places'), name: 'q', type: 'search', value: filters.q, attrs: { placeholder: t('Search a place, town or offer'), autocomplete: 'off' } });
@@ -99,12 +113,44 @@ export async function exploreView(ctx, root) {
   // ----- list / map -----
   const count = h('p', { class: 'result-count', role: 'status' });
   const list = h('ol', { class: 'results', 'aria-label': t('Places') });
+  const moreBtn = h('button', { type: 'button', class: 'btn btn--ghost more-btn', hidden: true, onclick: () => { showAll = true; render(); list.children[FIRST_PAGE]?.querySelector('a')?.focus(); } });
+
+  // ----- area, and the key to the three trust labels -----
+  const area = field({ label: t('Area'), name: 'area', tag: 'select', value: filters.area,
+    options: [['klang', t('Klang Valley')], ['all', t('All of Malaysia')], ...meta.states.map((st) => [st, st])] });
+  area.el.classList.add('area-field');
+  area.el.hidden = true;
+  const areaBtn = h('button', { type: 'button', class: 'linkbtn area-btn', 'aria-expanded': 'false', 'aria-controls': 'area-field',
+    onclick: () => toggleArea() }, t('Change area'));
+  area.el.id = 'area-field';
+  area.input.addEventListener('change', () => { filters.area = area.input.value; toggleArea(false); refresh(); });
+  function toggleArea(open = area.el.hidden) {
+    area.el.hidden = !open;
+    areaBtn.setAttribute('aria-expanded', String(open));
+    if (open) area.input.focus();
+  }
+
+  const keyId = 'trust-key';
+  const key = h('div', { class: 'trust-key', id: keyId, hidden: true },
+    h('h2', {}, t('What the labels mean')),
+    h('ul', {}, TRUST_KEY.map(([tier, ic, label, text]) => h('li', {},
+      h('span', { class: `stamp stamp--${tier}` }, icon(ic, 18), h('strong', {}, t(label))), h('span', {}, t(text))))));
+  const keyBtn = h('button', { type: 'button', class: 'linkbtn key-btn', 'aria-expanded': 'false', 'aria-controls': keyId, onclick: () => {
+    key.hidden = !key.hidden;
+    keyBtn.setAttribute('aria-expanded', String(!key.hidden));
+  } }, icon('question', 18), t('How sure?'));
+
+  const addCard = h('aside', { class: 'add-card', 'aria-labelledby': 'add-card-h' },
+    h('h2', { id: 'add-card-h' }, t('Know a place that says yes?')),
+    h('p', {}, t('Add it in two minutes. No account needed.')),
+    h('a', { class: 'btn', href: '#/submit/place' }, icon('plus', 18), t('Add a place')));
   const mapEl = h('div', { id: 'map', role: 'region', 'aria-label': t('Map of places. The same places are in the list, with the same numbers.') });
   const tabs = ['list', 'map'].map((v) => h('button', { type: 'button', role: 'tab', 'aria-selected': String(state.view === v), 'aria-controls': `${v}-panel`, id: `${v}-tab`,
     onclick: () => showView(v) }, icon(v, 20), t(v === 'list' ? 'List' : 'Map')));
   const listPanel = h('div', { class: 'panel-list', id: 'list-panel', role: 'tabpanel', 'aria-labelledby': 'list-tab' },
-    h('div', { class: 'count-row' }, count, h('a', { class: 'add-link', href: '#/submit/place' }, icon('plus', 16), t('Add a place'))),
-    list);
+    h('div', { class: 'count-row' }, h('div', { class: 'count-where' }, count, areaBtn), keyBtn),
+    area.el, key,
+    list, moreBtn, addCard);
   const mapPanel = h('div', { class: 'explore-map', id: 'map-panel', role: 'tabpanel', 'aria-labelledby': 'map-tab' }, mapEl);
   const explore = h('div', { class: `explore is-${state.view}` },
     h('section', { class: 'panel', 'aria-labelledby': 'explore-h' },
@@ -162,6 +208,7 @@ export async function exploreView(ctx, root) {
   // ----- data -----
   async function refresh() {
     readFilters();
+    showAll = false;
     const n = activeFilterCount();
     clear(filtersBtn).append(icon('sliders', 16), n ? t('Filters · {n}', { n }) : t('Filters'));
     const mine = ++loadToken;
@@ -179,7 +226,8 @@ export async function exploreView(ctx, root) {
         const known = knownFeatures(p);
         return !filters.features.length || (known.length ? filters.features.every((f) => known.includes(f)) : filters.includeUnknown);
       })
-      .filter((p) => filters.trust.includes(trustOf(p).tier));
+      .filter((p) => filters.trust.includes(trustOf(p).tier))
+      .filter((p) => filters.area === 'all' || (AREAS[filters.area] ?? [filters.area]).includes(p.state));
     if (state.loc) for (const p of places) p.distance = distanceKm(state.loc, p);
     if (filters.sort === 'nearest' && state.loc) places.sort((a, b) => a.distance - b.distance);
     else if (filters.sort === 'access') places.sort((a, b) => accessYes(b) - accessYes(a) || knownFeatures(b).length - knownFeatures(a).length);
@@ -194,7 +242,12 @@ export async function exploreView(ctx, root) {
   }
 
   function render() {
-    count.textContent = places.length === 1 ? t('1 place') : t('{n} places', { n: places.length });
+    const where = filters.area === 'all' ? t('Malaysia') : areaName(filters.area);
+    count.textContent = places.length === 1 ? t('1 place in {area}', { area: where }) : t('{n} places in {area}', { n: places.length, area: where });
+    // Phones show the first few; wide screens scroll the panel instead.
+    const cut = !showAll && !WIDE.matches && places.length > FIRST_PAGE + 1;
+    moreBtn.hidden = !cut;
+    if (cut) moreBtn.textContent = t('Show {n} more places', { n: places.length - FIRST_PAGE });
     showBtn.textContent = t('Show {n} places', { n: places.length });
     clear(list);
     cards.clear();
@@ -202,6 +255,7 @@ export async function exploreView(ctx, root) {
     places.forEach((p, i) => {
       const li = placeCard(p, i + 1);
       cards.set(p.id, li);
+      if (cut && i >= FIRST_PAGE) li.hidden = true;
       list.append(li);
     });
     drawMarkers(true);
@@ -241,6 +295,7 @@ export async function exploreView(ctx, root) {
   }
 
   async function focusOnMap(p) {
+    cards.get(p.id)?.removeAttribute('hidden');
     if (!WIDE.matches) showView('map');
     await ensureMap();
     if (!map) return;
