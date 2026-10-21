@@ -212,20 +212,21 @@ export function trustOf(p) {
 export function trustStamp(p, { detail = false, cls = '' } = {}) {
   const tr = trustOf(p);
   return h('span', { class: `stamp stamp--${tr.tier} ${cls}`.trim() }, icon(tr.icon, 18),
-    h('span', {}, h('strong', {}, tr.label), detail ? tr.detail.filter(Boolean).map((line) => h('span', { class: 'stamp-detail' }, line)) : null));
+    h('span', {}, h('span', { class: 'sr-only' }, `${t('Information source')}: `), h('strong', {}, tr.label), detail ? tr.detail.filter(Boolean).map((line) => h('span', { class: 'stamp-detail' }, line)) : null));
 }
 
 /** "2 visitors got the OKU offer", or "2 of 5 visitors got the OKU offer" when some did not. */
+// These are self-reports (one-tap answers and reviews), not checked by us, so the wording says "reported".
 export function workedText(yes, total) {
-  if (yes === total) return total === 1 ? t('1 visitor got the OKU offer') : t('{n} visitors got the OKU offer', { n: total });
-  if (total === 1) return t('1 visitor did not get the OKU offer');
-  return t('{a} of {b} visitors got the OKU offer', { a: yes, b: total });
+  if (yes === total) return total === 1 ? t('1 visitor reported getting the OKU offer') : t('{n} visitors reported getting the OKU offer', { n: total });
+  if (total === 1) return t('1 visitor reported not getting the OKU offer');
+  return t('{a} of {b} visitors reported getting the OKU offer', { a: yes, b: total });
 }
 
-/** "2 of 5 visitors got the OKU offer" for a list card, or nothing when no one has reported a visit yet. */
+/** "2 of 5 visitors reported getting the OKU offer" for a list card, or nothing when no one has reported a visit yet. */
 export function workedLine(p) {
   const { yes, total } = workedCounts(p);
-  return total ? h('span', { class: 'worked-line' }, icon('check', 16), workedText(yes, total)) : null;
+  return total ? h('span', { class: 'worked-line' }, workedText(yes, total)) : null; // a report, so no tick
 }
 
 /** What visitors said about one feature: 'yes' or 'no' by majority, or null when no one has answered. */

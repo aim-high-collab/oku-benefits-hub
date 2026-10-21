@@ -18,8 +18,13 @@ export function saveButton(ctx, place, { small = false } = {}) {
   const btn = h('button', { type: 'button', class: small ? 'save-btn save-btn--small' : 'btn btn--ghost save-btn' });
   const paint = () => {
     const on = ctx.state.saved?.has(place.id) ?? false;
-    btn.setAttribute('aria-pressed', String(on));
-    clear(btn).append(icon('bookmark', small ? 18 : 18), small ? h('span', { class: 'sr-only' }, on ? t('Saved: {name}', { name: place.name }) : t('Save {name}', { name: place.name })) : t(on ? 'Saved' : 'Save'));
+    btn.dataset.saved = String(on);
+    // The small icon button names its action with the place ("Save X" / "Remove X from saved places"); the big one
+    // keeps a fixed name and says its state with aria-pressed.
+    if (small) btn.setAttribute('aria-label', on ? t('Remove {name} from saved places', { name: place.name }) : t('Save {name}', { name: place.name }));
+    else btn.setAttribute('aria-pressed', String(on));
+    clear(btn).append(icon('bookmark', 18));
+    if (!small) btn.append(t(on ? 'Saved' : 'Save'));
     if (small) btn.title = on ? t('Saved') : t('Save');
   };
   btn.addEventListener('click', async () => {

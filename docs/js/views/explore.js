@@ -328,22 +328,27 @@ export async function exploreView(ctx, root) {
     if (fit) map.fitTo(places, 15);
   }
 
+  // A: who and where (photo, name, category · town, Save). B: the offer (type, then title). C: what visitors
+  // reported, where the information comes from (a status, not a button), and the map action.
   function placeCard(p, n) {
     const first = p.offers[0];
+    const kinds = [...new Set(p.offers.map((o) => o.kind))];
+    const reported = workedLine(p);
     return h('li', { class: `result tone-${groupOf(p.category)}`, 'data-id': p.id },
       h('span', { class: 'result-num', 'aria-hidden': 'true' }, n),
       placeImage(p, 'result-thumb'),
       h('div', { class: 'result-body' },
         h('h3', {}, h('a', { href: `#/place/${p.id}` }, p.name)),
         h('p', { class: 'result-meta' }, [meta.categories[p.category], p.city, p.distance != null ? fmtDistance(p.distance) : null].filter(Boolean).join(' · ')),
-        first ? h('p', { class: 'result-kind' }, offerIcon(first.kind),
-          [...new Set(p.offers.map((o) => o.kind))].map((k) => t(KIND_CHIPS[k] || meta.offerKinds[k] || k)).join(' · ')) : null,
-        first ? h('p', { class: 'result-offer' }, h('span', {}, h('strong', {}, offerLine(first)),
-          p.offers.length > 1 ? h('span', { class: 'muted' }, ` · ${t('+{n} more', { n: p.offers.length - 1 })}`) : null)) : null,
-        workedLine(p) ? h('p', { class: 'result-stats' }, workedLine(p)) : null,
+        first ? h('div', { class: 'result-deal' },
+          h('p', { class: 'result-kind' }, offerIcon(first.kind), h('span', {}, kinds.map((k) => t(KIND_CHIPS[k] || meta.offerKinds[k] || k)).join(' · '))),
+          h('p', { class: 'result-offer' }, offerLine(first),
+            p.offers.length > 1 ? h('span', { class: 'muted' }, ` · ${t('+{n} more', { n: p.offers.length - 1 })}`) : null)) : null,
         h('div', { class: 'result-foot' },
-          trustStamp(p),
-          h('button', { type: 'button', class: 'linkbtn result-map', 'aria-label': `${t('Show on map')}: ${p.name}`, onclick: () => focusOnMap(p) }, icon('pin', 16), t('Map')))),
+          reported ? h('p', { class: 'result-stats' }, reported) : null,
+          h('div', { class: 'result-foot-row' },
+            trustStamp(p),
+            h('button', { type: 'button', class: 'linkbtn result-map', 'aria-label': t('View on map: {name}', { name: p.name }), onclick: () => focusOnMap(p) }, icon('pin', 18), t('View on map'))))),
       saveButton(ctx, p, { small: true }));
   }
 
