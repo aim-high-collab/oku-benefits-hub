@@ -1,6 +1,7 @@
 import { h, clear } from '../dom.js';
 import { api, qs } from '../api.js';
 import { field, distanceKm, fmtDistance, offerLine, icon, groupOf, placeImage, offerIcon, trustOf, trustStamp, workedLine, knownFeatures, accessYes } from '../ui.js';
+import { saveButton } from '../saved.js';
 import { t } from '../i18n.js';
 import { createMap, destroyMap, locate } from '../map.js';
 
@@ -340,7 +341,8 @@ export async function exploreView(ctx, root) {
         workedLine(p) ? h('p', { class: 'result-stats' }, workedLine(p)) : null,
         h('div', { class: 'result-foot' },
           trustStamp(p),
-          h('button', { type: 'button', class: 'linkbtn result-map', 'aria-label': `${t('Show on map')}: ${p.name}`, onclick: () => focusOnMap(p) }, icon('pin', 16), t('Map')))));
+          h('button', { type: 'button', class: 'linkbtn result-map', 'aria-label': `${t('Show on map')}: ${p.name}`, onclick: () => focusOnMap(p) }, icon('pin', 16), t('Map')))),
+      saveButton(ctx, p, { small: true }));
   }
 
   function highlight(id, scroll) {

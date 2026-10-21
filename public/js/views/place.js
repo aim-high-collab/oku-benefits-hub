@@ -2,6 +2,7 @@ import { h, clear } from '../dom.js';
 import { api } from '../api.js';
 import { badge, stars, fmtDate, field, radioGroup, errorSummary, offerLine, icon, groupOf, placeImage, photoCredit, offerIcon,
   trustOf, trustStamp, workedCounts, workedMeter, mobileNumber, visitorVerdict, workedText } from '../ui.js';
+import { saveButton } from '../saved.js';
 import { t, tIn } from '../i18n.js';
 import { createMap, destroyMap, directionsUrl, googleMapsUrl, osmUrl, usingGoogle } from '../map.js';
 
@@ -189,6 +190,7 @@ export async function placeView(ctx, root, [id]) {
           trustStamp(p, { detail: true }),
           h('div', { class: 'actions' },
             first && first.kind !== 'volunteer' ? h('button', { type: 'button', class: 'btn btn--sun', onclick: () => cashier.showModal() }, icon('card', 18), t('Show the cashier')) : null,
+            p.status === 'approved' ? saveButton(ctx, p) : null,
             p.status === 'approved' ? h('a', { class: 'btn btn--ghost', href: `#/place/${p.id}/edit` }, icon('edit', 16), t('Suggest an edit')) : null,
             verifyBtn, hubBtn)),
         h('section', { class: 'block', 'aria-labelledby': 'contact-h' }, h('h2', { id: 'contact-h' }, t('Ask before you go')), contactBtns),

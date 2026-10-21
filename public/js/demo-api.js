@@ -4,7 +4,7 @@ const KEY = 'oku-demo-v1';
 let base;
 let store;
 
-const fresh = () => ({ user: null, users: [], places: [], benefits: [], edits: [], reviews: [], visits: [], access: [], next: 1000 });
+const fresh = () => ({ user: null, users: [], places: [], benefits: [], edits: [], reviews: [], visits: [], access: [], saved: [], next: 1000 });
 const save = () => { try { localStorage.setItem(KEY, JSON.stringify(store)); } catch { /* storage full or blocked */ } };
 const fail = (status, message, fields = {}) => Object.assign(new Error(message), { status, fields });
 
@@ -194,6 +194,19 @@ export async function handle(method, path, body = {}) {
   }
   if ((m = /^\/benefits\/(\d+)\/edits$/.exec(p))) return newEdit('benefit', Number(m[1]), body);
 
+  if (p === '/me/saved') {
+    const user = need();
+    const mine = (store.saved || []).filter((s) => s.user_id === user.id).reverse();
+    return { places: mine.map((s) => allPlaces().find((x) => x.id === s.place_id)).filter(Boolean).map(withStats) };
+  }
+  if ((m = /^\/me\/saved\/(\d+)$/.exec(p))) {
+    const user = need();
+    const id = Number(m[1]);
+    store.saved = (store.saved || []).filter((s) => !(s.user_id === user.id && s.place_id === id));
+    if (method === 'PUT') store.saved.push({ user_id: user.id, place_id: id });
+    save();
+    return { saved: method === 'PUT' };
+  }
   if (p === '/me/submissions') {
     need();
     return {

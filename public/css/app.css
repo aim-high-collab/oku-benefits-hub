@@ -545,3 +545,32 @@ html.calm .btn:not(.btn--ghost):not(.btn--danger), html.calm .result-num, html.c
 .google-btn { min-height: 44px; }
 .or-line { display: flex; align-items: center; gap: .75rem; margin: 1.25rem 0 .25rem; color: var(--muted); font-weight: 600; }
 .or-line::before, .or-line::after { content: ''; flex: 1; border-top: 2px solid var(--rule); }
+
+/* ---------- Save (bookmark) ---------- */
+.save-btn--small { position: absolute; top: .6rem; right: .6rem; z-index: 1; display: inline-grid; place-items: center; width: 44px; height: 44px; padding: 0;
+  border: 2px solid var(--ink); border-radius: 12px; background: var(--paper); color: var(--ink); box-shadow: var(--shadow-sm); cursor: pointer; }
+.result:has(.save-btn--small) :is(h3, .result-meta) { padding-right: 2.9rem; }
+.save-btn[aria-pressed="true"] .icon { fill: var(--pink); }
+.saved-list { list-style: none; margin: 1.5rem 0 0; padding: 0; display: grid; gap: 1.1rem; }
+.saved-list .result { grid-template-columns: 64px minmax(0, 1fr); }
+.saved-list h2 { margin: 0 0 .15rem; font-size: 1.2rem; }
+.saved-list .save-btn { margin-left: auto; position: relative; z-index: 1; }
+
+/* ---------- Contact ---------- */
+.contact-list { list-style: none; margin: 1.5rem 0 2rem; padding: 0; display: grid; gap: .8rem; }
+.contact-link { display: flex; align-items: center; gap: .9rem; padding: .9rem 1.1rem; border: 2px solid var(--ink); border-radius: 14px;
+  background: var(--paper); color: var(--ink); text-decoration: none; box-shadow: var(--shadow-sm); }
+.contact-link strong { display: block; }
+.contact-link:hover { transform: translate(-2px, -2px); box-shadow: var(--shadow); }
+html.calm .contact-link:hover { transform: none; }
+.saved-list .result:not(:has(.result-thumb)) { grid-template-columns: minmax(0, 1fr); }
+.saved-list h2 a { color: var(--ink); text-decoration: none; }
+.saved-list h2 a::after { content: ""; position: absolute; inset: 0; }
+
+/* Desktop: brand and tools on the first row, the menu and account on a second row, so labels never wrap. */
+@media (min-width: 64.01rem) {
+  :root { --header-h: 118px; }
+  .tools { margin-left: auto; }
+  .menu { order: 3; flex: 0 0 100%; padding: .1rem 0 .4rem; }
+  .account { margin-left: auto; }
+}

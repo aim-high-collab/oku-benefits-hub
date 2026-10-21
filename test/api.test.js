@@ -41,7 +41,7 @@ function client() {
     if (set) cookie = set.split(';')[0].startsWith('sid=') && set.split(';')[0] !== 'sid=' ? set.split(';')[0] : '';
     return { status: res.status, body: await res.json().catch(() => null), res };
   };
-  return { get: (p) => call('GET', p), post: (p, b = {}) => call('POST', p, b), patch: (p, b) => call('PATCH', p, b), del: (p) => call('DELETE', p, {}) };
+  return { get: (p) => call('GET', p), post: (p, b = {}) => call('POST', p, b), put: (p, b = {}) => call('PUT', p, b), patch: (p, b) => call('PATCH', p, b), del: (p) => call('DELETE', p, {}) };
 }
 
 const validPlace = (over = {}) => ({
@@ -379,4 +379,18 @@ test('Continue with Google creates the account once, then logs the same person b
   const pw = await client().post('/api/auth/login', { email: 'aina@gmail.com', password: 'password123' });
   assert.equal(pw.status, 401);
   assert.match(pw.body.error, /Google/);
+});
+
+test('saving places: only for members, only approved places, newest first, and unsaving', async () => {
+  assert.equal((await client().get('/api/me/saved')).status, 401);
+  const c = await register('sofia');
+  const places = (await c.get('/api/places')).body.places;
+  const [a, b] = places;
+  assert.equal((await c.put(`/api/me/saved/${a.id}`)).status, 200);
+  assert.equal((await c.put(`/api/me/saved/${b.id}`)).status, 200);
+  assert.equal((await c.put(`/api/me/saved/${b.id}`)).status, 200); // saving twice is fine
+  assert.deepEqual((await c.get('/api/me/saved')).body.places.map((p) => p.id), [b.id, a.id]);
+  assert.equal((await c.put('/api/me/saved/999999')).status, 404);
+  await c.del(`/api/me/saved/${b.id}`);
+  assert.deepEqual((await c.get('/api/me/saved')).body.places.map((p) => p.id), [a.id]);
 });

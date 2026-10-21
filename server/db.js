@@ -116,6 +116,14 @@ CREATE TABLE IF NOT EXISTS access_reports (
   created_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
 CREATE INDEX IF NOT EXISTS access_reports_place ON access_reports(place_id);
+
+-- Places a person bookmarked with "Save".
+CREATE TABLE IF NOT EXISTS saved_places (
+  user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  place_id INTEGER NOT NULL REFERENCES places(id) ON DELETE CASCADE,
+  created_at TEXT NOT NULL DEFAULT (datetime('now')),
+  PRIMARY KEY (user_id, place_id)
+);
 `;
 
 // Columns added after the first release; older databases get them on start.
