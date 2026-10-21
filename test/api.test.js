@@ -448,3 +448,38 @@ test('sample data: all three labels, owners, counts and saves, and it can be rem
   assert.equal(sdb.prepare('SELECT COUNT(*) n FROM visits').get().n, 0);
   assert.ok(sdb.prepare('SELECT COUNT(*) n FROM places').get().n >= 16);
 });
+
+test('Add a place: community or business, details stay private, and claiming to be the business confirms nothing', async () => {
+  const kay = await register('kay');
+  const mod = await admin();
+  const biz = (extra) => kay.post('/api/places', validPlace({ name: 'Kedai Kay', contributor_type: 'business', ...extra }));
+
+  const missing = await biz({ contributor: {} });
+  assert.equal(missing.status, 422);
+  assert.ok(missing.body.fields.rep_name && missing.body.fields.rep_contact);
+  assert.equal((await kay.post('/api/places', validPlace({ contributor_type: 'shop' }))).status, 422);
+  assert.equal((await kay.post('/api/places', validPlace({ contributor_type: 'community', source: 'owner' }))).status, 422);
+
+  const b = await biz({ source: 'heard', contributor: { rep_name: 'Kay Tan', rep_role: 'Manager', rep_contact: 'kay@kedai.my', note: 'dropped' } });
+  assert.equal(b.status, 201);
+  const c = await kay.post('/api/places', validPlace({ name: 'Warung Visit', contributor_type: 'community', source: 'used_it',
+    contributor: { note: 'Went on Saturday, got 10% off.', source_url: 'https://example.com/post', rep_contact: 'dropped' } }));
+  assert.equal(c.status, 201);
+
+  const queue = (await mod.get('/api/admin/queue')).body.places;
+  const qb = queue.find((p) => p.id === b.body.id);
+  const qc = queue.find((p) => p.id === c.body.id);
+  assert.deepEqual(qb.contributor, { type: 'business', rep_name: 'Kay Tan', rep_role: 'Manager', rep_contact: 'kay@kedai.my' });
+  assert.equal(qb.source, 'owner');
+  assert.equal(qb.submitter_is_owner, true);
+  assert.equal(qb.partner_verified, false); // saying you are the business does not confirm the offer
+  assert.deepEqual(qc.contributor, { type: 'community', note: 'Went on Saturday, got 10% off.' });
+  assert.equal(qc.source_url, 'https://example.com/post');
+  assert.equal(qc.submitter_is_owner, false);
+
+  await mod.post(`/api/admin/places/${b.body.id}/approve`);
+  const pub = (await client().get(`/api/places/${b.body.id}`)).body.place;
+  assert.equal(pub.contributor, undefined);
+  assert.equal(pub.partner_verified, false);
+  assert.ok(!(await client().get('/api/places')).body.places.some((p) => 'contributor' in p));
+});

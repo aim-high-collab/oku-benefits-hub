@@ -9,7 +9,7 @@ const KIND_CHIPS = { free: 'Free entry', discount: 'Discount', priority: 'Priori
 const TRUST = [['hub', 'Checked by OKU Benefits Hub'], ['business', 'Confirmed by business'], ['community', 'Shared by the community']];
 const TRUST_RANK = { hub: 0, business: 1, community: 2 };
 // What each trust label means, for the "Label guide" key beside the count.
-const TRUST_KEY = [
+export const TRUST_KEY = [
   ['hub', 'verified', 'Checked by OKU Benefits Hub', 'Our team checked this information directly with the business or through an in-person visit.'],
   ['business', 'shield', 'Confirmed by business', 'The business confirmed that this offer is available.'],
   ['community', 'users', 'Shared by the community', 'Shared by a community member. The details have not yet been independently verified.'],

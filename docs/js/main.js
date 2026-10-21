@@ -13,7 +13,7 @@ import { contactView } from './views/contact.js';
 import { loadSaved } from './saved.js';
 import { accountView } from './views/account.js';
 import { adminView } from './views/admin.js';
-import { businessView } from './views/business.js';
+import { howItWorksView } from './views/how-it-works.js';
 
 const main = document.getElementById('main');
 const nav = document.getElementById('nav');
@@ -48,14 +48,15 @@ const routes = [
   [/^\/register$/, registerView],
   [/^\/account$/, accountView],
   [/^\/admin$/, adminView],
-  [/^\/business$/, businessView],
+  [/^\/how-it-works$/, howItWorksView],
+  [/^\/business$/, () => { location.replace('#/how-it-works'); return { title: '' }; }], // old link, kept working
 ];
 
 // "Official help" is a short page of links to government schemes; the product itself is a directory of places.
 const NAV = [
   ['#/', 'Discover', /^\/?$|^\/place\/\d+$/],
   ['#/submit/place', 'Add a place', /^\/submit\/place/],
-  ['#/business', 'For businesses', /^\/business/],
+  ['#/how-it-works', 'How it works', /^\/how-it-works/],
   ['#/benefits', 'Official help', /^\/benefits/],
   ['#/contact', 'Contact', /^\/contact/],
 ];

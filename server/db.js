@@ -136,6 +136,8 @@ const LATER_COLUMNS = [
   ['places', 'hub_verified_at', 'TEXT'],
   ['places', 'hub_checked', "TEXT NOT NULL DEFAULT ''"], // what our team checked, shown with the label
   ['places', 'source_url', "TEXT NOT NULL DEFAULT ''"], // the official page a listing's details come from
+  // Who submitted it and how to reach them, as JSON. Moderators only: never sent with the public listing.
+  ['places', 'contributor', "TEXT NOT NULL DEFAULT '{}'"],
 ];
 
 export function openDb(file = ':memory:') {

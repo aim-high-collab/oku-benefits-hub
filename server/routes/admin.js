@@ -24,7 +24,11 @@ export function adminRoutes({ db }) {
       return { ...e, changes: JSON.parse(e.changes), current, missing: !current };
     });
     const names = new Map(db.prepare('SELECT id, name FROM users').all().map((u) => [u.id, u.name]));
-    for (const p of places) p.submitter = names.get(p.submitted_by) ?? null;
+    const contributorOf = db.prepare('SELECT contributor FROM places WHERE id = ?');
+    for (const p of places) {
+      p.submitter = names.get(p.submitted_by) ?? null;
+      p.contributor = JSON.parse(contributorOf.get(p.id)?.contributor || '{}'); // moderators only
+    }
     res.json({ places, benefits, edits });
   });
 

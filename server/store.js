@@ -5,8 +5,9 @@ import { HttpError } from './http.js';
 const PLACE_COLS = ['name', 'category', 'description', 'address', 'city', 'state', 'lat', 'lng', 'phone', 'website', 'image'];
 const BENEFIT_COLS = ['title', 'agency', 'category', 'summary', 'eligibility', 'how_to_apply', 'url'];
 
+// `contributor` holds the submitter's private contact details, so it is left out of every place we send.
 export const parsePlace = (row) => row && {
-  ...row,
+  ...Object.fromEntries(Object.entries(row).filter(([k]) => k !== 'contributor')),
   accessibility: JSON.parse(row.accessibility),
   submitter_is_owner: Boolean(row.submitter_is_owner),
   partner_verified: Boolean(row.partner_verified),
