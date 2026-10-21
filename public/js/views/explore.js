@@ -42,63 +42,116 @@ export async function exploreView(ctx, root) {
   q.el.classList.add('search-field');
   q.el.prepend(icon('search', 18));
 
+  const setKind = (value) => {
+    filters.kind = value;
+    for (const k of kindBtns) k.btn.setAttribute('aria-pressed', String(k.value === value));
+    kindTiles.set(value);
+  };
   const kindBtns = Object.entries({ '': 'All', ...KIND_CHIPS }).map(([value, text]) => {
     const btn = h('button', { type: 'button', class: 'chip-btn', 'data-kind': value, 'aria-pressed': String(filters.kind === value), onclick: () => {
-      filters.kind = value;
-      for (const k of kindBtns) k.btn.setAttribute('aria-pressed', String(k.value === value));
+      setKind(value);
       refresh();
     } }, icon('check', 16), t(text));
     return { value, btn };
   });
 
-  // ----- the filters sheet -----
-  const category = field({ label: t('Type of place'), name: 'category', tag: 'select', value: filters.category,
-    options: [['', t('All types')], ...Object.entries(meta.categories)] });
-  const sort = field({ label: t('Sort by'), name: 'sort', tag: 'select', value: filters.sort,
-    options: [['recommended', t('Recommended')], ['nearest', t('Nearest to me')], ['access', t('Best access')]] });
-  const box = (name, value, text, checked) => {
-    const id = `cb-${name}-${value}`;
-    const input = h('input', { type: 'checkbox', id, name, value, checked });
-    return { input, el: h('div', { class: 'check' }, input, h('label', { for: id }, text)) };
-  };
-  const featBoxes = Object.entries(meta.features).map(([v, text]) => box('features', v, text, filters.features.includes(v)));
-  const unknownBox = box('unknown', 'yes', '', filters.includeUnknown);
-  unknownBox.el.querySelector('label').append(h('strong', {}, t('Also show places where we don’t know yet')), ' ', t('They are marked “Not known”, so you can ask before you go.'));
-  unknownBox.el.classList.add('check--card');
-  const trustBoxes = TRUST.map(([v, text]) => box('trust', v, t(text), filters.trust.includes(v)));
+  // ----- the filters sheet: big tap-friendly tiles instead of dropdowns and tick boxes -----
+  /** A group of toggle tiles. One choice (radio-like) or several; long groups show `limit` tiles and a "Show more". */
+  function tiles({ label, hint, options, multi = false, value, limit = 0, onChange }) {
+    let current = multi ? [...value] : value;
+    const btns = options.map(([v, text, ic]) => h('button', { type: 'button', class: 'tile', 'data-value': v, onclick: () => {
+      if (multi) current = current.includes(v) ? current.filter((x) => x !== v) : [...current, v];
+      else current = v;
+      paint();
+      onChange?.(current);
+      refresh();
+    } }, ic ? icon(ic, 18) : null, h('span', {}, text), h('span', { class: 'tile-tick', 'aria-hidden': 'true' }, icon('check', 16))));
+    const extra = limit && btns.length > limit ? btns.slice(limit) : [];
+    const moreBtn = extra.length ? h('button', { type: 'button', class: 'linkbtn tile-more', 'aria-expanded': 'false', onclick: () => {
+      const open = moreBtn.getAttribute('aria-expanded') !== 'true';
+      for (const b of extra) b.hidden = !open;
+      moreBtn.setAttribute('aria-expanded', String(open));
+      clear(moreBtn).append(t(open ? 'Show less' : 'Show more'));
+      if (open) extra[0].focus();
+    } }, t('Show more')) : null;
+    for (const b of extra) b.hidden = true;
+    function paint() {
+      for (const b of btns) {
+        const on = multi ? current.includes(b.dataset.value) : current === b.dataset.value;
+        b.setAttribute('aria-pressed', String(on));
+        // a chosen tile inside "Show more" stays visible so the choice is never hidden
+        if (on && extra.includes(b)) b.hidden = false;
+      }
+    }
+    paint();
+    const el = h('fieldset', { class: 'tile-group' }, h('legend', {}, label), hint ? h('p', { class: 'hint' }, hint) : null,
+      h('div', { class: 'tiles' }, btns), moreBtn);
+    return { el, get: () => current, set: (v) => { current = multi ? [...v] : v; paint(); } };
+  }
+
+  const sortTiles = tiles({ label: t('Sort by'), value: filters.sort,
+    options: [['recommended', t('Recommended')], ['nearest', t('Nearest to me'), 'locate'], ['access', t('Best access')]],
+    onChange: (v) => { if (v === 'nearest' && !state.loc) useLocation(); } });
+  sortTiles.el.classList.add('tile-group--seg');
+  const kindTiles = tiles({ label: t('Kind of offer'), value: filters.kind,
+    options: Object.entries({ '': 'All', ...KIND_CHIPS }).map(([v, text]) => [v, t(text)]),
+    onChange: (v) => setKind(v) });
+  const categoryTiles = tiles({ label: t('Type of place'), value: filters.category, limit: 6,
+    options: [['', t('All types')], ...Object.entries(meta.categories).map(([v, text]) => [v, t(text)])] });
+  const featTiles = tiles({ label: t('Getting in and around'), hint: t('Only show places with all of these.'), multi: true, value: filters.features, limit: 6,
+    options: Object.entries(meta.features).map(([v, text]) => [v, t(text)]) });
+  const unknownInput = h('input', { type: 'checkbox', id: 'cb-unknown', role: 'switch', checked: filters.includeUnknown, onchange: () => refresh() });
+  const unknownRow = h('div', { class: 'switch-row' }, h('label', { for: 'cb-unknown' }, h('strong', {}, t('Also show places where we don’t know yet')),
+    h('span', { class: 'hint' }, t('They are marked “Not known”, so you can ask before you go.'))), unknownInput);
+  const trustTiles = tiles({ label: t('How sure'), multi: true, value: filters.trust,
+    options: TRUST_KEY.map(([v, ic, text]) => [v, t(text), ic]) });
 
   const sheetId = 'filter-sheet';
-  const filtersBtn = h('button', { type: 'button', class: 'chip-btn chip-btn--filters', 'aria-expanded': 'false', 'aria-controls': sheetId, onclick: () => toggleSheet() });
+  const filtersBtn = h('button', { type: 'button', class: 'chip-btn chip-btn--filters', 'aria-haspopup': 'dialog', 'aria-controls': sheetId, onclick: () => toggleSheet(true) });
   const showBtn = h('button', { type: 'button', class: 'btn', onclick: () => toggleSheet(false) });
-  const sheet = h('div', { class: 'filter-sheet', id: sheetId, hidden: true, role: 'group', 'aria-label': t('Filters') },
-    h('div', { class: 'sheet-head' }, h('h2', {}, t('Filters')),
-      h('button', { type: 'button', class: 'btn btn--ghost btn--icon', 'aria-label': t('Close filters'), onclick: () => toggleSheet(false) }, icon('x', 20))),
-    h('div', { class: 'filter-row' }, category.el, sort.el),
-    h('fieldset', { class: 'checks' }, h('legend', {}, t('Getting in and around')), h('p', { class: 'hint' }, t('Only show places with all ticked features.')),
-      h('div', { class: 'check-grid' }, featBoxes.map((b) => b.el))),
-    unknownBox.el,
-    h('fieldset', { class: 'checks' }, h('legend', {}, t('How sure')), h('div', { class: 'check-row' }, trustBoxes.map((b) => b.el))),
-    h('div', { class: 'actions' },
-      h('button', { type: 'button', class: 'btn btn--ghost', onclick: clearFilters }, t('Clear')), showBtn));
+  const sheet = h('dialog', { class: 'filter-sheet', id: sheetId, 'aria-labelledby': 'filter-sheet-h' },
+    h('div', { class: 'sheet-head' },
+      h('button', { type: 'button', class: 'btn btn--ghost btn--icon', 'aria-label': t('Close filters'), onclick: () => toggleSheet(false) }, icon('x', 20)),
+      h('h2', { id: 'filter-sheet-h' }, t('Filters'))),
+    h('div', { class: 'sheet-body' }, sortTiles.el, kindTiles.el, categoryTiles.el, featTiles.el, unknownRow, trustTiles.el),
+    h('div', { class: 'sheet-foot' },
+      h('button', { type: 'button', class: 'btn btn--ghost', onclick: clearFilters }, t('Clear all')), showBtn));
+  sheet.addEventListener('close', () => filtersBtn.focus());
 
-  function toggleSheet(open = sheet.hidden) {
-    sheet.hidden = !open;
-    filtersBtn.setAttribute('aria-expanded', String(open));
-    if (open) sheet.querySelector('select')?.focus();
-    else filtersBtn.focus();
+  function toggleSheet(open) {
+    if (open) sheet.showModal();
+    else sheet.close();
   }
 
   function clearFilters() {
-    category.input.value = '';
-    sort.input.value = 'recommended';
-    for (const b of featBoxes) b.input.checked = false;
-    unknownBox.input.checked = true;
-    for (const b of trustBoxes) b.input.checked = true;
+    sortTiles.set('recommended');
+    setKind('');
+    categoryTiles.set('');
+    featTiles.set([]);
+    unknownInput.checked = true;
+    trustTiles.set(TRUST.map(([v]) => v));
     refresh();
   }
 
   function activeFilterCount() {
     return (filters.category ? 1 : 0) + filters.features.length + (filters.trust.length < 3 ? 1 : 0) + (filters.sort !== 'recommended' ? 1 : 0);
+  }
+
+  // What is switched on, as pills you can remove one by one (under the chips, so nothing is hidden in the sheet).
+  const pills = h('div', { class: 'active-pills', 'aria-label': t('Filters on') });
+  function renderPills() {
+    clear(pills);
+    const items = [];
+    if (filters.sort !== 'recommended') items.push([filters.sort === 'nearest' ? t('Nearest to me') : t('Best access'), () => sortTiles.set('recommended')]);
+    if (filters.category) items.push([t(meta.categories[filters.category]), () => categoryTiles.set('')]);
+    for (const f of filters.features) items.push([t(meta.features[f]), () => featTiles.set(filters.features.filter((x) => x !== f))]);
+    if (filters.trust.length < 3) items.push([filters.trust.map((v) => t(TRUST.find(([k]) => k === v)[1])).join(' + ') || t('No labels'), () => trustTiles.set(TRUST.map(([v]) => v))]);
+    pills.hidden = !items.length;
+    for (const [text, undo] of items) {
+      pills.append(h('button', { type: 'button', class: 'pill', 'aria-label': t('Remove filter: {name}', { name: text }), onclick: () => { undo(); refresh(); } },
+        h('span', {}, text), icon('x', 14)));
+    }
+    if (items.length > 1) pills.append(h('button', { type: 'button', class: 'linkbtn pill-clear', onclick: clearFilters }, t('Clear all')));
   }
 
   const locBtn = h('button', { type: 'button', class: 'btn btn--ghost btn--icon', title: t('Use my location to sort by distance'), 'aria-label': t('Use my location to sort by distance'), onclick: useLocation }, icon('locate', 20));
@@ -108,7 +161,9 @@ export async function exploreView(ctx, root) {
     h('div', { class: 'search-row' }, q.el, locBtn),
     locStatus,
     h('div', { class: 'chip-row', role: 'group', 'aria-label': t('Kind of offer') }, filtersBtn, kindBtns.map((k) => k.btn)),
-    sheet);
+    pills);
+  // the dialog lives outside the form so its buttons never submit it
+  root.append(sheet);
 
   // ----- list / map -----
   const count = h('p', { class: 'result-count', role: 'status' });
@@ -172,16 +227,13 @@ export async function exploreView(ctx, root) {
 
   function readFilters() {
     Object.assign(filters, {
-      q: q.input.value.trim(), category: category.input.value, sort: sort.input.value,
-      features: featBoxes.filter((b) => b.input.checked).map((b) => b.input.value),
-      includeUnknown: unknownBox.input.checked,
-      trust: trustBoxes.filter((b) => b.input.checked).map((b) => b.input.value),
+      q: q.input.value.trim(), category: categoryTiles.get(), sort: sortTiles.get(),
+      features: featTiles.get(), includeUnknown: unknownInput.checked, trust: trustTiles.get(),
     });
   }
 
   let timer;
   q.input.addEventListener('input', () => { clearTimeout(timer); timer = setTimeout(refresh, 300); });
-  sheet.addEventListener('change', () => refresh());
 
   async function useLocation() {
     locBtn.disabled = true;
@@ -189,7 +241,7 @@ export async function exploreView(ctx, root) {
     try {
       state.loc = await locate();
       locStatus.textContent = t('Sorted by distance from you.');
-      sort.input.value = 'nearest';
+      sortTiles.set('nearest');
       showYou();
       refresh();
     } catch (err) {
@@ -211,6 +263,7 @@ export async function exploreView(ctx, root) {
     showAll = false;
     const n = activeFilterCount();
     clear(filtersBtn).append(icon('sliders', 16), n ? t('Filters · {n}', { n }) : t('Filters'));
+    renderPills();
     const mine = ++loadToken;
     let data;
     try {
