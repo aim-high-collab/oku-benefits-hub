@@ -98,7 +98,7 @@ export async function exploreView(ctx, root) {
     onChange: (v) => setKind(v) });
   const categoryTiles = tiles({ label: t('Type of place'), value: filters.category, limit: 6,
     options: [['', t('All types')], ...Object.entries(meta.categories).map(([v, text]) => [v, t(text)])] });
-  const featTiles = tiles({ label: t('Accessibility'), hint: t('Only show places with all of these.'), multi: true, value: filters.features, limit: 6,
+  const featTiles = tiles({ label: t('Accessibility'), multi: true, value: filters.features, limit: 6,
     options: Object.entries(meta.features).map(([v, text]) => [v, t(text)]) });
   // Only matters once a feature is ticked: should places nobody has told us about yet still show?
   const unknownInput = h('input', { type: 'checkbox', id: 'cb-unknown', role: 'switch', checked: filters.includeUnknown, onchange: () => refresh() });
