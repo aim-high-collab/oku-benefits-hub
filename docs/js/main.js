@@ -17,7 +17,7 @@ const nav = document.getElementById('nav');
 const menu = document.getElementById('menu');
 const tools = document.getElementById('tools');
 
-export const state = { user: null, meta: null, filters: { q: '', category: '', kind: '', features: [], includeUnknown: true, trust: ['business', 'community', 'unverified'], sort: 'recommended' }, loc: null, view: 'list' };
+export const state = { user: null, meta: null, filters: { q: '', category: '', kind: '', features: [], includeUnknown: true, trust: ['hub', 'business', 'community'], sort: 'recommended' }, loc: null, view: 'list' };
 
 const ctx = {
   state,

@@ -272,8 +272,7 @@ details.more[open] summary::after { transform: rotate(-135deg); }
 .pin--label { width: 32px; height: 32px; }
 .pin--label::after { display: none; }
 .pin--label b { position: absolute; inset: 0; display: grid; place-items: center; transform: rotate(45deg); font: 800 .95rem/1 var(--sans); color: var(--ink); }
-.pin--unverified { border-style: dashed; background: var(--paper); }
-.pin--business { box-shadow: 0 0 0 3px var(--paper), 0 0 0 5px var(--ink); }
+.pin--business, .pin--hub { box-shadow: 0 0 0 3px var(--paper), 0 0 0 5px var(--ink); }
 .gm-pin { width: 32px; height: 36px; }
 .you-dot { display: block; width: 18px; height: 18px; border-radius: 50%; background: #2563eb; border: 3px solid #fff; box-shadow: 0 0 0 1px rgba(23, 32, 61, .35); transform: translateY(9px); }
 .gm-style { font: inherit; }
@@ -494,10 +493,9 @@ details.more[open] summary::after { transform: rotate(-135deg); }
 .stamp .icon { margin-top: 1px; }
 .stamp--business { background: var(--mint); }
 .stamp--community { background: var(--sky); }
-.stamp--unverified { background: var(--paper); border-style: dashed; }
+.stamp--hub { background: var(--pink-light); }
 .stamp-detail { display: block; font-weight: 500; font-size: 1rem; }
 .stamp--big { border-width: 4px; border-style: double; padding: .6rem .9rem; font-size: 1.1rem; width: 100%; }
-.stamp--big.stamp--unverified { border-style: dashed; border-width: 3px; }
 .meter { display: inline-flex; gap: 3px; margin: .2rem 0 .3rem; }
 .meter span { width: 18px; height: 18px; border: 2px solid var(--ink); border-radius: 4px; background: var(--paper); }
 .meter span.on { background: var(--mint); }

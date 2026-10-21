@@ -124,6 +124,8 @@ const LATER_COLUMNS = [
   ['places', 'source', "TEXT NOT NULL DEFAULT ''"], // how the submitter knows: used_it | owner | heard
   ['places', 'verified_at', 'TEXT'], // when a moderator marked it business-confirmed
   ['offers', 'valid_until', "TEXT NOT NULL DEFAULT ''"],
+  ['places', 'hub_verified', 'INTEGER NOT NULL DEFAULT 0'], // our own team checked it
+  ['places', 'hub_verified_at', 'TEXT'],
 ];
 
 export function openDb(file = ':memory:') {

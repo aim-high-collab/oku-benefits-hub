@@ -178,7 +178,7 @@ export function photoCredit(place) {
 
 export const offerIcon = (kind) => icon(kind === 'volunteer' ? 'heart' : 'check', 18);
 
-// ---------- trust: business-confirmed, community-reported, not yet checked ----------
+// ---------- trust: checked by our team, business confirmed, community reported ----------
 
 export const workedCounts = (p) => {
   const yes = (p.honoured_yes ?? 0) + (p.visits_yes ?? 0);
@@ -188,13 +188,16 @@ export const workedCounts = (p) => {
 /** Which of the three trust levels a listing is at, with a short explanation. */
 export function trustOf(p) {
   const { yes, total } = workedCounts(p);
+  if (p.hub_verified) {
+    return { tier: 'hub', icon: 'verified', label: t('OKU Benefits Hub verified'), detail: p.hub_verified_at ? t('checked by our team · {date}', { date: fmtDate(p.hub_verified_at) }) : '' };
+  }
   if (p.partner_verified) {
     return { tier: 'business', icon: 'shield', label: t('Business confirmed'), detail: p.verified_at ? t('by the business · {date}', { date: fmtDate(p.verified_at) }) : '' };
   }
-  if (total > 0 || p.source === 'used_it') {
-    return { tier: 'community', icon: 'users', label: t('Community reported'), detail: yes ? t('{n} visits said it worked', { n: yes }) : t('suggested by a visitor who used it') };
-  }
-  return { tier: 'unverified', icon: 'question', label: t('Not yet checked'), detail: t('from web sources or a tip · confirm before you go') };
+  // Every other listing was added by someone in the community.
+  const detail = yes ? t('{n} visits said it worked', { n: yes })
+    : p.source === 'used_it' ? t('suggested by a visitor who used it') : t('added by the community · confirm before you go');
+  return { tier: 'community', icon: 'users', label: t('Community reported'), detail };
 }
 
 /** The trust label: icon, word and border style all differ, so colour is never the only cue. */

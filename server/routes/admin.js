@@ -56,11 +56,13 @@ export function adminRoutes({ db }) {
     res.json({ ok: true });
   });
 
-  // Mark / unmark a business as a verified participating partner.
+  // Mark / unmark a place as business confirmed (partner_verified) or checked by our own team (hub_verified).
   r.patch('/places/:id', (req, res) => {
-    if (typeof req.body?.partner_verified !== 'boolean') throw new HttpError(422, 'partner_verified must be true or false.');
-    const on = req.body.partner_verified;
-    const info = db.prepare(`UPDATE places SET partner_verified = ?, verified_at = ${on ? "date('now')" : 'NULL'} WHERE id = ?`).run(on ? 1 : 0, id(req));
+    const flags = [['partner_verified', 'verified_at'], ['hub_verified', 'hub_verified_at']].filter(([k]) => k in (req.body ?? {}));
+    if (!flags.length) throw new HttpError(422, 'Send partner_verified or hub_verified.');
+    for (const [k] of flags) if (typeof req.body[k] !== 'boolean') throw new HttpError(422, `${k} must be true or false.`);
+    const sets = flags.map(([k, at]) => `${k} = ${req.body[k] ? 1 : 0}, ${at} = ${req.body[k] ? "date('now')" : 'NULL'}`).join(', ');
+    const info = db.prepare(`UPDATE places SET ${sets} WHERE id = ?`).run(id(req));
     if (!info.changes) throw new HttpError(404, 'Place not found.');
     res.json({ ok: true });
   });

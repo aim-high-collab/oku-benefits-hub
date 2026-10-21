@@ -57,7 +57,7 @@ function listPlaces(q) {
     .filter((p) => !category || p.category === category)
     .filter((p) => !kind || p.offers.some((o) => o.kind === kind))
     .filter((p) => feats.every((f) => p.accessibility.includes(f)))
-    .sort((a, b) => Number(b.partner_verified) - Number(a.partner_verified) || a.name.localeCompare(b.name))
+    .sort((a, b) => Number(b.hub_verified) - Number(a.hub_verified) || Number(b.partner_verified) - Number(a.partner_verified) || a.name.localeCompare(b.name))
     .map(withStats);
 }
 
@@ -127,7 +127,7 @@ export async function handle(method, path, body = {}) {
     requireFields(body, { name: [2, 'Name'], address: [3, 'Address'] });
     if (!Number.isFinite(body.lat) || !Number.isFinite(body.lng)) throw fail(422, 'Please fix the highlighted fields.', { lat: 'Pick the location on the map.', lng: 'Pick the location on the map.' });
     if (!(body.offers?.length || body.accessibility?.length)) throw fail(422, 'Add at least one offer or one accessibility feature.', { offers: 'Add at least one offer, or tick an accessibility feature.' });
-    const place = { ...body, id: store.next++, status: 'approved', partner_verified: false, verified_at: null, source: body.source || '',
+    const place = { ...body, id: store.next++, status: 'approved', partner_verified: false, verified_at: null, hub_verified: false, hub_verified_at: null, source: body.source || '',
       submitter_is_owner: body.is_owner === true || body.source === 'owner', submitted_by: user?.id ?? null,
       offers: (body.offers || []).map((o, i) => ({ ...o, id: i })), accessibility: body.accessibility || [], created_at: new Date().toISOString() };
     store.places.push(place);

@@ -179,7 +179,7 @@ function locationPicker(meta, initial, lat, lng) {
 const SOURCE_HINTS = {
   used_it: 'Shows as “Community reported”.',
   owner: 'A moderator contacts the business to confirm.',
-  heard: 'Shows as “Not yet checked”.',
+  heard: 'Shows as “Community reported”. Others can confirm it after they visit.',
 };
 
 /** Required for new places: the answer decides which trust stamp the listing starts with. */

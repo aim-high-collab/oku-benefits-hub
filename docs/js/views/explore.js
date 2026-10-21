@@ -5,13 +5,13 @@ import { t } from '../i18n.js';
 import { createMap, destroyMap, locate } from '../map.js';
 
 const KIND_CHIPS = { free: 'Free', discount: 'Discount', priority: 'Priority', freebie: 'Freebie', volunteer: 'Volunteer' };
-const TRUST = [['business', 'Business confirmed'], ['community', 'Community reported'], ['unverified', 'Not yet checked']];
-const TRUST_RANK = { business: 0, community: 1, unverified: 2 };
-// What each trust label means, for the "How sure?" key beside the count.
+const TRUST = [['hub', 'OKU Benefits Hub verified'], ['business', 'Business confirmed'], ['community', 'Community reported']];
+const TRUST_RANK = { hub: 0, business: 1, community: 2 };
+// What each trust label means, for the "Who checked?" key beside the count.
 const TRUST_KEY = [
+  ['hub', 'verified', 'OKU Benefits Hub verified', 'Our own team checked it, by visiting or calling.'],
   ['business', 'shield', 'Business confirmed', 'The business itself told us the offer is on.'],
-  ['community', 'users', 'Community reported', 'Visitors used it and told us if it worked.'],
-  ['unverified', 'question', 'Not yet checked', 'Found online or from a tip. Check before you go.'],
+  ['community', 'users', 'Community reported', 'Added or tried by visitors. Check before you go.'],
 ];
 // The list opens on one area so the count can say where it is for. Klang Valley holds most listings today.
 const AREAS = { klang: ['Selangor', 'W.P. Kuala Lumpur', 'W.P. Putrajaya'], all: null };
@@ -98,24 +98,25 @@ export async function exploreView(ctx, root) {
     onChange: (v) => setKind(v) });
   const categoryTiles = tiles({ label: t('Type of place'), value: filters.category, limit: 6,
     options: [['', t('All types')], ...Object.entries(meta.categories).map(([v, text]) => [v, t(text)])] });
-  const featTiles = tiles({ label: t('Getting in and around'), hint: t('Only show places with all of these.'), multi: true, value: filters.features, limit: 6,
+  const featTiles = tiles({ label: t('Accessibility'), hint: t('Only show places with all of these.'), multi: true, value: filters.features, limit: 6,
     options: Object.entries(meta.features).map(([v, text]) => [v, t(text)]) });
+  // Only matters once a feature is ticked: should places nobody has told us about yet still show?
   const unknownInput = h('input', { type: 'checkbox', id: 'cb-unknown', role: 'switch', checked: filters.includeUnknown, onchange: () => refresh() });
-  const unknownRow = h('div', { class: 'switch-row' }, h('label', { for: 'cb-unknown' }, h('strong', {}, t('Also show places where we don’t know yet')),
-    h('span', { class: 'hint' }, t('They are marked “Not known”, so you can ask before you go.'))), unknownInput);
-  const trustTiles = tiles({ label: t('How sure'), multi: true, value: filters.trust,
+  const unknownRow = h('div', { class: 'switch-row', hidden: !filters.features.length }, h('label', { for: 'cb-unknown' }, h('strong', {}, t('Include places with no accessibility info yet')),
+    h('span', { class: 'hint' }, t('Nobody has told us about these features there yet, so ask before you go.'))), unknownInput);
+  const trustTiles = tiles({ label: t('Who checked it'), multi: true, value: filters.trust,
     options: TRUST_KEY.map(([v, ic, text]) => [v, t(text), ic]) });
 
   const sheetId = 'filter-sheet';
   const filtersBtn = h('button', { type: 'button', class: 'chip-btn chip-btn--filters', 'aria-haspopup': 'dialog', 'aria-controls': sheetId, onclick: () => toggleSheet(true) });
-  const showBtn = h('button', { type: 'button', class: 'btn', onclick: () => toggleSheet(false) });
+  const showBtn = h('button', { type: 'button', class: 'btn', onclick: () => toggleSheet(false) }, t('Apply'));
   const sheet = h('dialog', { class: 'filter-sheet', id: sheetId, 'aria-labelledby': 'filter-sheet-h' },
     h('div', { class: 'sheet-head' },
       h('button', { type: 'button', class: 'btn btn--ghost btn--icon', 'aria-label': t('Close filters'), onclick: () => toggleSheet(false) }, icon('x', 20)),
       h('h2', { id: 'filter-sheet-h' }, t('Filters'))),
     h('div', { class: 'sheet-body' }, sortTiles.el, kindTiles.el, categoryTiles.el, featTiles.el, unknownRow, trustTiles.el),
     h('div', { class: 'sheet-foot' },
-      h('button', { type: 'button', class: 'btn btn--ghost', onclick: clearFilters }, t('Clear all')), showBtn));
+      h('button', { type: 'button', class: 'btn btn--ghost', onclick: clearFilters }, t('Reset')), showBtn));
   sheet.addEventListener('close', () => filtersBtn.focus());
 
   function toggleSheet(open) {
@@ -134,7 +135,7 @@ export async function exploreView(ctx, root) {
   }
 
   function activeFilterCount() {
-    return (filters.category ? 1 : 0) + filters.features.length + (filters.trust.length < 3 ? 1 : 0) + (filters.sort !== 'recommended' ? 1 : 0);
+    return (filters.category ? 1 : 0) + filters.features.length + (filters.trust.length < TRUST.length ? 1 : 0) + (filters.sort !== 'recommended' ? 1 : 0);
   }
 
   // What is switched on, as pills you can remove one by one (under the chips, so nothing is hidden in the sheet).
@@ -145,13 +146,13 @@ export async function exploreView(ctx, root) {
     if (filters.sort !== 'recommended') items.push([filters.sort === 'nearest' ? t('Nearest to me') : t('Best access'), () => sortTiles.set('recommended')]);
     if (filters.category) items.push([t(meta.categories[filters.category]), () => categoryTiles.set('')]);
     for (const f of filters.features) items.push([t(meta.features[f]), () => featTiles.set(filters.features.filter((x) => x !== f))]);
-    if (filters.trust.length < 3) items.push([filters.trust.map((v) => t(TRUST.find(([k]) => k === v)[1])).join(' + ') || t('No labels'), () => trustTiles.set(TRUST.map(([v]) => v))]);
+    if (filters.trust.length < TRUST.length) items.push([filters.trust.map((v) => t(TRUST.find(([k]) => k === v)[1])).join(' + ') || t('No labels'), () => trustTiles.set(TRUST.map(([v]) => v))]);
     pills.hidden = !items.length;
     for (const [text, undo] of items) {
       pills.append(h('button', { type: 'button', class: 'pill', 'aria-label': t('Remove filter: {name}', { name: text }), onclick: () => { undo(); refresh(); } },
         h('span', {}, text), icon('x', 14)));
     }
-    if (items.length > 1) pills.append(h('button', { type: 'button', class: 'linkbtn pill-clear', onclick: clearFilters }, t('Clear all')));
+    if (items.length > 1) pills.append(h('button', { type: 'button', class: 'linkbtn pill-clear', onclick: clearFilters }, t('Reset')));
   }
 
   const locBtn = h('button', { type: 'button', class: 'btn btn--ghost btn--icon', title: t('Use my location to sort by distance'), 'aria-label': t('Use my location to sort by distance'), onclick: useLocation }, icon('locate', 20));
@@ -193,7 +194,7 @@ export async function exploreView(ctx, root) {
   const keyBtn = h('button', { type: 'button', class: 'linkbtn key-btn', 'aria-expanded': 'false', 'aria-controls': keyId, onclick: () => {
     key.hidden = !key.hidden;
     keyBtn.setAttribute('aria-expanded', String(!key.hidden));
-  } }, icon('question', 18), t('How sure?'));
+  } }, icon('question', 18), t('Who checked?'));
 
   const addCard = h('aside', { class: 'add-card', 'aria-labelledby': 'add-card-h' },
     h('h2', { id: 'add-card-h' }, t('Know a place that says yes?')),
@@ -230,6 +231,7 @@ export async function exploreView(ctx, root) {
       q: q.input.value.trim(), category: categoryTiles.get(), sort: sortTiles.get(),
       features: featTiles.get(), includeUnknown: unknownInput.checked, trust: trustTiles.get(),
     });
+    unknownRow.hidden = !filters.features.length;
   }
 
   let timer;
@@ -301,7 +303,6 @@ export async function exploreView(ctx, root) {
     const cut = !showAll && !WIDE.matches && places.length > FIRST_PAGE + 1;
     moreBtn.hidden = !cut;
     if (cut) moreBtn.textContent = t('Show {n} more places', { n: places.length - FIRST_PAGE });
-    showBtn.textContent = t('Show {n} places', { n: places.length });
     clear(list);
     cards.clear();
     if (!places.length) list.append(h('li', { class: 'empty' }, h('strong', {}, t('No places match yet.')), h('p', {}, t('Try removing a filter, or'), ' ', h('a', { href: '#/submit/place' }, t('add one you know')))));

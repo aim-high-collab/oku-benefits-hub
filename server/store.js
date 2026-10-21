@@ -10,6 +10,7 @@ export const parsePlace = (row) => row && {
   accessibility: JSON.parse(row.accessibility),
   submitter_is_owner: Boolean(row.submitter_is_owner),
   partner_verified: Boolean(row.partner_verified),
+  hub_verified: Boolean(row.hub_verified),
 };
 
 const placeholders = (n) => Array(n).fill('?').join(',');
@@ -65,7 +66,7 @@ export function listPlaces(db, { q, category, kind, features = [], status = 'app
     args.push(f);
   }
   const rows = db.prepare(`SELECT places.*, ${STATS_SQL} FROM places WHERE ${where.join(' AND ')}
-    ORDER BY partner_verified DESC, places.name COLLATE NOCASE LIMIT ?`).all(...args, limit);
+    ORDER BY hub_verified DESC, partner_verified DESC, places.name COLLATE NOCASE LIMIT ?`).all(...args, limit);
   return attachOffers(db, rows.map((r) => parsePlace(r)));
 }
 

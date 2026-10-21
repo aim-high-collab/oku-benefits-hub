@@ -48,6 +48,11 @@ export async function placeView(ctx, root, [id]) {
     ctx.toast(p.partner_verified ? t('Partner badge removed.') : t('Marked as business confirmed.'));
     refresh();
   } }, p.partner_verified ? t('Remove business-confirmed label') : t('Mark as business confirmed')) : null;
+  const hubBtn = isAdmin ? h('button', { type: 'button', class: 'btn btn--ghost', onclick: async () => {
+    await api('PATCH', `/admin/places/${p.id}`, { hub_verified: !p.hub_verified });
+    ctx.toast(p.hub_verified ? t('Team-checked label removed.') : t('Marked as checked by our team.'));
+    refresh();
+  } }, p.hub_verified ? t('Remove team-checked label') : t('Mark as checked by our team')) : null;
 
   // ----- "Show the cashier": a large card to turn round at the till -----
   const cashier = h('dialog', { class: 'cashier', 'aria-labelledby': 'cashier-h' },
@@ -87,7 +92,7 @@ export async function placeView(ctx, root, [id]) {
   if (votedFor(p.id)) voteStatus.textContent = t('You already answered for this place on this device.');
 
   const trustPanel = h('section', { class: `trust-panel trust-panel--${tr.tier}`, 'aria-labelledby': 'trust-h' },
-    h('h2', { id: 'trust-h' }, t('How sure is this?')),
+    h('h2', { id: 'trust-h' }, t('Who checked this?')),
     trustStamp(p, { detail: true, cls: 'stamp--big' }),
     meterBox,
     p.status === 'approved' ? h('div', { class: 'did-it-work' },
@@ -180,7 +185,7 @@ export async function placeView(ctx, root, [id]) {
           h('div', { class: 'actions' },
             first && first.kind !== 'volunteer' ? h('button', { type: 'button', class: 'btn btn--sun', onclick: () => cashier.showModal() }, icon('card', 18), t('Show the cashier')) : null,
             p.status === 'approved' ? h('a', { class: 'btn btn--ghost', href: `#/place/${p.id}/edit` }, icon('edit', 16), t('Suggest an edit')) : null,
-            verifyBtn)),
+            verifyBtn, hubBtn)),
         h('section', { class: 'block', 'aria-labelledby': 'contact-h' }, h('h2', { id: 'contact-h' }, t('Ask before you go')), contactBtns),
         first && first.kind !== 'volunteer' ? h('section', { class: 'block', 'aria-labelledby': 'claim-h' },
           h('h2', { id: 'claim-h' }, t('How to claim')),
