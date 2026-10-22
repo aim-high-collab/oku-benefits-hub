@@ -456,6 +456,9 @@ fieldset.group--inner > legend { padding: 0; margin-bottom: .6rem; font-weight: 
 .filter-sheet::backdrop { background: rgba(23, 32, 61, .55); }
 .sheet-head { display: flex; align-items: center; gap: .75rem; padding: .75rem 1rem; background: var(--paper); border-bottom: 2px solid var(--rule); }
 .sheet-head h2 { margin: 0; font-size: 1.35rem; }
+.sheet-head h2:focus { outline: none; box-shadow: none; }
+.sheet-head .btn { box-shadow: none; border-width: 2px; }
+.chip-btn[data-quiet-focus]:focus-visible { outline: none; box-shadow: none; }
 .sheet-body { flex: 1; overflow-y: auto; padding: .4rem 1.1rem 1rem; }
 .sheet-foot { display: grid; grid-template-columns: 1fr 1.6fr; gap: .75rem; padding: .8rem 1rem; background: var(--paper); border-top: 2px solid var(--rule); }
 .sheet-foot .btn { width: 100%; }
@@ -472,7 +475,11 @@ fieldset.group--inner > legend { padding: 0; margin-bottom: .6rem; font-weight: 
 .tile[aria-pressed="true"] .tile-tick { display: grid; }
 .tile-group--seg .tiles { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 .tile-group--seg .tile, .tile-group--seg .tile[aria-pressed="true"] { padding: .35rem .3rem; font-size: .95rem; }
-@media (max-width: 30rem) { .tile-group--seg .tiles { grid-template-columns: 1.35fr 1fr 1fr; } .tile-group--seg .tile .icon:first-child { display: none; } }
+/* Sort is one choice of three in a row: the chosen one is filled dark with its tick inline, like the chips on the
+   list page, because a corner tick would sit on top of the text in tiles this narrow. */
+.tile-group--seg .tile[aria-pressed="true"] { background: var(--ink); color: var(--cream); border-width: 2px; }
+.tile-group--seg .tile-tick { position: static; width: auto; height: auto; background: none; color: inherit; border-radius: 0; order: -1; }
+@media (max-width: 30rem) { .tile-group--seg .tiles { grid-template-columns: 1.35fr 1fr 1fr; } .tile-group--seg .tile > .icon:first-child { display: none; } }
 .tile-more { margin: .5rem auto 0; display: flex; color: var(--link); text-decoration: underline; text-underline-offset: 3px; }
 .switch-row { display: flex; align-items: center; justify-content: space-between; gap: 1rem; padding: 1rem 0; border-bottom: 2px solid var(--rule); }
 .switch-row label { display: grid; gap: .15rem; cursor: pointer; }

@@ -114,11 +114,21 @@ export async function exploreView(ctx, root) {
   const sheet = h('dialog', { class: 'filter-sheet', id: sheetId, 'aria-labelledby': 'filter-sheet-h' },
     h('div', { class: 'sheet-head' },
       h('button', { type: 'button', class: 'btn btn--ghost btn--icon', 'aria-label': t('Close filters'), onclick: () => toggleSheet(false) }, icon('x', 20)),
-      h('h2', { id: 'filter-sheet-h' }, t('Filters'))),
+      // Opening moves focus to the title, so no button starts out with a focus ring on a phone.
+      h('h2', { id: 'filter-sheet-h', tabindex: '-1', autofocus: '' }, t('Filters'))),
     h('div', { class: 'sheet-body' }, sortTiles.el, kindTiles.el, categoryTiles.el, featTiles.el, unknownRow, trustTiles.el),
     h('div', { class: 'sheet-foot' },
       h('button', { type: 'button', class: 'btn btn--ghost', onclick: clearFilters }, t('Reset')), showBtn));
-  sheet.addEventListener('close', () => filtersBtn.focus());
+  // Focus goes back to the Filters button. After a tap, iPhone Safari would draw the keyboard focus ring on it,
+  // so the ring is held back until the next key press.
+  let usedKeys = false;
+  sheet.addEventListener('keydown', () => { usedKeys = true; });
+  sheet.addEventListener('pointerdown', () => { usedKeys = false; });
+  sheet.addEventListener('close', () => {
+    if (!usedKeys) filtersBtn.dataset.quietFocus = '';
+    filtersBtn.focus();
+  });
+  for (const ev of ['blur', 'keydown']) filtersBtn.addEventListener(ev, () => delete filtersBtn.dataset.quietFocus);
 
   function toggleSheet(open) {
     if (open) sheet.showModal();
