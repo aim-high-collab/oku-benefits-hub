@@ -200,7 +200,6 @@ const DICT = {
   // place page
   'At a glance': ['Ringkasan', '一览'],
   'Valid until {date}': ['Sah sehingga {date}', '有效期至 {date}'],
-  'Bring your OKU card.': ['Bawa kad OKU anda.', '请带上你的OKU卡。'],
   'Nothing listed yet.': ['Belum ada tawaran.', '暂无优惠。'],
   'Offers & ways to help': ['Tawaran & cara membantu', '优惠与参与方式'],
   'How to claim': ['Cara menuntut', '如何使用'],

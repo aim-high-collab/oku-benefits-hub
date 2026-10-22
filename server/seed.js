@@ -118,15 +118,15 @@ const PLACES = [
     description: `Malaysia’s national zoo. Its ticket page lists free entry for persons with disabilities who show a valid OKU card. ${SAMPLE_NOTE}`,
     accessibility: [],
     offers: [
-      { title: 'Free admission for persons with disabilities', kind: 'free', value_text: 'Free', conditions: 'Show a valid OKU card at the entrance.' },
-      { title: 'Discount on tram rides for OKU visitors', kind: 'discount', value_text: '', conditions: 'Reported as 10% off with a valid OKU card, but the zoo’s ticket and rides pages did not show it on 21 Oct 2026. Ask at the tram counter.' },
+      { title: 'Free admission for persons with disabilities', kind: 'free', value_text: 'Free', conditions: 'Show your OKU card at the entrance.' },
+      { title: 'Discount on tram rides for OKU visitors', kind: 'discount', value_text: '', conditions: 'Reported as 10% off, but not on the zoo’s website (checked 21 Oct 2026). Ask at the tram counter.' },
     ],
   },
   {
     slug: 'kl-bird-park', name: 'Kuala Lumpur Bird Park', category: 'attraction', website: 'https://www.klbirdpark.com/', phone: '',
     address: '920 Jalan Cenderawasih, Taman Tasik Perdana', city: 'Kuala Lumpur', state: 'W.P. Kuala Lumpur', lat: 3.1430, lng: 101.6883,
     description: `Walk-in aviary in the Lake Gardens. Free entry for OKU cardholders is listed by a secondary source and was not found on the park’s own pages. ${NOTE}`,
-    accessibility: [], offers: [FREE_OKU('Reported by a third-party list; confirm with the park. Bring your OKU card.')],
+    accessibility: [], offers: [FREE_OKU('Show your OKU card at the entrance. This comes from a third-party list, so check with the park first.')],
   },
   {
     slug: 'petrosains', name: 'Petrosains, The Discovery Centre', category: 'attraction', website: 'https://petrosains.com.my/visit/admission-and-ticketing/', phone: '+603-2331 8181',
@@ -134,13 +134,13 @@ const PLACES = [
     source_url: 'https://petrosains.com.my/visit/admission-and-ticketing/', replaces: 'Petrosains, The Discovery Centre',
     description: `Interactive science centre in Suria KLCC. Its admission page asks OKU visitors to show their registered OKU card at the counter but gives no OKU price, so no amount is shown here. For concession rates, call or email infopetrosains@petronas.com. ${SAMPLE_NOTE}`,
     accessibility: [],
-    offers: [{ title: 'Special admission rates for visitors with disabilities', kind: 'discount', value_text: '', conditions: 'Not confirmed yet: show your registered OKU card at the counter and ask whether a concession rate applies and what it costs.' }],
+    offers: [{ title: 'Special admission rates for visitors with disabilities', kind: 'discount', value_text: '', conditions: 'Show your OKU card at the counter and ask for the concession rate. Not confirmed yet.' }],
   },
   {
     slug: 'planetarium-negara', name: 'Planetarium Negara', category: 'attraction', website: '', phone: '',
     address: '53 Jalan Perdana, Tasik Perdana', city: 'Kuala Lumpur', state: 'W.P. Kuala Lumpur', lat: 3.1420, lng: 101.6871,
     description: `National planetarium and space exhibition in the Lake Gardens. Admission is reported to be free, including for OKU visitors (only social-media sources found); separate fees may apply for some shows. Reported hours: 9am–4:30pm, closed Mondays and Tuesdays. ${NOTE}`,
-    accessibility: [], offers: [FREE_OKU('Reported as free for everyone including OKU; check whether any shows are ticketed.')],
+    accessibility: [], offers: [FREE_OKU('Free for all visitors. Some shows may need a ticket.')],
   },
   {
     slug: 'muzium-negara', name: 'National Museum (Muzium Negara)', category: 'attraction', website: 'https://www.muziumnegara.gov.my/en', phone: '+603-2267 1111',
@@ -148,28 +148,28 @@ const PLACES = [
     source_url: 'https://www.muziumnegara.gov.my/index.php/en/visiting-info', replaces: 'Muzium Negara (National Museum)',
     description: `Malaysia’s national museum on Jalan Damansara. Concession admission for OKU visitors has been published, but the current rate needs confirming, so no amount is shown here. ${SAMPLE_NOTE}`,
     accessibility: [],
-    offers: [{ title: 'Concession admission for OKU visitors', kind: 'discount', value_text: '', conditions: 'Not confirmed yet: ask for the current OKU rate at the counter before you rely on it.' }],
+    offers: [{ title: 'Concession admission for OKU visitors', kind: 'discount', value_text: '', conditions: 'Ask for the OKU rate at the counter. Not confirmed yet.' }],
   },
   {
     slug: 'sunway-lagoon', name: 'Sunway Lagoon', category: 'entertainment', website: 'https://sunwaylagoon.com/', phone: '',
     address: '3 Jalan PJS 11/11, Bandar Sunway', city: 'Subang Jaya', state: 'Selangor', lat: 3.0709, lng: 101.6072,
     description: `Theme and water park. Its FAQ is reported to give OKU cardholders a discount on the published ticket price. ${NOTE}`,
     accessibility: [],
-    offers: [{ title: 'Discount on admission for OKU cardholders', kind: 'discount', value_text: '50% off', conditions: 'OKU tickets are reported to be sold only at the ticketing counters, with your OKU card shown for verification.' }],
+    offers: [{ title: 'Discount on admission for OKU cardholders', kind: 'discount', value_text: '50% off', conditions: 'Buy at the ticket counter and show your OKU card. Reported as not sold online.' }],
   },
   {
     slug: 'aquaria-klcc', name: 'Aquaria KLCC', category: 'attraction', website: 'https://aquariaklcc.com/', phone: '',
     address: 'Kuala Lumpur Convention Centre, Jalan Pinang', city: 'Kuala Lumpur', state: 'W.P. Kuala Lumpur', lat: 3.1529, lng: 101.7135,
     description: `Oceanarium beneath the Kuala Lumpur Convention Centre. A concession rate for OKU visitors is reported, but sources disagree on the price. ${NOTE}`,
     accessibility: [],
-    offers: [{ title: 'Concession ticket for OKU cardholders', kind: 'discount', value_text: '', conditions: 'Verification with your OKU card is required. One source lists RM16; confirm the current price at the counter.' }],
+    offers: [{ title: 'Concession ticket for OKU cardholders', kind: 'discount', value_text: '', conditions: 'Buy at the counter and show your OKU card. One source lists RM16, so check the current price.' }],
   },
   {
     slug: 'sunway-putra-mall', name: 'Sunway Putra Mall', category: 'retail', website: '', phone: '',
     address: '100 Jalan Putra', city: 'Kuala Lumpur', state: 'W.P. Kuala Lumpur', lat: 3.1667, lng: 101.6878,
     description: `Reported as Malaysia’s first autism-friendly mall. Tuesdays are “Autsome Day” with dimmed lights, lower music and dedicated quiet zones, plus sensory walls and calm rooms for anyone who needs a break. ${NOTE}`,
     accessibility: ['quiet_space'],
-    offers: [{ title: 'Autsome Day: dimmed lights, quieter music, quiet zones', kind: 'other', value_text: 'Every Tuesday', conditions: 'Reported by a news article; confirm the current schedule with the mall.' }],
+    offers: [{ title: 'Autsome Day: dimmed lights, quieter music, quiet zones', kind: 'other', value_text: 'Every Tuesday', conditions: 'Reported in a news article. Check the current schedule with the mall.' }],
   },
   {
     slug: 'autism-cafe-project', name: 'Autism Café Project', category: 'social', website: '', phone: '',
@@ -196,7 +196,7 @@ const PLACES = [
     address: 'Persiaran Bukit Kiara, 50662 Bukit Kiara', city: 'Kuala Lumpur', state: 'W.P. Kuala Lumpur', lat: 3.14939, lng: 101.64256,
     source_url: 'https://psn.gov.my/',
     description: `National science centre with hands-on exhibitions. Its official website lists free admission for OKU visitors. ${SAMPLE_NOTE}`,
-    accessibility: [], offers: [FREE_OKU('Malaysian visitors with a valid OKU card enter free of charge. Show your OKU card at the counter.')],
+    accessibility: [], offers: [FREE_OKU('For Malaysian visitors. Show your OKU card at the counter.')],
   },
   {
     slug: 'skyline-luge-kl', name: 'Skyline Luge Kuala Lumpur', category: 'entertainment', website: 'https://kualalumpur.skylineluge.com/visiting-us/', phone: '',
@@ -204,7 +204,7 @@ const PLACES = [
     source_url: 'https://kualalumpur.skylineluge.com/visiting-us/',
     description: `Gravity-powered luge rides at Gamuda Gardens. Its visiting page lists 50% off normal admission for holders of a valid Malaysian government-issued OKU card from 1 October 2026. The full street address and postcode are not confirmed yet. ${SAMPLE_NOTE}`,
     accessibility: [],
-    offers: [{ title: '50% off standard admission for OKU cardholders', kind: 'discount', value_text: '50% off', conditions: 'Buy at the ticket counter with your OKU card; not available online. Skyride-only tickets are excluded, and it cannot be combined with other promotions.' }],
+    offers: [{ title: '50% off standard admission for OKU cardholders', kind: 'discount', value_text: '50% off', conditions: 'Buy at the ticket counter with your OKU card, not online. Excludes Skyride-only tickets and can’t be combined with other promotions.' }],
   },
   {
     slug: 'kechara-soup-kitchen', name: 'Kechara Soup Kitchen', category: 'services', website: 'https://kecharasoupkitchen.com/my/contact-us/', phone: '+603-2141 6046',
@@ -251,9 +251,37 @@ export function seedBenefits(db) {
   return added;
 }
 
+// Offer conditions we have since reworded. Untouched seeded offers in an existing database get the new text.
+const REWORDED_CONDITIONS = [
+  ['Show a valid OKU card at the entrance.',
+   'Show your OKU card at the entrance.'],
+  ['Reported as 10% off with a valid OKU card, but the zoo’s ticket and rides pages did not show it on 21 Oct 2026. Ask at the tram counter.',
+   'Reported as 10% off, but not on the zoo’s website (checked 21 Oct 2026). Ask at the tram counter.'],
+  ['Reported by a third-party list; confirm with the park. Bring your OKU card.',
+   'Show your OKU card at the entrance. This comes from a third-party list, so check with the park first.'],
+  ['Not confirmed yet: show your registered OKU card at the counter and ask whether a concession rate applies and what it costs.',
+   'Show your OKU card at the counter and ask for the concession rate. Not confirmed yet.'],
+  ['Reported as free for everyone including OKU; check whether any shows are ticketed.',
+   'Free for all visitors. Some shows may need a ticket.'],
+  ['Not confirmed yet: ask for the current OKU rate at the counter before you rely on it.',
+   'Ask for the OKU rate at the counter. Not confirmed yet.'],
+  ['OKU tickets are reported to be sold only at the ticketing counters, with your OKU card shown for verification.',
+   'Buy at the ticket counter and show your OKU card. Reported as not sold online.'],
+  ['Verification with your OKU card is required. One source lists RM16; confirm the current price at the counter.',
+   'Buy at the counter and show your OKU card. One source lists RM16, so check the current price.'],
+  ['Reported by a news article; confirm the current schedule with the mall.',
+   'Reported in a news article. Check the current schedule with the mall.'],
+  ['Malaysian visitors with a valid OKU card enter free of charge. Show your OKU card at the counter.',
+   'For Malaysian visitors. Show your OKU card at the counter.'],
+  ['Buy at the ticket counter with your OKU card; not available online. Skyride-only tickets are excluded, and it cannot be combined with other promotions.',
+   'Buy at the ticket counter with your OKU card, not online. Excludes Skyride-only tickets and can’t be combined with other promotions.'],
+];
+
 export function seedPlaces(db) {
   const exists = db.prepare('SELECT 1 FROM places WHERE name = ?');
   const setSource = db.prepare('UPDATE places SET source_url = ? WHERE id = ?');
+  const reword = db.prepare('UPDATE offers SET conditions = ? WHERE conditions = ? AND place_id IN (SELECT id FROM places WHERE submitted_by IS NULL)');
+  for (const [old, now] of REWORDED_CONDITIONS) reword.run(now, old);
   let added = 0;
   for (const { slug, source_url: sourceUrl = '', replaces, ...p } of PLACES) {
     if (replaces && refreshSuperseded(db, replaces, p, sourceUrl)) continue;

@@ -202,7 +202,6 @@ export async function placeView(ctx, root, [id]) {
             h('p', { class: 'glance-offer' }, offerIcon(first.kind), h('strong', {}, offerLine(first))),
             first.conditions ? h('p', {}, t(first.conditions)) : null,
             first.valid_until ? h('p', {}, h('strong', {}, t('Valid until {date}', { date: fmtDate(first.valid_until) }))) : null,
-            first.kind !== 'volunteer' ? h('p', {}, t('Bring your OKU card.')) : null,
           ] : h('p', { class: 'muted' }, t('Nothing listed yet.')),
           trustStamp(p, { detail: true }),
           h('div', { class: 'actions' },
