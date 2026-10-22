@@ -320,10 +320,11 @@ details.more[open] summary::after { transform: rotate(-135deg); }
 .place-side { display: grid; gap: 1.1rem; }
 .side-map { background: var(--paper); border: 2px solid var(--rule); border-radius: var(--radius); overflow: hidden; }
 #mini-map { height: 230px; border-bottom: 2px solid var(--rule); }
-.contact-list { list-style: none; margin: 0; padding: 1.1rem 1.2rem .3rem; }
-.contact-list li { display: flex; gap: .75rem; margin-bottom: .85rem; overflow-wrap: anywhere; font-weight: 600; }
-.contact-list .icon { margin-top: 3px; }
-.side-link { padding: 0 1.2rem; font-weight: 700; }
+/* Scoped to the map card: the Contact page has its own .contact-list further down. */
+.side-map .contact-list { display: block; list-style: none; margin: 0; padding: 1.1rem 1.2rem .3rem; }
+.side-map .contact-list li { display: flex; gap: .75rem; margin-bottom: .85rem; overflow-wrap: anywhere; font-weight: 600; }
+.side-map .contact-list .icon { flex: none; margin-top: 3px; }
+.side-link { padding: 0 1.2rem; margin: 0 0 1.1rem; font-weight: 700; }
 .review-summary { display: flex; align-items: center; gap: 1.1rem; margin-bottom: 1.4rem; }
 .big-rating { font: 800 3.4rem/1 var(--display); background: var(--pink-light); border-radius: 20px; padding: .3rem .9rem; }
 .review-summary p { margin: 0; }
