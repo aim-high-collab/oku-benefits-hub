@@ -440,10 +440,12 @@ fieldset.group--inner > legend { padding: 0; margin-bottom: .6rem; font-weight: 
   .toggle .switch { display: none; }
   .tools { gap: .35rem; }
   .lang button { padding: 0 .3rem; }
-  .site-header { padding: .4rem .75rem; }
+  .site-header { padding: .4rem .75rem; column-gap: .5rem; }
   .toggle { padding: 0 .7rem; }
   .toggle[aria-pressed="true"] .toggle-text::before { content: "✓ "; }
 }
+.toggle-short { display: none; }
+@media (max-width: 26rem) { .toggle-long { display: none; } .toggle-short { display: inline; } }
 
 /* ---------- explore: filters sheet, view switch, compact cards ---------- */
 .check--card { align-items: flex-start; background: var(--paper); border: 2px solid var(--rule); border-radius: 14px; padding: .4rem .9rem; margin: 0 0 1rem; }
@@ -592,7 +594,9 @@ html.calm body { background-image: none; font-size: 1.1875rem; }
 html.calm * { box-shadow: none !important; transition: none !important; animation: none !important; }
 /* Only stop the hover/press movement: the map (Leaflet), pins, toasts and ticks rely on transforms to draw at all. */
 html.calm .btn:hover, html.calm .btn:active, html.calm .result:hover, html.calm .chip-btn:hover, html.calm .brand:hover img { transform: none; }
-html.calm :focus-visible { box-shadow: 0 0 0 6px var(--sun) !important; }
+/* Headings and main take focus when a page or sheet opens (tabindex="-1"); they get no ring, as outside Calm mode. */
+html.calm :focus-visible:not([tabindex="-1"]) { box-shadow: 0 0 0 6px var(--sun) !important; }
+html.calm .chip-btn[data-quiet-focus]:focus-visible { box-shadow: none !important; }
 html.calm .photo, html.calm .result-thumb, html.calm .place-banner { display: none; }
 html.calm .result { grid-template-columns: auto minmax(0, 1fr); }
 html.calm .saved-list .result { grid-template-columns: minmax(0, 1fr); }

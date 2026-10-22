@@ -102,7 +102,9 @@ function renderTools() {
       const on = document.documentElement.classList.toggle('calm');
       try { localStorage.setItem('oku-calm', on ? '1' : '0'); } catch { /* storage blocked */ }
       route();
-    } }, h('span', { class: 'switch', 'aria-hidden': 'true' }), h('span', { class: 'toggle-text' }, t('Calm mode'))),
+    } }, h('span', { class: 'switch', 'aria-hidden': 'true' }),
+    // Phones show the short word so the header stays on one row; the button is still named "Calm mode".
+    h('span', { class: 'toggle-text' }, h('span', { class: 'toggle-long' }, t('Calm mode')), h('span', { class: 'toggle-short' }, t('Calm')))),
     h('button', { type: 'button', class: 'menu-btn', 'aria-expanded': String(menuOpen), 'aria-controls': 'menu', onclick: (e) => {
       const open = menu.classList.toggle('is-open');
       e.currentTarget.setAttribute('aria-expanded', String(open));
