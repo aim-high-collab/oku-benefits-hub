@@ -1,3 +1,5 @@
+import { t } from './i18n.js';
+
 // The static preview build sets <html data-demo>: everything runs in the browser (see demo-api.js).
 const DEMO = document.documentElement.hasAttribute('data-demo');
 let demo;
@@ -7,12 +9,18 @@ export async function api(method, path, body) {
     demo ??= await import('./demo-api.js');
     return demo.handle(method, path, body);
   }
-  const res = await fetch(`/api${path}`, {
-    method,
-    credentials: 'same-origin',
-    headers: method === 'GET' ? {} : { 'content-type': 'application/json' },
-    body: method === 'GET' ? undefined : JSON.stringify(body ?? {}),
-  });
+  let res;
+  try {
+    res = await fetch(`/api${path}`, {
+      method,
+      credentials: 'same-origin',
+      headers: method === 'GET' ? {} : { 'content-type': 'application/json' },
+      body: method === 'GET' ? undefined : JSON.stringify(body ?? {}),
+    });
+  } catch {
+    // The request never reached the server: offline, or the server is restarting.
+    throw Object.assign(new Error(t('Could not reach the site. Check your connection and try again.')), { status: 0, fields: {} });
+  }
   const data = await res.json().catch(() => null);
   if (!res.ok) {
     throw Object.assign(new Error(data?.error || 'Something went wrong. Please try again.'), {

@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { HttpError, requireUser } from '../http.js';
-import { clean, cleanReason, PLACE_SPEC } from '../validate.js';
+import { clean, cleanReason, PLACE_SPEC, CONTRIBUTOR_SPEC, CONTRIBUTOR_TYPES } from '../validate.js';
 import { FEATURES, CATEGORIES, OFFER_KINDS, SOURCES, ACCESS_QUESTIONS } from '../meta.js';
 import { listPlaces, getPlace, insertPlace, createEditRequest } from '../store.js';
 import { tx } from '../db.js';
@@ -30,12 +30,22 @@ export function placeRoutes({ db, config, writeLimiter }) {
 
   r.get('/:id', (req, res) => res.json({ place: loadVisible(req) }));
 
-  // Anyone can suggest a place, signed in or not. Every submission waits for a moderator either way.
-  r.post('/', writeLimiter, (req, res) => {
+  // Adding a place needs an account (email or Google). Every submission still waits for a moderator.
+  r.post('/', requireUser, writeLimiter, (req, res) => {
     const data = clean(req.body, PLACE_SPEC);
-    const source = req.body?.source ?? '';
+    // contributor_type is who they say they are; it never marks the listing as confirmed by the business.
+    const type = req.body?.contributor_type ?? '';
+    if (type !== '' && !CONTRIBUTOR_TYPES.includes(type)) throw new HttpError(422, 'Please fix the highlighted fields.', { contributor_type: 'Choose who you are submitting as.' });
+    const who = clean(req.body?.contributor, CONTRIBUTOR_SPEC);
+    const source = type === 'business' ? 'owner' : req.body?.source ?? '';
     if (source !== '' && !Object.hasOwn(SOURCES, source)) throw new HttpError(422, 'Please fix the highlighted fields.', { source: 'Choose how you know about this place.' });
-    if (!req.user && data.image) throw new HttpError(422, 'Log in to add a photo.', { image: 'Log in to add a photo.' });
+    if (type === 'community' && source === 'owner') throw new HttpError(422, 'Please fix the highlighted fields.', { source: 'Choose how you know about this place.' });
+    if (type === 'business') {
+      const missing = {};
+      if (who.rep_name.length < 2) missing.rep_name = 'Enter your name.';
+      if (who.rep_contact.length < 5) missing.rep_contact = 'Enter an email or phone number we can reach you on.';
+      if (Object.keys(missing).length) throw new HttpError(422, 'Please fix the highlighted fields.', missing);
+    }
     if (!uploadExists(config.uploadDir, data.image)) throw new HttpError(422, 'Upload the photo again.', { image: 'Upload the photo again.' });
     if (!data.offers.length && !data.accessibility.length) {
       throw new HttpError(422, 'Add at least one OKU offer or one accessibility feature.', {
@@ -44,11 +54,17 @@ export function placeRoutes({ db, config, writeLimiter }) {
     }
     const isAdmin = req.user?.role === 'admin';
     const id = insertPlace(db, data, {
-      userId: req.user?.id,
+      userId: req.user.id,
       status: isAdmin ? 'approved' : 'pending',
-      isOwner: req.body?.is_owner === true || source === 'owner',
+      isOwner: type === 'business' || (type === '' && (req.body?.is_owner === true || source === 'owner')),
       source,
     });
+    const { source_url: sourceUrl, ...details } = who;
+    // keep only the fields that belong to the chosen type (community: their experience; business: name, role, contact)
+    const fits = (k) => (type === 'business' ? k.startsWith('rep_') : k === 'note');
+    const kept = Object.fromEntries(Object.entries(details).filter(([k, v]) => v && fits(k)));
+    db.prepare('UPDATE places SET source_url = ?, contributor = ? WHERE id = ?')
+      .run(sourceUrl, JSON.stringify(type ? { type, ...kept } : kept), id);
     res.status(201).json({ id, status: isAdmin ? 'approved' : 'pending' });
   });
 
@@ -72,7 +88,7 @@ export function placeRoutes({ db, config, writeLimiter }) {
     if (!['yes', 'no', 'partly'].includes(worked)) throw new HttpError(422, 'Choose yes, no or partly.', { worked: 'Choose yes, no or partly.' });
     db.prepare('INSERT INTO visits (place_id, worked) VALUES (?, ?)').run(place.id, worked);
     const p = getPlace(db, place.id);
-    res.status(201).json({ visits_yes: p.visits_yes, visits_no: p.visits_no, visits_partly: p.visits_partly, last_visit_at: p.last_visit_at });
+    res.status(201).json({ visits_yes: p.visits_yes, visits_no: p.visits_no, visits_partly: p.visits_partly, last_visit_at: p.last_visit_at, last_used_at: p.last_used_at });
   });
 
   // Quick accessibility questions after a visit: { answers: { step_free_entry: 'yes', ... } }. No account needed.

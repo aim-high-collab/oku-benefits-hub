@@ -53,14 +53,20 @@ export async function adminView(ctx, root) {
           h('div', { class: 'badges' }, badge(meta.categories[p.category]), p.submitter_is_owner ? badge('Claims to be the owner', 'badge--warn') : badge('Community submission', 'badge--muted'),
             p.source ? badge(`How they know: ${meta.sources[p.source]}`, 'badge--muted') : null),
           h('p', { class: 'muted' }, `${[p.address, p.city, p.state].filter(Boolean).join(', ')} · by ${p.submitter ?? 'a visitor without an account'} · ${fmtDate(p.created_at)}`),
+          // Private details from "Who are you submitting as?". Saying they represent the business proves nothing yet.
+          p.contributor?.rep_name || p.contributor?.rep_contact ? h('p', {}, h('strong', {}, 'Representative (not verified): '),
+            [p.contributor.rep_name, p.contributor.rep_role, p.contributor.rep_contact].filter(Boolean).join(' · ')) : null,
+          p.contributor?.note ? h('p', {}, h('strong', {}, 'Their experience: '), p.contributor.note) : null,
+          p.source_url ? h('p', {}, 'Source: ', h('a', { href: p.source_url, target: '_blank', rel: 'noopener noreferrer nofollow' }, p.source_url)) : null,
           p.description ? h('p', {}, p.description) : null,
           p.offers.length ? h('ul', {}, p.offers.map((o) => h('li', {}, `${offerLine(o)} (${meta.offerKinds[o.kind]})${o.conditions ? ` — ${o.conditions}` : ''}`))) : null,
           p.accessibility.length ? h('p', {}, h('strong', {}, 'Accessibility: '), p.accessibility.map((f) => meta.features[f]).join(', ')) : null,
           h('p', {}, h('a', { href: `#/place/${p.id}` }, 'Open listing'), ' · ', h('a', { href: usingGoogle() ? googleMapsUrl(p) : osmUrl(p), target: '_blank', rel: 'noopener noreferrer' }, 'Check location on map')),
           actions(`/admin/places/${p.id}`, p.submitter_is_owner
             ? h('button', { type: 'button', class: 'btn btn--ghost btn--small', onclick: async () => {
-              try { await api('POST', `/admin/places/${p.id}/approve`); await api('PATCH', `/admin/places/${p.id}`, { partner_verified: true }); ctx.toast('Approved as verified partner.'); await load(); } catch (e) { ctx.toast(e.message, 'error'); }
-            } }, 'Approve as verified partner') : null)))),
+              if (!window.confirm('Only do this after you have confirmed the offer with the business yourself. Mark it “Confirmed by business”?')) return;
+              try { await api('POST', `/admin/places/${p.id}/approve`); await api('PATCH', `/admin/places/${p.id}`, { partner_verified: true }); ctx.toast('Approved and marked “Confirmed by business”.'); await load(); } catch (e) { ctx.toast(e.message, 'error'); }
+            } }, 'Approve and mark “Confirmed by business”') : null)))),
 
       h('section', { class: 'section', 'aria-labelledby': 'q-benefits' }, h('h2', { id: 'q-benefits' }, 'New benefits'),
         q.benefits.length ? null : h('p', { class: 'muted' }, 'Nothing waiting.'),

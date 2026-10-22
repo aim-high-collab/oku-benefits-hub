@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { openDb } from '../server/db.js';
 import { createApp } from '../server/app.js';
 import { hashPassword } from '../server/http.js';
-import { seedBenefits, seedPlaces } from '../server/seed.js';
+import { seedBenefits, seedPlaces, SUPERSEDED } from '../server/seed.js';
 import { mkdtempSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -17,7 +17,12 @@ before(async () => {
   db.prepare("INSERT INTO users (name, email, password_hash, role) VALUES ('Mod', 'mod@x.my', ?, 'admin')")
     .run(await hashPassword('moderator-pass'));
   const uploadDir = mkdtempSync(join(tmpdir(), 'oku-uploads-'));
-  const app = createApp({ db, config: { secureCookies: false, rateLimitScale: 1000, uploadDir } });
+  // Google sign-in with a stand-in verifier: the token "good:<email>:<name>" is accepted, anything else rejected.
+  const verifyGoogleToken = async (cred, clientId) => {
+    const [ok, email, name] = cred.split(':');
+    return ok === 'good' && clientId === 'test-client' ? { email, name } : null;
+  };
+  const app = createApp({ db, config: { secureCookies: false, rateLimitScale: 1000, uploadDir, googleClientId: 'test-client', verifyGoogleToken } });
   await new Promise((resolve) => { server = app.listen(0, resolve); });
   base = `http://127.0.0.1:${server.address().port}`;
 });
@@ -36,7 +41,7 @@ function client() {
     if (set) cookie = set.split(';')[0].startsWith('sid=') && set.split(';')[0] !== 'sid=' ? set.split(';')[0] : '';
     return { status: res.status, body: await res.json().catch(() => null), res };
   };
-  return { get: (p) => call('GET', p), post: (p, b = {}) => call('POST', p, b), patch: (p, b) => call('PATCH', p, b), del: (p) => call('DELETE', p, {}) };
+  return { get: (p) => call('GET', p), post: (p, b = {}) => call('POST', p, b), put: (p, b = {}) => call('PUT', p, b), patch: (p, b) => call('PATCH', p, b), del: (p) => call('DELETE', p, {}) };
 }
 
 const validPlace = (over = {}) => ({
@@ -72,14 +77,14 @@ test('meta and public listings work without login', async () => {
 test('filters: text, category, offer kind, accessibility features', async () => {
   const c = client();
   const ids = async (qs) => (await c.get(`/api/places?${qs}`)).body.places.map((p) => p.name);
-  assert.deepEqual(await ids('q=zoo'), ['Zoo Negara']);
+  assert.deepEqual(await ids('q=zoo'), ['Zoo Negara Malaysia']);
   assert.deepEqual(await ids('category=cafe'), []);
-  assert.equal((await ids('category=attraction')).length, 6);
+  assert.equal((await ids('category=attraction')).length, 7);
   assert.deepEqual((await ids('category=social')).sort(), ['Autism Café Project', 'Bake with Dignity', 'Tender Hearts Café']);
-  assert.deepEqual((await ids('kind=volunteer')).sort(), ['Bake with Dignity', 'Tender Hearts Café']);
+  assert.deepEqual((await ids('kind=volunteer')).sort(), ['Bake with Dignity', 'Kechara Soup Kitchen', 'SPCA Selangor', 'Tender Hearts Café', 'The Kuala Lumpur Performing Arts Centre (klpac)']);
   const free = await ids('kind=free');
-  assert.ok(free.includes('Zoo Negara') && free.includes('Petrosains, The Discovery Centre') && !free.includes('Muzium Negara (National Museum)'));
-  assert.deepEqual(await ids('features=lift'), ['Muzium Negara (National Museum)']);
+  assert.ok(free.includes('Zoo Negara Malaysia') && free.includes('National Science Centre (Pusat Sains Negara)') && !free.includes('Petrosains, The Discovery Centre'));
+  assert.deepEqual(await ids('features=lift'), []); // no seed claims a feature it has not confirmed
   assert.deepEqual(await ids('features=quiet_space'), ['Sunway Putra Mall']);
   assert.deepEqual(await ids('features=lift,tactile_paving'), []);
   assert.deepEqual(await ids('q=_'), []); // LIKE wildcards are escaped, not treated as 'match anything'
@@ -130,31 +135,40 @@ test('submission → pending → hidden → moderator approves → public', asyn
 
   assert.equal((await mod.patch(`/api/admin/places/${id}`, { partner_verified: true })).status, 200);
   assert.equal((await anon.get(`/api/places/${id}`)).body.place.partner_verified, true);
+  assert.equal((await mod.patch(`/api/admin/places/${id}`, { hub_verified: true, hub_checked: 'Offer and ramp, by visit' })).status, 200);
+  const checked = (await anon.get(`/api/places/${id}`)).body.place;
+  assert.equal(checked.hub_verified, true);
+  assert.ok(checked.hub_verified_at);
+  assert.equal(checked.hub_checked, 'Offer and ramp, by visit');
+  assert.equal((await mod.patch(`/api/admin/places/${id}`, { hub_verified: 'yes' })).status, 422);
+  assert.equal((await mod.patch(`/api/admin/places/${id}`, {})).status, 422);
 });
 
-test('guests can suggest a place: it waits for a moderator and keeps how they know', async () => {
-  const anon = client();
-  const sub = await anon.post('/api/places', validPlace({ name: 'Kedai Kopi Seng Lee', source: 'used_it',
+test('adding a place needs an account; it waits for a moderator and keeps how they know', async () => {
+  const guest = client();
+  assert.equal((await guest.post('/api/places', validPlace())).status, 401);
+  const member = await register('seng');
+  const sub = await member.post('/api/places', validPlace({ name: 'Kedai Kopi Seng Lee', source: 'used_it',
     offers: [{ title: 'Free kopi-o with any meal', kind: 'freebie', value_text: '', conditions: 'Show OKU card', valid_until: '2027-03-31' }] }));
   assert.equal(sub.status, 201);
   assert.equal(sub.body.status, 'pending');
-  assert.equal((await anon.get(`/api/places/${sub.body.id}`)).status, 404); // hidden until approved
-  assert.equal((await anon.post('/api/places', validPlace({ source: 'rumour' }))).status, 422);
-  assert.equal((await anon.post('/api/places', validPlace({ offers: [{ title: '10% off', kind: 'discount', valid_until: 'soon' }] }))).status, 422);
-  assert.equal((await anon.post('/api/places', validPlace({ image: '/uploads/' + 'a'.repeat(32) + '.png' }))).status, 422);
+  assert.equal((await guest.get(`/api/places/${sub.body.id}`)).status, 404); // hidden until approved
+  assert.equal((await member.post('/api/places', validPlace({ source: 'rumour' }))).status, 422);
+  assert.equal((await member.post('/api/places', validPlace({ offers: [{ title: '10% off', kind: 'discount', valid_until: 'soon' }] }))).status, 422);
+  assert.equal((await member.post('/api/places', validPlace({ image: '/uploads/' + 'a'.repeat(32) + '.png' }))).status, 422);
 
   const mod = await admin();
   const queued = (await mod.get('/api/admin/queue')).body.places.find((p) => p.id === sub.body.id);
-  assert.equal(queued.submitter, null);
+  assert.equal(queued.submitter, 'seng');
   assert.equal(queued.source, 'used_it');
   await mod.post(`/api/admin/places/${sub.body.id}/approve`);
-  const place = (await anon.get(`/api/places/${sub.body.id}`)).body.place;
+  const place = (await member.get(`/api/places/${sub.body.id}`)).body.place;
   assert.equal(place.offers[0].valid_until, '2027-03-31');
 
   assert.equal((await mod.patch(`/api/admin/places/${place.id}`, { partner_verified: true })).status, 200);
-  assert.match((await anon.get(`/api/places/${place.id}`)).body.place.verified_at, /^\d{4}-\d{2}-\d{2}$/);
+  assert.match((await member.get(`/api/places/${place.id}`)).body.place.verified_at, /^\d{4}-\d{2}-\d{2}$/);
   await mod.patch(`/api/admin/places/${place.id}`, { partner_verified: false });
-  assert.equal((await anon.get(`/api/places/${place.id}`)).body.place.verified_at, null);
+  assert.equal((await member.get(`/api/places/${place.id}`)).body.place.verified_at, null);
 });
 
 test('"Did it work?" needs no account and is counted per place', async () => {
@@ -168,6 +182,12 @@ test('"Did it work?" needs no account and is counted per place', async () => {
   const listed = (await anon.get('/api/places?q=Zoo')).body.places[0];
   assert.equal(listed.visits_yes, 2);
   assert.ok(listed.last_visit_at);
+  // The last reported use only counts visitors who said the offer worked.
+  const other = (await anon.get('/api/places?q=Aquaria')).body.places[0];
+  await anon.post(`/api/places/${other.id}/visits`, { worked: 'no' });
+  const after = (await anon.get(`/api/places/${other.id}`)).body.place;
+  assert.ok(after.last_visit_at);
+  assert.equal(after.last_used_at, null);
   assert.equal((await anon.post('/api/places/999999/visits', { worked: 'yes' })).status, 404);
 });
 
@@ -213,10 +233,10 @@ test('edit request: only real changes, moderator approval applies them, rejectio
   const queue = (await mod.get('/api/admin/queue')).body;
   const edit = queue.edits.find((e) => e.id === r1.body.id);
   assert.deepEqual(Object.keys(edit.changes).sort(), ['offers', 'phone']); // unchanged `name` dropped
-  assert.equal(edit.current.phone, '');
+  assert.equal(edit.current.phone, target.phone);
 
   // Nothing changes until approval
-  assert.equal((await client().get(`/api/places/${target.id}`)).body.place.phone, '');
+  assert.equal((await client().get(`/api/places/${target.id}`)).body.place.phone, target.phone);
   assert.equal((await mod.post(`/api/admin/edits/${edit.id}/approve`, { note: 'thanks' })).status, 200);
   const after = (await client().get(`/api/places/${target.id}`)).body.place;
   assert.equal(after.phone, '03-9999 0000');
@@ -349,4 +369,134 @@ test('maps default to OpenStreetMap; a Google Maps key switches provider and CSP
   } finally {
     srv.close();
   }
+});
+
+test('Continue with Google creates the account once, then logs the same person back in', async () => {
+  const c = client();
+  const first = await c.post('/api/auth/google', { credential: 'good:Aina@Gmail.com:Aina' });
+  assert.equal(first.status, 201);
+  assert.equal(first.body.user.email, 'aina@gmail.com');
+  assert.equal((await c.get('/api/auth/me')).body.user.name, 'Aina');
+  assert.equal((await c.post('/api/places', validPlace({ name: 'Aina Cafe' }))).status, 201);
+  const again = await client().post('/api/auth/google', { credential: 'good:aina@gmail.com:Aina' });
+  assert.equal(again.status, 200);
+  assert.equal(again.body.user.id, first.body.user.id);
+  assert.equal((await client().post('/api/auth/google', { credential: 'forged' })).status, 401);
+  const pw = await client().post('/api/auth/login', { email: 'aina@gmail.com', password: 'password123' });
+  assert.equal(pw.status, 401);
+  assert.match(pw.body.error, /Google/);
+});
+
+test('saving places: only for members, only approved places, newest first, and unsaving', async () => {
+  assert.equal((await client().get('/api/me/saved')).status, 401);
+  const c = await register('sofia');
+  const places = (await c.get('/api/places')).body.places;
+  const [a, b] = places;
+  assert.equal((await c.put(`/api/me/saved/${a.id}`)).status, 200);
+  assert.equal((await c.put(`/api/me/saved/${b.id}`)).status, 200);
+  assert.equal((await c.put(`/api/me/saved/${b.id}`)).status, 200); // saving twice is fine
+  assert.deepEqual((await c.get('/api/me/saved')).body.places.map((p) => p.id), [b.id, a.id]);
+  assert.equal((await c.put('/api/me/saved/999999')).status, 404);
+  await c.del(`/api/me/saved/${b.id}`);
+  assert.deepEqual((await c.get('/api/me/saved')).body.places.map((p) => p.id), [a.id]);
+});
+
+test('seed: official-source samples, two Zoo offers, KTM as official help, old rows refreshed only if untouched', async () => {
+  const c = client();
+  const zoo = (await c.get('/api/places?q=Zoo%20Negara')).body.places[0]; // its offers were edited by an earlier test
+  const fresh = openDb(':memory:');
+  seedPlaces(fresh);
+  const zooOffers = fresh.prepare("SELECT o.kind, o.value_text FROM offers o JOIN places p ON p.id = o.place_id WHERE p.name = 'Zoo Negara Malaysia' ORDER BY o.kind").all();
+  assert.deepEqual(zooOffers.map((o) => ({ ...o })), [{ kind: 'discount', value_text: '' }, { kind: 'free', value_text: 'Free' }]); // unconfirmed amount not shown
+  assert.equal(zoo.source_url, 'https://www.zoonegara.my/visitor-guide/tickets');
+  assert.equal(zoo.hub_verified, false);
+  assert.ok(!(await c.get('/api/places?q=KTM')).body.places.length, 'no single pin for a rail network');
+  const ktm = (await c.get('/api/benefits')).body.benefits.find((b) => /KTM Komuter/.test(b.title));
+  assert.equal(ktm.category, 'transport');
+
+  const old = openDb(':memory:');
+  const ins = old.prepare("INSERT INTO places (name, category, description, address, lat, lng, status) VALUES (?, 'attraction', ?, 'x', 3.1, 101.7, 'approved')");
+  const untouched = ins.run('Zoo Negara', SUPERSEDED['Zoo Negara']).lastInsertRowid;
+  const edited = ins.run('Muzium Negara (National Museum)', 'A moderator rewrote this.').lastInsertRowid;
+  seedPlaces(old);
+  const row = (id) => old.prepare('SELECT name, phone, source, source_url FROM places WHERE id = ?').get(id);
+  assert.deepEqual({ ...row(untouched) }, { name: 'Zoo Negara Malaysia', phone: '+603-4108 3422', source: 'heard', source_url: 'https://www.zoonegara.my/visitor-guide/tickets' });
+  assert.equal(old.prepare('SELECT COUNT(*) n FROM offers WHERE place_id = ?').get(untouched).n, 2);
+  assert.equal(row(edited).name, 'Muzium Negara (National Museum)');
+  assert.equal(old.prepare("SELECT COUNT(*) n FROM places WHERE name LIKE 'Zoo Negara%'").get().n, 1);
+});
+
+test('sample data: all three labels, owners, counts and saves, and it can be removed again', async () => {
+  const { seedSampleData, removeSampleData, SAMPLE_PASSWORD } = await import('../server/sample-data.js');
+  const sdb = openDb(':memory:');
+  seedPlaces(sdb);
+  assert.equal(await seedSampleData(sdb), 5);
+  assert.equal(await seedSampleData(sdb), 0); // only once
+  const rows = sdb.prepare("SELECT name, hub_verified, partner_verified, source FROM places WHERE submitted_by IS NOT NULL").all();
+  assert.equal(rows.filter((r) => r.hub_verified).length, 2);
+  assert.equal(rows.filter((r) => r.partner_verified).length, 2);
+  assert.equal(rows.filter((r) => r.source === 'owner').length, 2);
+  assert.ok(sdb.prepare('SELECT COUNT(*) n FROM visits').get().n > 0 && sdb.prepare('SELECT COUNT(*) n FROM saved_places').get().n > 0);
+  // real listings are untouched: no visits, reviews or labels added to them
+  assert.equal(sdb.prepare('SELECT COUNT(*) n FROM places WHERE submitted_by IS NULL AND (hub_verified = 1 OR partner_verified = 1)').get().n, 0);
+  assert.equal(sdb.prepare('SELECT COUNT(*) n FROM visits v JOIN places p ON p.id = v.place_id WHERE p.submitted_by IS NULL').get().n, 0);
+
+  const app = createApp({ db: sdb, config: { secureCookies: false, rateLimitScale: 1000, uploadDir: mkdtempSync(join(tmpdir(), 'oku-s-')) } });
+  const srv = await new Promise((resolve) => { const s = app.listen(0, () => resolve(s)); });
+  const res = await fetch(`http://127.0.0.1:${srv.address().port}/api/auth/login`, { method: 'POST',
+    headers: { 'content-type': 'application/json', origin: `http://127.0.0.1:${srv.address().port}` },
+    body: JSON.stringify({ email: 'aisyah@sample.okuhub.test', password: SAMPLE_PASSWORD }) });
+  srv.close();
+  assert.equal(res.status, 200);
+
+  assert.equal(removeSampleData(sdb), 5);
+  assert.equal(sdb.prepare("SELECT COUNT(*) n FROM users WHERE email LIKE '%@sample.okuhub.test'").get().n, 0);
+  assert.equal(sdb.prepare('SELECT COUNT(*) n FROM visits').get().n, 0);
+  assert.ok(sdb.prepare('SELECT COUNT(*) n FROM places').get().n >= 16);
+});
+
+test('Add a place: community or business, details stay private, and claiming to be the business confirms nothing', async () => {
+  const kay = await register('kay');
+  const mod = await admin();
+  const biz = (extra) => kay.post('/api/places', validPlace({ name: 'Kedai Kay', contributor_type: 'business', ...extra }));
+
+  const missing = await biz({ contributor: {} });
+  assert.equal(missing.status, 422);
+  assert.ok(missing.body.fields.rep_name && missing.body.fields.rep_contact);
+  assert.equal((await kay.post('/api/places', validPlace({ contributor_type: 'shop' }))).status, 422);
+  assert.equal((await kay.post('/api/places', validPlace({ contributor_type: 'community', source: 'owner' }))).status, 422);
+
+  const b = await biz({ source: 'heard', contributor: { rep_name: 'Kay Tan', rep_role: 'Manager', rep_contact: 'kay@kedai.my', note: 'dropped' } });
+  assert.equal(b.status, 201);
+  const c = await kay.post('/api/places', validPlace({ name: 'Warung Visit', contributor_type: 'community', source: 'used_it',
+    contributor: { note: 'Went on Saturday, got 10% off.', source_url: 'https://example.com/post', rep_contact: 'dropped' } }));
+  assert.equal(c.status, 201);
+
+  const queue = (await mod.get('/api/admin/queue')).body.places;
+  const qb = queue.find((p) => p.id === b.body.id);
+  const qc = queue.find((p) => p.id === c.body.id);
+  assert.deepEqual(qb.contributor, { type: 'business', rep_name: 'Kay Tan', rep_role: 'Manager', rep_contact: 'kay@kedai.my' });
+  assert.equal(qb.source, 'owner');
+  assert.equal(qb.submitter_is_owner, true);
+  assert.equal(qb.partner_verified, false); // saying you are the business does not confirm the offer
+  assert.deepEqual(qc.contributor, { type: 'community', note: 'Went on Saturday, got 10% off.' });
+  assert.equal(qc.source_url, 'https://example.com/post');
+  assert.equal(qc.submitter_is_owner, false);
+
+  await mod.post(`/api/admin/places/${b.body.id}/approve`);
+  const pub = (await client().get(`/api/places/${b.body.id}`)).body.place;
+  assert.equal(pub.contributor, undefined);
+  assert.equal(pub.partner_verified, false);
+  assert.ok(!(await client().get('/api/places')).body.places.some((p) => 'contributor' in p));
+});
+
+test('a reported price stays separate from the conditions, and older wording moves it there', async () => {
+  const aq = (await client().get('/api/places?q=Aquaria')).body.places[0];
+  assert.deepEqual([aq.offers[0].conditions, aq.offers[0].reported_price], ['Buy at the counter and show your OKU card.', 'RM16']);
+  const old = openDb(':memory:');
+  seedPlaces(old);
+  old.prepare("UPDATE offers SET conditions = 'Verification with your OKU card is required. One source lists RM16; confirm the current price at the counter.', reported_price = '' WHERE reported_price = 'RM16'").run();
+  seedPlaces(old);
+  assert.deepEqual({ ...old.prepare("SELECT conditions, reported_price FROM offers WHERE reported_price = 'RM16'").get() },
+    { conditions: 'Buy at the counter and show your OKU card.', reported_price: 'RM16' });
 });

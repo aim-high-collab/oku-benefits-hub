@@ -9,6 +9,7 @@ import { meta } from '../server/meta.js';
 import { loadConfig } from '../server/config.js';
 import { listPlaces } from '../server/store.js';
 import { seedBenefits, seedPlaces, applySeedPhotos } from '../server/seed.js';
+import { seedSampleData } from '../server/sample-data.js';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
 const out = join(root, 'docs');
@@ -33,6 +34,7 @@ for (const f of readdirSync(join(out, 'vendor/fonts'))) {
 const db = openDb(':memory:');
 seedBenefits(db);
 seedPlaces(db);
+await seedSampleData(db);
 applySeedPhotos(db, join(root, 'public/img/places'));
 const benefits = db.prepare("SELECT * FROM benefits WHERE status = 'approved'").all().map((b) => ({ ...b }));
 writeFileSync(join(out, 'data.json'), JSON.stringify({ meta: meta(loadConfig()), places: listPlaces(db, {}).map((p) => ({ ...p, image: p.image.replace(/^\//, '') })), benefits }));

@@ -72,6 +72,7 @@ const offerSpec = {
   value_text: text({ max: 60, label: 'Offer value' }),
   conditions: text({ max: 300, label: 'Conditions' }),
   valid_until: isoDate,
+  reported_price: text({ max: 40, label: 'Reported price' }),
 };
 
 const offers = (v, errors, key) => {
@@ -118,6 +119,17 @@ export const BENEFIT_SPEC = {
  * Validate `body` against `spec`. In `partial` mode only keys present in body are checked
  * (used for edit requests). Throws a 422 HttpError with per-field messages.
  */
+// "Who are you submitting as?" on a new place. Business representatives leave a name and a way to reach them, so a
+// moderator can confirm the offer with them; nothing here proves they represent the business.
+export const CONTRIBUTOR_TYPES = ['community', 'business'];
+export const CONTRIBUTOR_SPEC = {
+  note: text({ max: 500, label: 'Your experience' }),
+  rep_name: text({ max: 80, label: 'Your name' }),
+  rep_role: text({ max: 80, label: 'Your role' }),
+  rep_contact: text({ max: 120, label: 'Contact' }),
+  source_url: url,
+};
+
 export function clean(body, spec, { partial = false } = {}) {
   const errors = {};
   const out = {};

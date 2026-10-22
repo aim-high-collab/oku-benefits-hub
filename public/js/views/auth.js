@@ -2,6 +2,7 @@ import { h } from '../dom.js';
 import { api } from '../api.js';
 import { field, errorSummary } from '../ui.js';
 import { t } from '../i18n.js';
+import { googleSignIn, afterLogin } from '../google-signin.js';
 
 function authForm(ctx, { title, intro, submitLabel, withName, path, footer }) {
   const f = {
@@ -18,11 +19,7 @@ function authForm(ctx, { title, intro, submitLabel, withName, path, footer }) {
     submit.disabled = true;
     try {
       await api('POST', path, Object.fromEntries(Object.entries(f).filter(([, v]) => v).map(([k, v]) => [k, v.input.value])));
-      await ctx.refreshUser();
-      ctx.toast(withName ? t('Welcome! Your account is ready.') : t('Welcome back.'));
-      const next = sessionStorage.getItem('afterLogin');
-      sessionStorage.removeItem('afterLogin');
-      ctx.go(next || '#/');
+      await afterLogin(ctx, withName ? t('Welcome! Your account is ready.') : t('Welcome back.'));
     } catch (err) {
       for (const [k, m] of Object.entries(err.fields || {})) f[k]?.setError(t(m));
       const s = errorSummary(err.message, err.fields);
@@ -31,7 +28,7 @@ function authForm(ctx, { title, intro, submitLabel, withName, path, footer }) {
       submit.disabled = false;
     }
   } }, errs, Object.values(f).filter(Boolean).map((x) => x.el), h('div', { class: 'actions' }, submit));
-  return h('div', { class: 'page page--narrow' }, h('h1', {}, title), h('p', { class: 'lede' }, intro), form, footer);
+  return h('div', { class: 'page page--narrow' }, h('h1', {}, title), h('p', { class: 'lede' }, intro), googleSignIn(ctx), form, footer);
 }
 
 export async function loginView(ctx, root) {

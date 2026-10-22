@@ -39,9 +39,9 @@ export const FEATURES = {
 
 export const OFFER_KINDS = {
   discount: 'Discount',
-  free: 'Free / waived',
+  free: 'Free entry / fee waived',
   priority: 'Priority service',
-  freebie: 'Freebie / add-on',
+  freebie: 'Free gift / add-on',
   volunteer: 'Volunteer with us',
   other: 'Other perk',
 };
@@ -91,4 +91,5 @@ export const meta = (config) => ({
   benefitCategories: BENEFIT_CATEGORIES,
   bounds: MY_BOUNDS,
   maps: mapsConfig(config),
+  googleClientId: config.googleClientId || '',
 });

@@ -2,6 +2,7 @@ import { h, clear } from '../dom.js';
 import { api } from '../api.js';
 import { field, checkboxGroup, errorSummary, icon } from '../ui.js';
 import { t } from '../i18n.js';
+import { googleSignIn } from '../google-signin.js';
 import { createMap, destroyMap, locate, searchPlaces, usingGoogle, MALAYSIA_CENTER, MALAYSIA_ZOOM } from '../map.js';
 
 // ---------- shared plumbing ----------
@@ -12,6 +13,7 @@ function needLogin(ctx, root, what) {
   sessionStorage.setItem('afterLogin', location.hash);
   root.append(h('div', { class: 'page page--narrow' }, h('h1', {}, t('Log in to continue')),
     h('p', {}, t('You need an account to {what}. It takes a minute and helps us keep listings trustworthy.', { what: t(what) })),
+    googleSignIn(ctx),
     h('div', { class: 'actions' }, h('a', { class: 'btn', href: '#/login' }, t('Log in')), h('a', { class: 'btn btn--ghost', href: '#/register' }, t('Create account')))));
   return true;
 }
@@ -98,7 +100,7 @@ function offerRow(meta, offer, onRemove) {
   const until = field({ label: t('Valid until (optional)'), name: 'offer-until', type: 'date', value: offer.valid_until || '', hint: t('Leave empty if there is no end date.') });
   const el = h('div', { class: 'offer-row', role: 'group', 'aria-label': t('Offer') }, h('div', { class: 'grid-2' }, title.el, kind.el), h('div', { class: 'grid-2' }, value.el, cond.el), until.el,
     h('button', { type: 'button', class: 'btn btn--ghost btn--small', onclick: () => onRemove(el) }, t('Remove this offer')));
-  return { el, fields: { title, kind, value_text: value, conditions: cond, valid_until: until }, read: () => ({ title: title.input.value, kind: kind.input.value, value_text: value.input.value, conditions: cond.input.value, valid_until: until.input.value }) };
+  return { el, fields: { title, kind, value_text: value, conditions: cond, valid_until: until }, read: () => ({ title: title.input.value, kind: kind.input.value, value_text: value.input.value, conditions: cond.input.value, valid_until: until.input.value, reported_price: offer.reported_price || '' }) };
 }
 
 function locationPicker(meta, initial, lat, lng) {
@@ -177,22 +179,20 @@ function locationPicker(meta, initial, lat, lng) {
 // ---------- "How do you know?" ----------
 
 const SOURCE_HINTS = {
-  used_it: 'Shows as “Community reported”.',
-  owner: 'A moderator contacts the business to confirm.',
-  heard: 'Shows as “Not yet checked”.',
+  used_it: 'Shows as “Shared by the community”.',
+  heard: 'Shows as “Shared by the community”. Others can confirm it after they visit.',
 };
 
-/** Required for new places: the answer decides which trust stamp the listing starts with. */
+/** For community members: how they know about the offer (used it, or saw / heard about it). */
 function sourcePicker(meta) {
   const errEl = h('p', { class: 'field-error', hidden: true });
-  const inputs = Object.entries(meta.sources).map(([v, text]) => {
+  const inputs = Object.entries(meta.sources).filter(([v]) => SOURCE_HINTS[v]).map(([v, text]) => {
     const id = `src-${v}`;
     const input = h('input', { type: 'radio', name: 'source', id, value: v, 'aria-describedby': `${id}-hint` });
     return { input, el: h('div', { class: 'check check--card' }, input,
       h('label', { for: id }, h('strong', {}, t(text)), h('span', { class: 'hint', id: `${id}-hint` }, t(SOURCE_HINTS[v])))) };
   });
-  const el = h('fieldset', { class: 'group' }, h('legend', {}, t('How do you know about this offer?')),
-    h('p', { class: 'hint' }, t('Your answer sets the label other people see.')), errEl,
+  const el = h('fieldset', { class: 'group--inner' }, h('legend', {}, t('How do you know about this offer?')), errEl,
     h('div', { class: 'check-stack' }, inputs.map((i) => i.el)));
   return {
     el,
@@ -201,11 +201,80 @@ function sourcePicker(meta) {
   };
 }
 
+// ---------- "Who are you submitting as?" ----------
+
+const CONTRIBUTORS = [
+  ['community', 'Community member / Visitor', 'I’m sharing information about a place or benefit I know about.'],
+  ['business', 'Business owner / Authorised representative', 'I represent this business and am authorised to provide or confirm its information.'],
+];
+
+/**
+ * One entry point for everyone: the choice shows the fields that fit. Choosing "business" records who they say they
+ * are, nothing more: the listing still shows "Shared by the community" until a moderator confirms the offer.
+ */
+function contributorSection(meta) {
+  const errEl = h('p', { class: 'field-error', hidden: true });
+  const source = sourcePicker(meta);
+  const f = {
+    source_url: field({ label: t('Where did you find this information? (optional)'), name: 'source_url', type: 'url', maxlength: 300, hint: t('A link to the business’s own page or post helps a moderator check it. Include https://') }),
+    note: field({ label: t('Your own experience (optional)'), name: 'note', tag: 'textarea', rows: 3, maxlength: 500, hint: t('For example, when you went and whether you got the offer. Only moderators see this.') }),
+    rep_name: field({ label: t('Your name'), name: 'rep_name', required: true, maxlength: 80 }),
+    rep_role: field({ label: t('Your role (optional)'), name: 'rep_role', maxlength: 80, hint: t('For example, owner, manager or marketing staff.') }),
+    rep_contact: field({ label: t('Email or phone we can reach you on'), name: 'rep_contact', required: true, maxlength: 120, hint: t('Only moderators see this. We use it to confirm the offer with you.') }),
+  };
+  const community = h('div', { class: 'contrib-more', hidden: true }, source.el, f.source_url.el, f.note.el);
+  const business = h('div', { class: 'contrib-more', hidden: true },
+    h('p', { class: 'note-box' }, icon('question', 18), ' ', t('Checking that you represent the business is not available yet. Choosing this option does not mark the listing “Confirmed by business”. It shows as “Shared by the community” until a moderator confirms the offer with you. We will not ask for SSM or other documents.')),
+    h('div', { class: 'grid-2' }, f.rep_name.el, f.rep_role.el), f.rep_contact.el);
+  const inputs = CONTRIBUTORS.map(([v, label, hint]) => {
+    const id = `who-${v}`;
+    const input = h('input', { type: 'radio', name: 'contributor_type', id, value: v, 'aria-describedby': `${id}-hint`, onchange: () => {
+      community.hidden = v !== 'community';
+      business.hidden = v !== 'business';
+      errEl.hidden = true;
+    } });
+    return { input, el: h('div', { class: 'check check--card' }, input,
+      h('label', { for: id }, h('strong', {}, t(label)), h('span', { class: 'hint', id: `${id}-hint` }, t(hint)))) };
+  });
+  const type = () => inputs.find((i) => i.input.checked)?.input.value ?? '';
+  const el = h('fieldset', { class: 'group' }, h('legend', {}, t('5. Who are you submitting as?')), errEl,
+    h('div', { class: 'check-stack' }, inputs.map((i) => i.el)), community, business);
+  return {
+    el,
+    fields: { source, ...f, contributor_type: { setError: (m) => { errEl.textContent = m || ''; errEl.hidden = !m; if (m) inputs[0].input.focus(); } } },
+    /** Client-side check before sending; returns field errors, empty when fine. */
+    check() {
+      const v = type();
+      if (!v) return { contributor_type: t('Choose who you are submitting as.') };
+      if (v === 'community' && !source.value()) return { source: t('Choose how you know about this place.') };
+      if (v === 'business') {
+        const e = {};
+        if (f.rep_name.input.value.trim().length < 2) e.rep_name = t('Enter your name.');
+        if (f.rep_contact.input.value.trim().length < 5) e.rep_contact = t('Enter an email or phone number we can reach you on.');
+        return e;
+      }
+      return {};
+    },
+    payload() {
+      const v = type();
+      const val = (k) => f[k].input.value;
+      return {
+        contributor_type: v,
+        source: v === 'business' ? 'owner' : source.value(),
+        is_owner: v === 'business',
+        contributor: v === 'business'
+          ? { rep_name: val('rep_name'), rep_role: val('rep_role'), rep_contact: val('rep_contact') }
+          : { note: val('note'), source_url: val('source_url') },
+      };
+    },
+  };
+}
+
 function placeForm(ctx, initial, { mode, onSubmit }) {
   const { meta } = ctx.state;
   const f = {
     name: field({ label: t('Business or place name'), name: 'name', value: initial.name, required: true, maxlength: 120 }),
-    category: field({ label: t('Type of place'), name: 'category', tag: 'select', value: initial.category, options: Object.entries(meta.categories) }),
+    category: field({ label: t('Category'), name: 'category', tag: 'select', value: initial.category, options: Object.entries(meta.categories) }),
     description: field({ label: t('Description (optional)'), name: 'description', tag: 'textarea', value: initial.description, maxlength: 1000, rows: 3, hint: t('What is it, and anything helpful for OKU visitors?') }),
     address: field({ label: t('Street address'), name: 'address', value: initial.address, required: true, maxlength: 250 }),
     city: field({ label: t('Town / city'), name: 'city', value: initial.city, maxlength: 80 }),
@@ -218,7 +287,7 @@ function placeForm(ctx, initial, { mode, onSubmit }) {
   const picker = locationPicker(meta, initial, lat, lng);
   const guest = !ctx.state.user;
   const photo = guest ? { el: h('p', { class: 'hint note-box' }, icon('question', 18), ' ', t('Log in to add a photo. You can still send everything else.')), value: () => '' } : photoPicker(initial.image);
-  const source = mode === 'create' ? sourcePicker(meta) : null;
+  const who = mode === 'create' ? contributorSection(meta) : null;
   const feats = checkboxGroup({ legend: t('Accessibility features'), name: 'features', options: Object.entries(meta.features), selected: initial.accessibility, hint: t('Tick what you have seen or know is available.') });
   const offersBox = h('div');
   const offerRows = new Set();
@@ -236,14 +305,15 @@ function placeForm(ctx, initial, { mode, onSubmit }) {
     ? field({ label: t('Why are you suggesting this change?'), name: 'reason', tag: 'textarea', rows: 3, maxlength: 500, hint: t('Optional but helps moderators verify quickly, e.g. “Visited on 3 March; the offer is now 15%.”') })
     : null;
 
-  const fields = { ...f, lat, lng, ...(source ? { source } : {}), offers: { setError: (m) => { offersErr.textContent = m || ''; offersErr.hidden = !m; } } };
+  const fields = { ...f, lat, lng, ...(who ? who.fields : {}), offers: { setError: (m) => { offersErr.textContent = m || ''; offersErr.hidden = !m; } } };
   const form = formShell({
     fields,
     submitLabel: mode === 'create' ? t('Submit for review') : t('Send edit request'),
     onSubmit: () => {
-      if (source && !source.value()) {
+      const problems = who?.check() ?? {};
+      if (Object.keys(problems).length) {
         const err = new Error(t('Please fix the highlighted fields.'));
-        err.fields = { source: t('Choose how you know about this place.') };
+        err.fields = problems;
         throw err;
       }
       return onSubmit({
@@ -253,7 +323,7 @@ function placeForm(ctx, initial, { mode, onSubmit }) {
       accessibility: feats.values(),
       image: photo.value(),
       offers: [...offerRows].map((r) => r.read()),
-    }, { source: source?.value() ?? '', reason: reason?.input.value ?? '' });
+    }, { ...(who?.payload() ?? {}), reason: reason?.input.value ?? '' });
     },
     children: [
       h('fieldset', { class: 'group' }, h('legend', {}, t('1. About the place')), f.name.el, f.category.el, f.description.el, photo.el),
@@ -264,7 +334,7 @@ function placeForm(ctx, initial, { mode, onSubmit }) {
         offersBox, offersErr,
         h('div', { class: 'actions' }, h('button', { type: 'button', class: 'btn btn--ghost btn--small', onclick: () => addOffer().fields.title.input.focus() }, t('Add another offer')))),
       h('fieldset', { class: 'group' }, h('legend', {}, t('4. Accessibility & contact')), feats.el, h('div', { class: 'grid-2' }, f.phone.el, f.website.el)),
-      source?.el, reason?.el,
+      who?.el, reason?.el,
     ],
   });
   return { form, picker };
@@ -273,17 +343,20 @@ function placeForm(ctx, initial, { mode, onSubmit }) {
 const blankPlace = { image: '', name: '', category: 'restaurant', description: '', address: '', city: '', state: '', phone: '', website: '', accessibility: [], offers: [] };
 
 export async function submitPlaceView(ctx, root) {
+  if (needLogin(ctx, root, 'add a place')) return { title: t('Log in') };
   const { form, picker } = placeForm(ctx, blankPlace, {
     mode: 'create',
     onSubmit: async (data, extra) => {
-      const res = await api('POST', '/places', { ...data, source: extra.source, is_owner: extra.source === 'owner' });
+      const { reason, ...who } = extra;
+      const res = await api('POST', '/places', { ...data, ...who });
       ctx.toast(res.status === 'approved' ? t('Published.') : t('Thank you! A moderator will check it before it appears.'));
-      ctx.go(res.status === 'approved' ? `#/place/${res.id}` : ctx.state.user ? '#/account' : '#/');
+      ctx.go(res.status === 'approved' ? `#/place/${res.id}` : '#/account');
     },
   });
   root.append(h('div', { class: 'page page--narrow' }, h('h1', {}, t('Add a place')),
     h('p', { class: 'lede' }, t('Know a business that gives OKU discounts, a place that is genuinely accessible, or a group that welcomes volunteers? Add it so others can find it.')),
-    h('p', { class: 'note-box' }, icon('shield', 18), ' ', t('No account needed. A moderator checks every suggestion before it appears.')), form));
+    h('p', {}, t('Community members and business owners both start here. You will say which you are near the end of the form.'), ' ', h('a', { href: '#/how-it-works' }, t('How it works'))),
+    h('p', { class: 'note-box' }, icon('shield', 18), ' ', t('A moderator checks every suggestion before it appears.')), form));
   return { title: t('Add a place'), mounted: () => picker.mount(), destroy: () => picker.destroy() };
 }
 

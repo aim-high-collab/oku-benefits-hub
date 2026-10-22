@@ -1,7 +1,8 @@
 import { h, clear } from '../dom.js';
 import { api } from '../api.js';
 import { badge, stars, fmtDate, field, radioGroup, errorSummary, offerLine, icon, groupOf, placeImage, photoCredit, offerIcon,
-  trustOf, trustStamp, workedCounts, workedMeter, mobileNumber, visitorVerdict } from '../ui.js';
+  trustOf, trustStamp, sourceOf, sourceLink, workedCounts, workedMeter, mobileNumber, visitorVerdict, workedText } from '../ui.js';
+import { saveButton } from '../saved.js';
 import { t, tIn } from '../i18n.js';
 import { createMap, destroyMap, directionsUrl, googleMapsUrl, osmUrl, usingGoogle } from '../map.js';
 
@@ -48,23 +49,72 @@ export async function placeView(ctx, root, [id]) {
     ctx.toast(p.partner_verified ? t('Partner badge removed.') : t('Marked as business confirmed.'));
     refresh();
   } }, p.partner_verified ? t('Remove business-confirmed label') : t('Mark as business confirmed')) : null;
+  const hubBtn = isAdmin ? h('button', { type: 'button', class: 'btn btn--ghost', onclick: async () => {
+    let hub_checked = '';
+    if (!p.hub_verified) {
+      hub_checked = window.prompt(t('What did our team check? For example: offer, ramp and toilet, by visit.'));
+      if (hub_checked === null) return;
+    }
+    await api('PATCH', `/admin/places/${p.id}`, { hub_verified: !p.hub_verified, hub_checked });
+    ctx.toast(p.hub_verified ? t('Team-checked label removed.') : t('Marked as checked by our team.'));
+    refresh();
+  } }, p.hub_verified ? t('Remove team-checked label') : t('Mark as checked by our team')) : null;
 
-  // ----- "Show the cashier": a large card to turn round at the till -----
+  // ----- Written request: a card the visitor turns round at the counter instead of speaking -----
+  // Staff read it, so it is written in all three languages whatever the page language is.
+  const tier = p.hub_verified ? 'hub' : p.partner_verified ? 'business' : 'community';
+  const SOURCE = {
+    hub: ['Pasukan OKU Benefits Hub telah menyemak tawaran ini.', 'The OKU Benefits Hub team has checked this offer.', 'OKU Benefits Hub 团队已核实此优惠。'],
+    business: ['Perniagaan ini telah mengesahkan tawaran ini di OKU Benefits Hub.', 'This business confirmed the offer on OKU Benefits Hub.', '本商家已在 OKU Benefits Hub 确认此优惠。'],
+    community: ['Pengunjung berkongsi tawaran ini di OKU Benefits Hub. Ia belum disahkan oleh perniagaan ini.', 'Visitors shared this offer on OKU Benefits Hub. This business hasn’t confirmed it yet.', '此优惠由访客在 OKU Benefits Hub 分享，尚未经本商家确认。'],
+  }[tier];
+  const REQUEST = [
+    ['ms', 'Hai! Saya guna skrin ini untuk berkomunikasi.', 'Saya pemegang kad OKU. Adakah anda menawarkan:', 'Saya akan tunjuk kad OKU saya. Anda boleh balas dengan menulis atau menunjuk.', SOURCE[0]],
+    ['en', 'Hello! I’m using this screen to communicate.', 'I have an OKU card. Do you offer:', 'I’ll show you my OKU card. You can reply by writing or pointing.', SOURCE[1]],
+    ['zh', '您好！我用这个屏幕和您沟通。', '我是OKU卡持有人。请问这里有这个优惠吗：', '我会出示我的OKU卡。您可以写字或用手指示来回复。', SOURCE[2]],
+  ];
   const cashier = h('dialog', { class: 'cashier', 'aria-labelledby': 'cashier-h' },
-    h('p', { class: 'hint', id: 'cashier-h' }, t('Turn your phone round to show this.')),
-    h('p', { class: 'cashier-big', lang: 'ms' }, `Saya pemegang kad OKU. Boleh saya dapat tawaran OKU${first ? `: ${offerLine(first, 'ms')}` : ''}?`),
-    h('p', { lang: 'en' }, `I have an OKU card. Can I get the OKU offer${first ? `: ${offerLine(first, 'en')}` : ''}?`),
-    h('p', { lang: 'zh' }, `我是OKU卡持有人。可以给我OKU优惠吗${first ? `：${offerLine(first, 'zh')}` : ''}？`),
-    trustStamp(p, { detail: true }),
+    h('p', { class: 'hint', id: 'cashier-h', tabindex: '-1', autofocus: '' }, icon('card', 18), t('Turn your phone round so the staff can read this.')),
+    h('p', { class: 'cashier-place' }, p.name),
+    REQUEST.map(([lang, hello, ask, reply, source], i) => h('div', { class: i ? 'cashier-lang' : 'cashier-lang cashier-lang--main', lang },
+      h('p', {}, hello),
+      h('p', { class: 'cashier-ask' }, ask, first ? h('strong', { class: 'cashier-offer' }, offerLine(first, lang)) : null),
+      h('p', {}, reply),
+      h('p', { class: 'cashier-source' }, source))),
     h('form', { method: 'dialog' }, h('button', { class: 'btn btn--ghost', type: 'submit' }, t('Close'))));
+
+  // ----- At a glance: price we could not confirm, where the details came from, and who has checked them -----
+  const src = sourceOf(p);
+  const sep = () => h('span', { class: 'sep', 'aria-hidden': 'true' }, ' · ');
+  // A reported price is never shown as the price: the card says it is unconfirmed, and the figure sits with its source.
+  function priceAndSource() {
+    const price = first.reported_price;
+    if (!price && !src) return null;
+    return h('div', { class: price ? 'glance-price glance-price--unverified' : 'glance-price' },
+      price ? h('p', { class: 'glance-price-note' }, t('Price not yet verified. Please confirm with the venue.')) : null,
+      h('p', { class: 'glance-source' },
+        price ? h('span', {}, t('Reported price: {price}', { price })) : null,
+        price ? sep() : null,
+        src ? [h('span', {}, src.label), ' ', sourceLink(src)] : h('span', {}, t('Source not linked'))));
+  }
+  function glanceStatus() {
+    const tr = trustOf(p);
+    const dates = tr.dates.filter(Boolean);
+    return h('div', { class: `glance-status glance-status--${tr.tier}` },
+      h('p', { class: 'glance-status-main' },
+        h('span', { class: `status-chip stamp--${tr.tier}` }, icon(tr.icon, 16),
+          h('span', { class: 'sr-only' }, `${t('Information source')}: `), tr.label),
+        tr.note ? h('span', { class: 'glance-status-note' }, tr.note) : null),
+      dates.length ? h('p', { class: 'glance-dates' }, dates.flatMap((d, i) => i ? [sep(), h('span', {}, d)] : [h('span', {}, d)])) : null);
+  }
 
   // ----- trust panel -----
   const tr = trustOf(p);
   const counts = { ...workedCounts(p) };
   const meterBox = h('div', { class: 'worked' });
   const drawMeter = () => clear(meterBox).append(...(counts.total
-    ? [workedMeter(counts.yes, counts.total), h('p', {}, h('strong', {}, t('Worked {a} of {b} visits', { a: counts.yes, b: counts.total })))]
-    : [h('p', { class: 'muted' }, t('No one has reported a visit yet.'))]));
+    ? [workedMeter(counts.yes, counts.total), h('p', {}, h('strong', {}, workedText(counts.yes, counts.total)))]
+    : [h('p', { class: 'muted' }, t('No visitor has told us yet whether they got the offer.'))]));
   drawMeter();
 
   const voteStatus = h('p', { class: 'hint', role: 'status' });
@@ -87,11 +137,14 @@ export async function placeView(ctx, root, [id]) {
   if (votedFor(p.id)) voteStatus.textContent = t('You already answered for this place on this device.');
 
   const trustPanel = h('section', { class: `trust-panel trust-panel--${tr.tier}`, 'aria-labelledby': 'trust-h' },
-    h('h2', { id: 'trust-h' }, t('How sure is this?')),
+    h('h2', { id: 'trust-h' }, t('Information source')),
     trustStamp(p, { detail: true, cls: 'stamp--big' }),
+    // Where the listing's details were taken from; this says nothing about who has checked them.
+    src ? h('p', { class: 'source-link' }, icon('globe', 18), `${src.label}:`, ' ',
+      h('a', { href: src.url, rel: 'noopener noreferrer nofollow', target: '_blank' }, src.host)) : null,
     meterBox,
     p.status === 'approved' ? h('div', { class: 'did-it-work' },
-      h('h3', {}, t('Been here? Did the OKU offer work?')),
+      h('h3', {}, t('Been here? Did you get the OKU offer?')),
       h('p', { class: 'hint' }, t('No account needed. Your answer updates the count above.')),
       h('div', { class: 'vote-row' }, voteBtns), voteStatus,
       votedFor(p.id) && !answeredFor(ACCESS_KEY, p.id) ? accessQuestions() : null) : null);
@@ -159,7 +212,7 @@ export async function placeView(ctx, root, [id]) {
     h('a', { class: 'btn btn--ghost', href: directionsUrl(p), target: '_blank', rel: 'noopener noreferrer' }, icon('directions', 18), t('Directions')));
 
   root.append(h('div', { class: 'page page--wide' },
-    h('nav', { class: 'crumbs', 'aria-label': t('Breadcrumb') }, h('a', { href: '#/' }, t('Places')), h('span', { 'aria-hidden': 'true' }, '/'), h('span', {}, p.city || p.state || meta.categories[p.category])),
+    h('nav', { class: 'crumbs', 'aria-label': t('Breadcrumb') }, h('a', { href: '#/' }, t('Discover')), h('span', { 'aria-hidden': 'true' }, '/'), h('span', {}, p.city || p.state || meta.categories[p.category])),
     p.status !== 'approved' ? h('p', { class: 'notice' }, t('This listing is awaiting moderator approval. Only you and moderators can see it.')) : null,
     h('header', { class: `place-head tone-${groupOf(p.category)}` },
       placeImage(p, 'place-banner'),
@@ -174,20 +227,25 @@ export async function placeView(ctx, root, [id]) {
             h('p', { class: 'glance-offer' }, offerIcon(first.kind), h('strong', {}, offerLine(first))),
             first.conditions ? h('p', {}, t(first.conditions)) : null,
             first.valid_until ? h('p', {}, h('strong', {}, t('Valid until {date}', { date: fmtDate(first.valid_until) }))) : null,
-            first.kind !== 'volunteer' ? h('p', {}, t('Bring your OKU card.')) : null,
+            priceAndSource(),
           ] : h('p', { class: 'muted' }, t('Nothing listed yet.')),
-          trustStamp(p, { detail: true }),
-          h('div', { class: 'actions' },
-            first && first.kind !== 'volunteer' ? h('button', { type: 'button', class: 'btn btn--sun', onclick: () => cashier.showModal() }, icon('card', 18), t('Show the cashier')) : null,
-            p.status === 'approved' ? h('a', { class: 'btn btn--ghost', href: `#/place/${p.id}/edit` }, icon('edit', 16), t('Suggest an edit')) : null,
-            verifyBtn)),
+          glanceStatus(),
+          h('div', { class: 'actions glance-actions' },
+            p.status === 'approved' ? Object.assign(saveButton(ctx, p), { className: 'btn btn--ghost btn--small save-btn' }) : null,
+            p.status === 'approved' ? h('a', { class: 'btn btn--ghost btn--small', href: `#/place/${p.id}/edit` }, icon('edit', 16), t('Suggest an edit')) : null,
+            verifyBtn, hubBtn)),
         h('section', { class: 'block', 'aria-labelledby': 'contact-h' }, h('h2', { id: 'contact-h' }, t('Ask before you go')), contactBtns),
         first && first.kind !== 'volunteer' ? h('section', { class: 'block', 'aria-labelledby': 'claim-h' },
           h('h2', { id: 'claim-h' }, t('How to claim')),
           h('ol', { class: 'claim-steps' },
             h('li', {}, t('Go to the counter or ticket desk as usual.')),
             h('li', {}, t('Show your OKU card before you pay.')),
-            h('li', {}, t('Check the price or receipt shows the OKU offer.')))) : null,
+            h('li', {}, t('Check the price or receipt shows the OKU offer.'))),
+          h('div', { class: 'note-box written-ask' }, icon('chat', 20),
+            h('div', {},
+              h('strong', {}, t('Prefer not to speak at the counter?')),
+              h('p', {}, t('Show the staff a written request in BM, English and 中文. It can help if you’re non-verbal, have a speech or hearing disability, or it’s noisy.')),
+              h('button', { type: 'button', class: 'btn btn--ghost btn--small', onclick: () => cashier.showModal() }, icon('card', 18), t('Show a written request'))))) : null,
         p.offers.length > 1 || (first && (first.conditions || first.value_text)) ? h('section', { class: 'block', 'aria-labelledby': 'offers-h' },
           h('h2', { id: 'offers-h' }, t('Offers & ways to help')),
           h('ul', { class: 'offer-list' }, p.offers.map((o) => h('li', { class: `offer-card offer-card--${o.kind}` },
@@ -239,7 +297,7 @@ export async function placeView(ctx, root, [id]) {
 
   function reviewForm() {
     if (!state.user) {
-      return h('div', { class: 'notice notice--info' }, h('p', {}, t('To write a longer review, log in or create an account. You can answer “Did the OKU offer work?” without one.')),
+      return h('div', { class: 'notice notice--info' }, h('p', {}, t('To write a longer review, log in or create an account. You can answer “Did you get the OKU offer?” without one.')),
         h('p', {}, h('a', { href: '#/login' }, t('Log in')), ' · ', h('a', { href: '#/register' }, t('Create an account'))));
     }
     const mine = reviews.find((r) => r.author === state.user.name);

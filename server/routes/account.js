@@ -1,5 +1,6 @@
 import { Router } from 'express';
-import { requireUser } from '../http.js';
+import { HttpError, requireUser } from '../http.js';
+import { getPlace } from '../store.js';
 
 export function accountRoutes({ db }) {
   const r = Router();
@@ -17,6 +18,24 @@ export function accountRoutes({ db }) {
         LEFT JOIN benefits b ON e.target_type = 'benefit' AND b.id = e.target_id
         WHERE e.user_id = ? ORDER BY e.id DESC`),
     });
+  });
+
+  // Saved places, newest first. Only approved places show; a place that is later hidden simply drops out.
+  r.get('/saved', (req, res) => {
+    const ids = db.prepare('SELECT place_id FROM saved_places WHERE user_id = ? ORDER BY created_at DESC, rowid DESC').all(req.user.id);
+    res.json({ places: ids.map(({ place_id }) => getPlace(db, place_id)).filter((p) => p?.status === 'approved') });
+  });
+
+  r.put('/saved/:id', (req, res) => {
+    const place = getPlace(db, Number(req.params.id));
+    if (!place || place.status !== 'approved') throw new HttpError(404, 'Place not found.');
+    db.prepare('INSERT OR IGNORE INTO saved_places (user_id, place_id) VALUES (?, ?)').run(req.user.id, place.id);
+    res.json({ saved: true });
+  });
+
+  r.delete('/saved/:id', (req, res) => {
+    db.prepare('DELETE FROM saved_places WHERE user_id = ? AND place_id = ?').run(req.user.id, Number(req.params.id));
+    res.json({ saved: false });
   });
 
   return r;

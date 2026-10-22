@@ -24,7 +24,11 @@ export function adminRoutes({ db }) {
       return { ...e, changes: JSON.parse(e.changes), current, missing: !current };
     });
     const names = new Map(db.prepare('SELECT id, name FROM users').all().map((u) => [u.id, u.name]));
-    for (const p of places) p.submitter = names.get(p.submitted_by) ?? null;
+    const contributorOf = db.prepare('SELECT contributor FROM places WHERE id = ?');
+    for (const p of places) {
+      p.submitter = names.get(p.submitted_by) ?? null;
+      p.contributor = JSON.parse(contributorOf.get(p.id)?.contributor || '{}'); // moderators only
+    }
     res.json({ places, benefits, edits });
   });
 
@@ -56,11 +60,17 @@ export function adminRoutes({ db }) {
     res.json({ ok: true });
   });
 
-  // Mark / unmark a business as a verified participating partner.
+  // Mark / unmark a place as business confirmed (partner_verified) or checked by our own team (hub_verified).
   r.patch('/places/:id', (req, res) => {
-    if (typeof req.body?.partner_verified !== 'boolean') throw new HttpError(422, 'partner_verified must be true or false.');
-    const on = req.body.partner_verified;
-    const info = db.prepare(`UPDATE places SET partner_verified = ?, verified_at = ${on ? "date('now')" : 'NULL'} WHERE id = ?`).run(on ? 1 : 0, id(req));
+    const flags = [['partner_verified', 'verified_at'], ['hub_verified', 'hub_verified_at']].filter(([k]) => k in (req.body ?? {}));
+    if (!flags.length) throw new HttpError(422, 'Send partner_verified or hub_verified.');
+    for (const [k] of flags) if (typeof req.body[k] !== 'boolean') throw new HttpError(422, `${k} must be true or false.`);
+    const checked = req.body.hub_checked ?? '';
+    if (typeof checked !== 'string' || checked.length > 200) throw new HttpError(422, 'hub_checked must be text of 200 characters or fewer.');
+    const sets = flags.map(([k, at]) => `${k} = ${req.body[k] ? 1 : 0}, ${at} = ${req.body[k] ? "date('now')" : 'NULL'}`);
+    if ('hub_verified' in req.body) sets.push('hub_checked = ?');
+    const args = 'hub_verified' in req.body ? [req.body.hub_verified ? checked.trim() : ''] : [];
+    const info = db.prepare(`UPDATE places SET ${sets.join(', ')} WHERE id = ?`).run(...args, id(req));
     if (!info.changes) throw new HttpError(404, 'Place not found.');
     res.json({ ok: true });
   });

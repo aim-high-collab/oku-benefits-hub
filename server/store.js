@@ -5,11 +5,13 @@ import { HttpError } from './http.js';
 const PLACE_COLS = ['name', 'category', 'description', 'address', 'city', 'state', 'lat', 'lng', 'phone', 'website', 'image'];
 const BENEFIT_COLS = ['title', 'agency', 'category', 'summary', 'eligibility', 'how_to_apply', 'url'];
 
+// `contributor` holds the submitter's private contact details, so it is left out of every place we send.
 export const parsePlace = (row) => row && {
-  ...row,
+  ...Object.fromEntries(Object.entries(row).filter(([k]) => k !== 'contributor')),
   accessibility: JSON.parse(row.accessibility),
   submitter_is_owner: Boolean(row.submitter_is_owner),
   partner_verified: Boolean(row.partner_verified),
+  hub_verified: Boolean(row.hub_verified),
 };
 
 const placeholders = (n) => Array(n).fill('?').join(',');
@@ -22,7 +24,8 @@ const STATS_SQL = `
   (SELECT COUNT(*) FROM visits v WHERE v.place_id = places.id AND worked = 'yes') AS visits_yes,
   (SELECT COUNT(*) FROM visits v WHERE v.place_id = places.id AND worked = 'no') AS visits_no,
   (SELECT COUNT(*) FROM visits v WHERE v.place_id = places.id AND worked = 'partly') AS visits_partly,
-  (SELECT MAX(created_at) FROM visits v WHERE v.place_id = places.id) AS last_visit_at`;
+  (SELECT MAX(created_at) FROM visits v WHERE v.place_id = places.id) AS last_visit_at,
+  (SELECT MAX(created_at) FROM visits v WHERE v.place_id = places.id AND worked = 'yes') AS last_used_at`;
 
 export function attachOffers(db, places) {
   if (!places.length) return places;
@@ -65,7 +68,7 @@ export function listPlaces(db, { q, category, kind, features = [], status = 'app
     args.push(f);
   }
   const rows = db.prepare(`SELECT places.*, ${STATS_SQL} FROM places WHERE ${where.join(' AND ')}
-    ORDER BY partner_verified DESC, places.name COLLATE NOCASE LIMIT ?`).all(...args, limit);
+    ORDER BY hub_verified DESC, partner_verified DESC, places.name COLLATE NOCASE LIMIT ?`).all(...args, limit);
   return attachOffers(db, rows.map((r) => parsePlace(r)));
 }
 
@@ -76,8 +79,8 @@ export function getPlace(db, id) {
 }
 
 export function insertOffers(db, placeId, offers) {
-  const ins = db.prepare('INSERT INTO offers (place_id, title, kind, value_text, conditions, valid_until) VALUES (?,?,?,?,?,?)');
-  for (const o of offers) ins.run(placeId, o.title, o.kind, o.value_text, o.conditions, o.valid_until ?? '');
+  const ins = db.prepare('INSERT INTO offers (place_id, title, kind, value_text, conditions, valid_until, reported_price) VALUES (?,?,?,?,?,?,?)');
+  for (const o of offers) ins.run(placeId, o.title, o.kind, o.value_text, o.conditions, o.valid_until ?? '', o.reported_price ?? '');
 }
 
 export function insertPlace(db, data, { userId, status, isOwner = false, partnerVerified = false, source = '' }) {

@@ -8,16 +8,19 @@ import { placeView } from './views/place.js';
 import { benefitsView } from './views/benefits.js';
 import { submitPlaceView, editPlaceView, submitBenefitView, editBenefitView } from './views/contribute.js';
 import { loginView, registerView } from './views/auth.js';
+import { savedView } from './views/saved.js';
+import { contactView } from './views/contact.js';
+import { loadSaved } from './saved.js';
 import { accountView } from './views/account.js';
 import { adminView } from './views/admin.js';
-import { businessView } from './views/business.js';
+import { howItWorksView } from './views/how-it-works.js';
 
 const main = document.getElementById('main');
 const nav = document.getElementById('nav');
 const menu = document.getElementById('menu');
 const tools = document.getElementById('tools');
 
-export const state = { user: null, meta: null, filters: { q: '', category: '', kind: '', features: [], includeUnknown: true, trust: ['business', 'community', 'unverified'], sort: 'recommended' }, loc: null, view: 'list' };
+export const state = { user: null, meta: null, filters: { q: '', category: '', kind: '', features: [], includeUnknown: true, trust: ['hub', 'business', 'community'], sort: 'recommended' }, loc: null, view: 'list' };
 
 const ctx = {
   state,
@@ -26,6 +29,7 @@ const ctx = {
   toast,
   async refreshUser() {
     state.user = (await api('GET', '/auth/me')).user;
+    await loadSaved(state);
     renderNav();
   },
 };
@@ -38,19 +42,23 @@ const routes = [
   [/^\/benefits\/(\d+)\/edit$/, editBenefitView],
   [/^\/submit\/place$/, submitPlaceView],
   [/^\/submit\/benefit$/, submitBenefitView],
+  [/^\/saved$/, savedView],
+  [/^\/contact$/, contactView],
   [/^\/login$/, loginView],
   [/^\/register$/, registerView],
   [/^\/account$/, accountView],
   [/^\/admin$/, adminView],
-  [/^\/business$/, businessView],
+  [/^\/how-it-works$/, howItWorksView],
+  [/^\/business$/, () => { location.replace('#/how-it-works'); return { title: '' }; }], // old link, kept working
 ];
 
-// "Official help" is a short page of links to government schemes; the product itself is a directory of places.
+// "Government resources" is a short page of links to government schemes; the product itself is a directory of places.
 const NAV = [
-  ['#/', 'Places', /^\/?$|^\/place\/\d+$/],
-  ['#/submit/place', 'Add a place', /^\/submit\/place/],
-  ['#/business', 'For businesses', /^\/business/],
-  ['#/benefits', 'Official help', /^\/benefits/],
+  ['#/', 'Discover', /^\/?$|^\/place\/\d+$/, 'compass'],
+  ['#/submit/place', 'Add a place', /^\/submit\/place/, 'plus-circle'],
+  ['#/how-it-works', 'How it works', /^\/how-it-works/, 'question'],
+  ['#/benefits', 'Government resources', /^\/benefits/, 'landmark'],
+  ['#/contact', 'Contact', /^\/contact/, 'mail'],
 ];
 
 function renderNav() {
@@ -58,12 +66,14 @@ function renderNav() {
   const account = document.getElementById('account');
   clear(nav);
   clear(account);
-  for (const [href, label, re] of NAV) {
-    nav.append(h('a', { href, 'aria-current': re.test(path) ? 'page' : null }, t(label)));
+  // Each link has a small decorative icon (aria-hidden), so its accessible name is just its text.
+  for (const [href, label, re, ic] of NAV) {
+    nav.append(h('a', { href, 'aria-current': re.test(path) ? 'page' : null }, ic ? icon(ic, 18) : null, t(label)));
   }
   if (state.user) {
     if (state.user.role === 'admin') nav.append(h('a', { href: '#/admin', 'aria-current': path === '/admin' ? 'page' : null }, t('Moderation')));
     account.append(
+      h('a', { class: 'linkbtn saved-link', href: '#/saved', 'aria-current': path === '/saved' ? 'page' : null }, icon('bookmark', 18), t('Saved')),
       h('a', { class: 'me', href: '#/account', 'aria-current': path === '/account' ? 'page' : null, title: t('My contributions') },
         h('span', { class: 'avatar', 'aria-hidden': 'true' }, state.user.name.trim().charAt(0).toUpperCase()), h('span', { class: 'me-name' }, state.user.name)),
       h('button', { type: 'button', class: 'linkbtn', onclick: logout }, t('Log out')));
@@ -74,6 +84,7 @@ function renderNav() {
   document.getElementById('skip').textContent = t('Skip to main content');
   document.querySelector('.brand').setAttribute('aria-label', t('OKU Benefits Hub, home'));
   nav.setAttribute('aria-label', t('Main'));
+  clear(document.getElementById('footer-contact')).append(h('a', { href: '#/contact' }, t('Contact us')));
   clear(document.getElementById('footer-map')).append(`${t('Map data ©')} `, h('a', { href: 'https://www.openstreetmap.org/copyright' }, 'OpenStreetMap'), ` ${t('contributors.')}`);
   document.getElementById('footer-note').textContent = t('A community project, not affiliated with JKM or any government agency. Always confirm with the provider before you travel.');
 }
@@ -91,7 +102,9 @@ function renderTools() {
       const on = document.documentElement.classList.toggle('calm');
       try { localStorage.setItem('oku-calm', on ? '1' : '0'); } catch { /* storage blocked */ }
       route();
-    } }, h('span', { class: 'switch', 'aria-hidden': 'true' }), h('span', { class: 'toggle-text' }, t('Calm mode'))),
+    } }, h('span', { class: 'switch', 'aria-hidden': 'true' }),
+    // Phones show the short word so the header stays on one row; the button is still named "Calm mode".
+    h('span', { class: 'toggle-text' }, h('span', { class: 'toggle-long' }, t('Calm mode')), h('span', { class: 'toggle-short' }, t('Calm')))),
     h('button', { type: 'button', class: 'menu-btn', 'aria-expanded': String(menuOpen), 'aria-controls': 'menu', onclick: (e) => {
       const open = menu.classList.toggle('is-open');
       e.currentTarget.setAttribute('aria-expanded', String(open));

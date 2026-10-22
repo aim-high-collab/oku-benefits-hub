@@ -116,14 +116,29 @@ CREATE TABLE IF NOT EXISTS access_reports (
   created_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
 CREATE INDEX IF NOT EXISTS access_reports_place ON access_reports(place_id);
+
+-- Places a person bookmarked with "Save".
+CREATE TABLE IF NOT EXISTS saved_places (
+  user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  place_id INTEGER NOT NULL REFERENCES places(id) ON DELETE CASCADE,
+  created_at TEXT NOT NULL DEFAULT (datetime('now')),
+  PRIMARY KEY (user_id, place_id)
+);
 `;
 
 // Columns added after the first release; older databases get them on start.
 const LATER_COLUMNS = [
+  ['offers', 'reported_price', "TEXT NOT NULL DEFAULT ''"], // a price someone reported but nobody has confirmed, e.g. RM16
   ['places', 'image', "TEXT NOT NULL DEFAULT ''"],
   ['places', 'source', "TEXT NOT NULL DEFAULT ''"], // how the submitter knows: used_it | owner | heard
   ['places', 'verified_at', 'TEXT'], // when a moderator marked it business-confirmed
   ['offers', 'valid_until', "TEXT NOT NULL DEFAULT ''"],
+  ['places', 'hub_verified', 'INTEGER NOT NULL DEFAULT 0'], // our own team checked it
+  ['places', 'hub_verified_at', 'TEXT'],
+  ['places', 'hub_checked', "TEXT NOT NULL DEFAULT ''"], // what our team checked, shown with the label
+  ['places', 'source_url', "TEXT NOT NULL DEFAULT ''"], // the official page a listing's details come from
+  // Who submitted it and how to reach them, as JSON. Moderators only: never sent with the public listing.
+  ['places', 'contributor', "TEXT NOT NULL DEFAULT '{}'"],
 ];
 
 export function openDb(file = ':memory:') {

@@ -114,6 +114,7 @@ const NS = 'http://www.w3.org/2000/svg';
 const ICONS = {
   search: ['<circle cx="11" cy="11" r="7"/>', '<path d="m20 20-3.5-3.5"/>'],
   check: ['<path d="M20 6 9 17l-5-5"/>'],
+  compass: ['<circle cx="12" cy="12" r="10"/>', '<path d="m16.24 7.76-2.12 6.36-6.36 2.12 2.12-6.36 6.36-2.12z"/>'],
   pin: ['<path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/>', '<circle cx="12" cy="10" r="3"/>'],
   phone: ['<path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2.1 4.2 2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1 1 .4 1.9.7 2.8a2 2 0 0 1-.5 2.1L8.1 9.9a16 16 0 0 0 6 6l1.3-1.3a2 2 0 0 1 2.1-.4c.9.3 1.8.6 2.8.7a2 2 0 0 1 1.7 2Z"/>'],
   globe: ['<circle cx="12" cy="12" r="10"/>', '<path d="M2 12h20"/>', '<path d="M12 2a15 15 0 0 1 4 10 15 15 0 0 1-4 10 15 15 0 0 1-4-10 15 15 0 0 1 4-10Z"/>'],
@@ -123,6 +124,8 @@ const ICONS = {
   locate: ['<circle cx="12" cy="12" r="3"/>', '<circle cx="12" cy="12" r="8"/>', '<path d="M12 2v3M12 19v3M2 12h3M19 12h3"/>'],
   verified: ['<path d="M3.900 8.600a4 4 0 0 1 4.800-4.800 4 4 0 0 1 6.700 0 4 4 0 0 1 4.800 4.800 4 4 0 0 1 0 6.700 4 4 0 0 1-4.800 4.800 4 4 0 0 1-6.700 0 4 4 0 0 1-4.800-4.800 4 4 0 0 1 0-6.700Z"/>', '<path d="m9 12 2 2 4-4"/>'],
   plus: ['<path d="M12 5v14M5 12h14"/>'],
+  'plus-circle': ['<circle cx="12" cy="12" r="10"/>', '<path d="M12 8v8M8 12h8"/>'],
+  landmark: ['<path d="M3 22h18"/>', '<path d="M6 18v-7M10 18v-7M14 18v-7M18 18v-7"/>', '<path d="m12 2 8 5H4Z"/>'],
   users: ['<path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/>', '<circle cx="9" cy="7" r="4"/>', '<path d="M22 21v-2a4 4 0 0 0-3-3.900M16 3.100a4 4 0 0 1 0 7.800"/>'],
   question: ['<circle cx="12" cy="12" r="10"/>', '<path d="M9.100 9a3 3 0 0 1 5.800 1c0 2-3 3-3 3M12 17h.01"/>'],
   shield: ['<path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10Z"/>', '<path d="m9 12 2 2 4-4"/>'],
@@ -134,6 +137,8 @@ const ICONS = {
   card: ['<rect x="2" y="5" width="20" height="14" rx="2"/>', '<path d="M6 10h8M6 14h12"/>'],
   external: ['<path d="M15 3h6v6M10 14 21 3M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>'],
   menu: ['<path d="M4 6h16M4 12h16M4 18h16"/>'],
+  bookmark: ['<path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2Z"/>'],
+  mail: ['<rect x="2" y="4" width="20" height="16" rx="2"/>', '<path d="m22 7-10 6L2 7"/>'],
   heart: ['<path d="M19 14c1.500-1.500 3-3.200 3-5.500A5.500 5.500 0 0 0 16.500 3c-1.800 0-3 .5-4.500 2-1.500-1.500-2.700-2-4.500-2A5.500 5.500 0 0 0 2 8.500c0 2.300 1.500 4 3 5.500l7 7Z"/>'],
 };
 
@@ -178,7 +183,7 @@ export function photoCredit(place) {
 
 export const offerIcon = (kind) => icon(kind === 'volunteer' ? 'heart' : 'check', 18);
 
-// ---------- trust: business-confirmed, community-reported, not yet checked ----------
+// ---------- trust: checked by our team, business confirmed, community reported ----------
 
 export const workedCounts = (p) => {
   const yes = (p.honoured_yes ?? 0) + (p.visits_yes ?? 0);
@@ -187,27 +192,66 @@ export const workedCounts = (p) => {
 
 /** Which of the three trust levels a listing is at, with a short explanation. */
 export function trustOf(p) {
-  const { yes, total } = workedCounts(p);
+  const { total } = workedCounts(p);
+  // note: what the label means for this place. dates: when things happened, shown as secondary lines.
+  // detail is both together, for the places that show everything in one stamp.
+  const tier = (o) => ({ ...o, detail: o.tier === 'hub' ? [...o.dates, o.note] : [o.note, ...o.dates] });
+  if (p.hub_verified) {
+    return tier({ tier: 'hub', icon: 'verified', label: t('Checked by OKU Benefits Hub'),
+      note: p.hub_checked && t('What we checked: {what}', { what: t(p.hub_checked) }),
+      dates: [p.hub_verified_at && t('Checked on {date}', { date: fmtDate(p.hub_verified_at) })] });
+  }
   if (p.partner_verified) {
-    return { tier: 'business', icon: 'shield', label: t('Business confirmed'), detail: p.verified_at ? t('by the business · {date}', { date: fmtDate(p.verified_at) }) : '' };
+    return tier({ tier: 'business', icon: 'shield', label: t('Confirmed by business'), note: null,
+      dates: [p.verified_at && t('The business confirmed it on {date}', { date: fmtDate(p.verified_at) })] });
   }
-  if (total > 0 || p.source === 'used_it') {
-    return { tier: 'community', icon: 'users', label: t('Community reported'), detail: yes ? t('{n} visits said it worked', { n: yes }) : t('suggested by a visitor who used it') };
-  }
-  return { tier: 'unverified', icon: 'question', label: t('Not yet checked'), detail: t('from web sources or a tip · confirm before you go') };
+  // Every other listing was shared by someone in the community, and nobody has checked it independently.
+  // The record's last edit and the last time a visitor said the offer worked are different things, so both are shown.
+  return tier({ tier: 'community', icon: 'users', label: t('Shared by the community'), note: t('Not yet independently verified'), dates: [
+    (p.updated_at || p.created_at) && t('Last updated: {date}', { date: fmtDate(p.updated_at || p.created_at) }),
+    p.last_used_at ? t('Last reported use: {date}', { date: fmtDate(p.last_used_at) })
+      : p.source === 'used_it' && !total ? t('Shared by someone who used it') : null] });
+}
+
+/**
+ * The page a listing's details were taken from, or null when there is no usable link. Links our team added
+ * (no submitter) come from the venue's own site; a link from a member is only what they pointed us to.
+ * Neither means anyone has checked the details.
+ */
+export function sourceOf(p) {
+  if (!/^https?:\/\//.test(p.source_url || '')) return null;
+  let host;
+  try { host = new URL(p.source_url).hostname.replace(/^www\./, ''); } catch { return null; }
+  const official = p.submitted_by == null;
+  return { url: p.source_url, host, official, label: official ? t('Official source') : t('Link shared by a member') };
+}
+
+/** A "View source" link that says where it goes and that it opens a new tab. */
+export function sourceLink(src) {
+  return h('a', { href: src.url, rel: 'noopener noreferrer nofollow', target: '_blank',
+    'aria-label': t('View source: {label}, {host} (opens in a new tab)', { label: src.label, host: src.host }) },
+  t('View source'), icon('external', 16));
 }
 
 /** The trust label: icon, word and border style all differ, so colour is never the only cue. */
 export function trustStamp(p, { detail = false, cls = '' } = {}) {
   const tr = trustOf(p);
   return h('span', { class: `stamp stamp--${tr.tier} ${cls}`.trim() }, icon(tr.icon, 18),
-    h('span', {}, h('strong', {}, tr.label), detail && tr.detail ? h('span', { class: 'stamp-detail' }, tr.detail) : null));
+    h('span', {}, h('span', { class: 'sr-only' }, `${t('Information source')}: `), h('strong', {}, tr.label), detail ? tr.detail.filter(Boolean).map((line) => h('span', { class: 'stamp-detail' }, line)) : null));
 }
 
-/** "Worked 3 of 4 visits" for a list card, or nothing when no one has reported a visit yet. */
+/** "2 visitors got the OKU offer", or "2 of 5 visitors got the OKU offer" when some did not. */
+// These are self-reports (one-tap answers and reviews), not checked by us, so the wording says "reported".
+export function workedText(yes, total) {
+  if (yes === total) return total === 1 ? t('1 visitor reported getting the OKU offer') : t('{n} visitors reported getting the OKU offer', { n: total });
+  if (total === 1) return t('1 visitor reported not getting the OKU offer');
+  return t('{a} of {b} visitors reported getting the OKU offer', { a: yes, b: total });
+}
+
+/** "2 of 5 visitors reported getting the OKU offer" for a list card, or nothing when no one has reported a visit yet. */
 export function workedLine(p) {
   const { yes, total } = workedCounts(p);
-  return total ? h('span', { class: 'worked-line' }, icon('check', 16), t('Worked {a} of {b} visits', { a: yes, b: total })) : null;
+  return total ? h('span', { class: 'worked-line' }, workedText(yes, total)) : null; // a report, so no tick
 }
 
 /** What visitors said about one feature: 'yes' or 'no' by majority, or null when no one has answered. */

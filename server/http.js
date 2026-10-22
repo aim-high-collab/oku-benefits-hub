@@ -138,8 +138,19 @@ const GOOGLE_MAPS_CSP = {
   worker: ' blob:',
 };
 
+// Google Identity Services ("Continue with Google"): its script, button iframe and stylesheet.
+const GOOGLE_SIGNIN_CSP = {
+  script: ' https://accounts.google.com/gsi/client',
+  style: ' https://accounts.google.com/gsi/style',
+  connect: ' https://accounts.google.com/gsi/',
+  frame: ' https://accounts.google.com/gsi/',
+};
+
 export function securityHeaders(config = {}) {
-  const g = config.googleMapsKey ? GOOGLE_MAPS_CSP : {};
+  const maps = config.googleMapsKey ? GOOGLE_MAPS_CSP : {};
+  const signin = config.googleClientId ? GOOGLE_SIGNIN_CSP : {};
+  const g = Object.fromEntries([...new Set([...Object.keys(maps), ...Object.keys(signin)])]
+    .map((k) => [k, (maps[k] ?? '') + (signin[k] ?? '')]));
   const csp = [
     "default-src 'self'",
     `script-src 'self'${g.script ?? ''}`,
