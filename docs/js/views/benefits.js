@@ -6,13 +6,13 @@ import { t } from '../i18n.js';
 /** "Government resources": a short, clearly-labelled set of links out to government agencies, not a portal of our own. */
 export async function benefitsView(ctx, root) {
   const { meta } = ctx.state;
-  const q = field({ label: t('Search official help'), name: 'q', type: 'search', attrs: { placeholder: t('e.g. allowance, tax, transport'), autocomplete: 'off' } });
+  const q = field({ label: t('Search official resources'), name: 'q', type: 'search', attrs: { placeholder: t('e.g. allowance, tax, transport'), autocomplete: 'off' } });
   const category = field({ label: t('Category'), name: 'category', tag: 'select', options: [['', t('All categories')], ...Object.entries(meta.benefitCategories)] });
   const count = h('p', { class: 'result-count', role: 'status' });
   const list = h('ul', { class: 'benefit-list', 'aria-label': t('Government resources') });
 
   root.append(h('div', { class: 'page page--mid' },
-    h('h1', {}, t('Government help for OKU')),
+    h('h1', {}, t('Government resources for OKU')),
     h('p', { class: 'note-box note-box--dashed' }, icon('external', 18), ' ',
       t('We don’t run these schemes and can’t check if you qualify. Each link opens the agency’s own website.'), ' ',
       t('Rules and amounts change. Check with the agency before you apply.')),
@@ -28,7 +28,7 @@ export async function benefitsView(ctx, root) {
 
   async function load() {
     const { benefits } = await api('GET', `/benefits${qs({ q: q.input.value.trim(), category: category.input.value })}`);
-    count.textContent = benefits.length === 1 ? t('1 link') : t('{n} links', { n: benefits.length });
+    count.textContent = benefits.length === 1 ? t('1 resource') : t('{n} resources', { n: benefits.length });
     clear(list);
     if (!benefits.length) list.append(h('li', { class: 'empty' }, t('Nothing matches.')));
     for (const b of benefits) {

@@ -207,8 +207,10 @@ const DICT = {
   'Go to the counter or ticket desk as usual.': ['Pergi ke kaunter atau tempat tiket seperti biasa.', '像平常一样到柜台或售票处。'],
   'Show your OKU card before you pay.': ['Tunjuk kad OKU anda sebelum membayar.', '付款前出示你的OKU卡。'],
   'Check the price or receipt shows the OKU offer.': ['Pastikan harga atau resit menunjukkan tawaran OKU.', '确认价格或收据已包含OKU优惠。'],
-  'Show the cashier': ['Tunjuk kepada juruwang', '给收银员看'],
-  'Turn your phone round to show this.': ['Pusingkan telefon anda untuk tunjuk ini.', '把手机转过去给对方看。'],
+  'Show a written request': ['Tunjuk permintaan bertulis', '出示文字请求'],
+  'Prefer not to speak at the counter?': ['Lebih selesa tidak bercakap di kaunter?', '不方便在柜台说话？'],
+  'Show the staff a written request in BM, English and 中文. It can help if you’re non-verbal, have a speech or hearing disability, or it’s noisy.': ['Tunjuk permintaan bertulis dalam BM, bahasa Inggeris dan 中文 kepada kakitangan. Ia membantu jika anda tidak bertutur, ada masalah pertuturan atau pendengaran, atau tempat itu bising.', '向工作人员出示用马来文、英文和中文写的请求。适合不说话、有言语或听力障碍，或现场太吵的情况。'],
+  'Turn your phone round so the staff can read this.': ['Pusingkan telefon supaya kakitangan boleh membaca ini.', '把手机转过去，让工作人员阅读。'],
   'Close': ['Tutup', '关闭'],
   'Show more': ['Tunjuk lagi', '显示更多'],
   'Show less': ['Tunjuk kurang', '收起'],
@@ -261,8 +263,8 @@ const DICT = {
   'Thank you! A moderator will check it before it appears.': ['Terima kasih! Moderator akan menyemak sebelum ia dipaparkan.', '谢谢！审核员检查后就会显示。'],
   'Log in to add a photo. You can still send everything else.': ['Log masuk untuk tambah foto. Anda masih boleh hantar maklumat lain.', '登录后才能添加照片。其他信息仍可提交。'],
 
-  // official help
-  'Government help for OKU': ['Bantuan kerajaan untuk OKU', '政府为OKU提供的援助'],
+  // government resources
+  'Government resources for OKU': ['Sumber kerajaan untuk OKU', '政府为OKU提供的资源'],
   'We don’t run these schemes and can’t check if you qualify. Each link opens the agency’s own website.': [
     'Kami tidak mengendalikan skim ini dan tidak boleh menyemak kelayakan anda. Setiap pautan membuka laman web agensi itu sendiri.',
     '这些计划不由我们管理，我们也无法确认你是否符合资格。每个链接都会打开该机构的官方网站。'],
@@ -274,7 +276,7 @@ const DICT = {
     'Tahu perniagaan yang beri diskaun OKU, tempat yang benar-benar mesra OKU, atau kumpulan yang alu-alukan sukarelawan? Tambahkan supaya orang lain boleh jumpa.',
     '知道给OKU折扣的商家、真正无障碍的地方，或欢迎义工的团体吗？添加它，让更多人找到。'],
   'Rules and amounts change. Check with the agency before you apply.': ['Syarat dan jumlah boleh berubah. Semak dengan agensi sebelum memohon.', '规定和金额可能会变，申请前请向相关机构确认。'],
-  'Search official help': ['Cari bantuan rasmi', '搜索官方援助'],
+  'Search official resources': ['Cari sumber rasmi', '搜索官方资源'],
   'Who can apply': ['Siapa boleh memohon', '谁可以申请'],
   'How to apply': ['Cara memohon', '如何申请'],
   'Link checked {date}': ['Pautan disemak {date}', '链接核实于 {date}'],
@@ -314,7 +316,7 @@ const DICT = {
   'Free gift / add-on': ['Hadiah percuma / tambahan', '免费赠品／附加'],
   'Volunteer with us': ['Jadi sukarelawan bersama kami', '来当义工'],
   'Other perk': ['Keistimewaan lain', '其他福利'],
-  // official help categories
+  // government resources categories
   'Financial assistance': ['Bantuan kewangan', '经济援助'],
   'Tax relief': ['Pelepasan cukai', '税务减免'],
   'Healthcare': ['Kesihatan', '医疗'],
@@ -493,11 +495,11 @@ const DICT = {
   'Free. Lets you contribute listings, suggest edits and review places.': ['Percuma. Membolehkan anda menyumbang senarai, mencadangkan suntingan dan mengulas tempat.', '免费。可以提交地点、建议修改和评价地点。'],
   'Already have an account?': ['Sudah ada akaun?', '已经有账号？'],
 
-  // official help (more)
+  // government resources (more)
   'e.g. allowance, tax, transport': ['cth. elaun, cukai, pengangkutan', '例如：津贴、税务、交通'],
   'All categories': ['Semua kategori', '所有类别'],
-  '1 link': ['1 pautan', '1 个链接'],
-  '{n} links': ['{n} pautan', '{n} 个链接'],
+  '1 resource': ['1 sumber', '1 项资源'],
+  '{n} resources': ['{n} sumber', '{n} 项资源'],
 
   // for businesses
   'Got a discount, a ramp or an open door?': ['Ada diskaun, tanjakan atau pintu yang terbuka?', '有折扣、斜坡，或敞开的大门吗？'],

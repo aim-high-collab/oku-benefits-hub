@@ -60,13 +60,27 @@ export async function placeView(ctx, root, [id]) {
     refresh();
   } }, p.hub_verified ? t('Remove team-checked label') : t('Mark as checked by our team')) : null;
 
-  // ----- "Show the cashier": a large card to turn round at the till -----
+  // ----- Written request: a card the visitor turns round at the counter instead of speaking -----
+  // Staff read it, so it is written in all three languages whatever the page language is.
+  const tier = p.hub_verified ? 'hub' : p.partner_verified ? 'business' : 'community';
+  const SOURCE = {
+    hub: ['Pasukan OKU Benefits Hub telah menyemak tawaran ini.', 'The OKU Benefits Hub team has checked this offer.', 'OKU Benefits Hub 团队已核实此优惠。'],
+    business: ['Perniagaan ini telah mengesahkan tawaran ini di OKU Benefits Hub.', 'This business confirmed the offer on OKU Benefits Hub.', '本商家已在 OKU Benefits Hub 确认此优惠。'],
+    community: ['Pengunjung berkongsi tawaran ini di OKU Benefits Hub. Ia belum disahkan oleh perniagaan ini.', 'Visitors shared this offer on OKU Benefits Hub. This business hasn’t confirmed it yet.', '此优惠由访客在 OKU Benefits Hub 分享，尚未经本商家确认。'],
+  }[tier];
+  const REQUEST = [
+    ['ms', 'Hai! Saya guna skrin ini untuk berkomunikasi.', 'Saya pemegang kad OKU. Adakah anda menawarkan:', 'Saya akan tunjuk kad OKU saya. Anda boleh balas dengan menulis atau menunjuk.', SOURCE[0]],
+    ['en', 'Hello! I’m using this screen to communicate.', 'I have an OKU card. Do you offer:', 'I’ll show you my OKU card. You can reply by writing or pointing.', SOURCE[1]],
+    ['zh', '您好！我用这个屏幕和您沟通。', '我是OKU卡持有人。请问这里有这个优惠吗：', '我会出示我的OKU卡。您可以写字或用手指示来回复。', SOURCE[2]],
+  ];
   const cashier = h('dialog', { class: 'cashier', 'aria-labelledby': 'cashier-h' },
-    h('p', { class: 'hint', id: 'cashier-h' }, t('Turn your phone round to show this.')),
-    h('p', { class: 'cashier-big', lang: 'ms' }, `Saya pemegang kad OKU. Boleh saya dapat tawaran OKU${first ? `: ${offerLine(first, 'ms')}` : ''}?`),
-    h('p', { lang: 'en' }, `I have an OKU card. Can I get the OKU offer${first ? `: ${offerLine(first, 'en')}` : ''}?`),
-    h('p', { lang: 'zh' }, `我是OKU卡持有人。可以给我OKU优惠吗${first ? `：${offerLine(first, 'zh')}` : ''}？`),
-    trustStamp(p, { detail: true }),
+    h('p', { class: 'hint', id: 'cashier-h', tabindex: '-1', autofocus: '' }, icon('card', 18), t('Turn your phone round so the staff can read this.')),
+    h('p', { class: 'cashier-place' }, p.name),
+    REQUEST.map(([lang, hello, ask, reply, source], i) => h('div', { class: i ? 'cashier-lang' : 'cashier-lang cashier-lang--main', lang },
+      h('p', {}, hello),
+      h('p', { class: 'cashier-ask' }, ask, first ? h('strong', { class: 'cashier-offer' }, offerLine(first, lang)) : null),
+      h('p', {}, reply),
+      h('p', { class: 'cashier-source' }, source))),
     h('form', { method: 'dialog' }, h('button', { class: 'btn btn--ghost', type: 'submit' }, t('Close'))));
 
   // ----- trust panel -----
@@ -192,7 +206,6 @@ export async function placeView(ctx, root, [id]) {
           ] : h('p', { class: 'muted' }, t('Nothing listed yet.')),
           trustStamp(p, { detail: true }),
           h('div', { class: 'actions' },
-            first && first.kind !== 'volunteer' ? h('button', { type: 'button', class: 'btn btn--sun', onclick: () => cashier.showModal() }, icon('card', 18), t('Show the cashier')) : null,
             p.status === 'approved' ? saveButton(ctx, p) : null,
             p.status === 'approved' ? h('a', { class: 'btn btn--ghost', href: `#/place/${p.id}/edit` }, icon('edit', 16), t('Suggest an edit')) : null,
             verifyBtn, hubBtn)),
@@ -202,7 +215,12 @@ export async function placeView(ctx, root, [id]) {
           h('ol', { class: 'claim-steps' },
             h('li', {}, t('Go to the counter or ticket desk as usual.')),
             h('li', {}, t('Show your OKU card before you pay.')),
-            h('li', {}, t('Check the price or receipt shows the OKU offer.')))) : null,
+            h('li', {}, t('Check the price or receipt shows the OKU offer.'))),
+          h('div', { class: 'note-box written-ask' }, icon('chat', 20),
+            h('div', {},
+              h('strong', {}, t('Prefer not to speak at the counter?')),
+              h('p', {}, t('Show the staff a written request in BM, English and 中文. It can help if you’re non-verbal, have a speech or hearing disability, or it’s noisy.')),
+              h('button', { type: 'button', class: 'btn btn--ghost btn--small', onclick: () => cashier.showModal() }, icon('card', 18), t('Show a written request'))))) : null,
         p.offers.length > 1 || (first && (first.conditions || first.value_text)) ? h('section', { class: 'block', 'aria-labelledby': 'offers-h' },
           h('h2', { id: 'offers-h' }, t('Offers & ways to help')),
           h('ul', { class: 'offer-list' }, p.offers.map((o) => h('li', { class: `offer-card offer-card--${o.kind}` },
