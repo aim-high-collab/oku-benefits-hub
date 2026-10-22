@@ -261,8 +261,8 @@ const DICT = {
   'Thank you! A moderator will check it before it appears.': ['Terima kasih! Moderator akan menyemak sebelum ia dipaparkan.', '谢谢！审核员检查后就会显示。'],
   'Log in to add a photo. You can still send everything else.': ['Log masuk untuk tambah foto. Anda masih boleh hantar maklumat lain.', '登录后才能添加照片。其他信息仍可提交。'],
 
-  // official help
-  'Government help for OKU': ['Bantuan kerajaan untuk OKU', '政府为OKU提供的援助'],
+  // government resources
+  'Government resources for OKU': ['Sumber kerajaan untuk OKU', '政府为OKU提供的资源'],
   'We don’t run these schemes and can’t check if you qualify. Each link opens the agency’s own website.': [
     'Kami tidak mengendalikan skim ini dan tidak boleh menyemak kelayakan anda. Setiap pautan membuka laman web agensi itu sendiri.',
     '这些计划不由我们管理，我们也无法确认你是否符合资格。每个链接都会打开该机构的官方网站。'],
@@ -274,7 +274,7 @@ const DICT = {
     'Tahu perniagaan yang beri diskaun OKU, tempat yang benar-benar mesra OKU, atau kumpulan yang alu-alukan sukarelawan? Tambahkan supaya orang lain boleh jumpa.',
     '知道给OKU折扣的商家、真正无障碍的地方，或欢迎义工的团体吗？添加它，让更多人找到。'],
   'Rules and amounts change. Check with the agency before you apply.': ['Syarat dan jumlah boleh berubah. Semak dengan agensi sebelum memohon.', '规定和金额可能会变，申请前请向相关机构确认。'],
-  'Search official help': ['Cari bantuan rasmi', '搜索官方援助'],
+  'Search official resources': ['Cari sumber rasmi', '搜索官方资源'],
   'Who can apply': ['Siapa boleh memohon', '谁可以申请'],
   'How to apply': ['Cara memohon', '如何申请'],
   'Link checked {date}': ['Pautan disemak {date}', '链接核实于 {date}'],
@@ -314,7 +314,7 @@ const DICT = {
   'Free gift / add-on': ['Hadiah percuma / tambahan', '免费赠品／附加'],
   'Volunteer with us': ['Jadi sukarelawan bersama kami', '来当义工'],
   'Other perk': ['Keistimewaan lain', '其他福利'],
-  // official help categories
+  // government resources categories
   'Financial assistance': ['Bantuan kewangan', '经济援助'],
   'Tax relief': ['Pelepasan cukai', '税务减免'],
   'Healthcare': ['Kesihatan', '医疗'],
@@ -493,11 +493,11 @@ const DICT = {
   'Free. Lets you contribute listings, suggest edits and review places.': ['Percuma. Membolehkan anda menyumbang senarai, mencadangkan suntingan dan mengulas tempat.', '免费。可以提交地点、建议修改和评价地点。'],
   'Already have an account?': ['Sudah ada akaun?', '已经有账号？'],
 
-  // official help (more)
+  // government resources (more)
   'e.g. allowance, tax, transport': ['cth. elaun, cukai, pengangkutan', '例如：津贴、税务、交通'],
   'All categories': ['Semua kategori', '所有类别'],
-  '1 link': ['1 pautan', '1 个链接'],
-  '{n} links': ['{n} pautan', '{n} 个链接'],
+  '1 resource': ['1 sumber', '1 项资源'],
+  '{n} resources': ['{n} sumber', '{n} 项资源'],
 
   // for businesses
   'Got a discount, a ramp or an open door?': ['Ada diskaun, tanjakan atau pintu yang terbuka?', '有折扣、斜坡，或敞开的大门吗？'],
