@@ -88,7 +88,7 @@ export function placeRoutes({ db, config, writeLimiter }) {
     if (!['yes', 'no', 'partly'].includes(worked)) throw new HttpError(422, 'Choose yes, no or partly.', { worked: 'Choose yes, no or partly.' });
     db.prepare('INSERT INTO visits (place_id, worked) VALUES (?, ?)').run(place.id, worked);
     const p = getPlace(db, place.id);
-    res.status(201).json({ visits_yes: p.visits_yes, visits_no: p.visits_no, visits_partly: p.visits_partly, last_visit_at: p.last_visit_at });
+    res.status(201).json({ visits_yes: p.visits_yes, visits_no: p.visits_no, visits_partly: p.visits_partly, last_visit_at: p.last_visit_at, last_used_at: p.last_used_at });
   });
 
   // Quick accessibility questions after a visit: { answers: { step_free_entry: 'yes', ... } }. No account needed.

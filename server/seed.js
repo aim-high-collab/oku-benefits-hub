@@ -162,7 +162,7 @@ const PLACES = [
     address: 'Kuala Lumpur Convention Centre, Jalan Pinang', city: 'Kuala Lumpur', state: 'W.P. Kuala Lumpur', lat: 3.1529, lng: 101.7135,
     description: `Oceanarium beneath the Kuala Lumpur Convention Centre. A concession rate for OKU visitors is reported, but sources disagree on the price. ${NOTE}`,
     accessibility: [],
-    offers: [{ title: 'Concession ticket for OKU cardholders', kind: 'discount', value_text: '', conditions: 'Buy at the counter and show your OKU card. One source lists RM16, so check the current price.' }],
+    offers: [{ title: 'Concession ticket for OKU cardholders', kind: 'discount', value_text: '', conditions: 'Buy at the counter and show your OKU card.', reported_price: 'RM16' }],
   },
   {
     slug: 'sunway-putra-mall', name: 'Sunway Putra Mall', category: 'retail', website: '', phone: '',
@@ -251,7 +251,8 @@ export function seedBenefits(db) {
   return added;
 }
 
-// Offer conditions we have since reworded. Untouched seeded offers in an existing database get the new text.
+// Offer conditions we have since reworded. Untouched seeded offers in an existing database get the new text, and a
+// price that used to sit inside the text moves to reported_price.
 const REWORDED_CONDITIONS = [
   ['Show a valid OKU card at the entrance.',
    'Show your OKU card at the entrance.'],
@@ -268,7 +269,9 @@ const REWORDED_CONDITIONS = [
   ['OKU tickets are reported to be sold only at the ticketing counters, with your OKU card shown for verification.',
    'Buy at the ticket counter and show your OKU card. Reported as not sold online.'],
   ['Verification with your OKU card is required. One source lists RM16; confirm the current price at the counter.',
-   'Buy at the counter and show your OKU card. One source lists RM16, so check the current price.'],
+   'Buy at the counter and show your OKU card.', 'RM16'],
+  ['Buy at the counter and show your OKU card. One source lists RM16, so check the current price.',
+   'Buy at the counter and show your OKU card.', 'RM16'],
   ['Reported by a news article; confirm the current schedule with the mall.',
    'Reported in a news article. Check the current schedule with the mall.'],
   ['Malaysian visitors with a valid OKU card enter free of charge. Show your OKU card at the counter.',
@@ -280,8 +283,9 @@ const REWORDED_CONDITIONS = [
 export function seedPlaces(db) {
   const exists = db.prepare('SELECT 1 FROM places WHERE name = ?');
   const setSource = db.prepare('UPDATE places SET source_url = ? WHERE id = ?');
-  const reword = db.prepare('UPDATE offers SET conditions = ? WHERE conditions = ? AND place_id IN (SELECT id FROM places WHERE submitted_by IS NULL)');
-  for (const [old, now] of REWORDED_CONDITIONS) reword.run(now, old);
+  const reword = db.prepare(`UPDATE offers SET conditions = ?, reported_price = COALESCE(?, reported_price)
+    WHERE conditions = ? AND place_id IN (SELECT id FROM places WHERE submitted_by IS NULL)`);
+  for (const [old, now, price = null] of REWORDED_CONDITIONS) reword.run(now, price, old);
   let added = 0;
   for (const { slug, source_url: sourceUrl = '', replaces, ...p } of PLACES) {
     if (replaces && refreshSuperseded(db, replaces, p, sourceUrl)) continue;

@@ -100,7 +100,7 @@ function offerRow(meta, offer, onRemove) {
   const until = field({ label: t('Valid until (optional)'), name: 'offer-until', type: 'date', value: offer.valid_until || '', hint: t('Leave empty if there is no end date.') });
   const el = h('div', { class: 'offer-row', role: 'group', 'aria-label': t('Offer') }, h('div', { class: 'grid-2' }, title.el, kind.el), h('div', { class: 'grid-2' }, value.el, cond.el), until.el,
     h('button', { type: 'button', class: 'btn btn--ghost btn--small', onclick: () => onRemove(el) }, t('Remove this offer')));
-  return { el, fields: { title, kind, value_text: value, conditions: cond, valid_until: until }, read: () => ({ title: title.input.value, kind: kind.input.value, value_text: value.input.value, conditions: cond.input.value, valid_until: until.input.value }) };
+  return { el, fields: { title, kind, value_text: value, conditions: cond, valid_until: until }, read: () => ({ title: title.input.value, kind: kind.input.value, value_text: value.input.value, conditions: cond.input.value, valid_until: until.input.value, reported_price: offer.reported_price || '' }) };
 }
 
 function locationPicker(meta, initial, lat, lng) {

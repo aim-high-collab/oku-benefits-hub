@@ -72,6 +72,7 @@ const offerSpec = {
   value_text: text({ max: 60, label: 'Offer value' }),
   conditions: text({ max: 300, label: 'Conditions' }),
   valid_until: isoDate,
+  reported_price: text({ max: 40, label: 'Reported price' }),
 };
 
 const offers = (v, errors, key) => {

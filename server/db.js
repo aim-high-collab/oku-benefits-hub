@@ -128,6 +128,7 @@ CREATE TABLE IF NOT EXISTS saved_places (
 
 // Columns added after the first release; older databases get them on start.
 const LATER_COLUMNS = [
+  ['offers', 'reported_price', "TEXT NOT NULL DEFAULT ''"], // a price someone reported but nobody has confirmed, e.g. RM16
   ['places', 'image', "TEXT NOT NULL DEFAULT ''"],
   ['places', 'source', "TEXT NOT NULL DEFAULT ''"], // how the submitter knows: used_it | owner | heard
   ['places', 'verified_at', 'TEXT'], // when a moderator marked it business-confirmed

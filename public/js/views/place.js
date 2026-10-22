@@ -1,7 +1,7 @@
 import { h, clear } from '../dom.js';
 import { api } from '../api.js';
 import { badge, stars, fmtDate, field, radioGroup, errorSummary, offerLine, icon, groupOf, placeImage, photoCredit, offerIcon,
-  trustOf, trustStamp, workedCounts, workedMeter, mobileNumber, visitorVerdict, workedText } from '../ui.js';
+  trustOf, trustStamp, sourceOf, sourceLink, workedCounts, workedMeter, mobileNumber, visitorVerdict, workedText } from '../ui.js';
 import { saveButton } from '../saved.js';
 import { t, tIn } from '../i18n.js';
 import { createMap, destroyMap, directionsUrl, googleMapsUrl, osmUrl, usingGoogle } from '../map.js';
@@ -83,6 +83,31 @@ export async function placeView(ctx, root, [id]) {
       h('p', { class: 'cashier-source' }, source))),
     h('form', { method: 'dialog' }, h('button', { class: 'btn btn--ghost', type: 'submit' }, t('Close'))));
 
+  // ----- At a glance: price we could not confirm, where the details came from, and who has checked them -----
+  const src = sourceOf(p);
+  const sep = () => h('span', { class: 'sep', 'aria-hidden': 'true' }, ' · ');
+  // A reported price is never shown as the price: the card says it is unconfirmed, and the figure sits with its source.
+  function priceAndSource() {
+    const price = first.reported_price;
+    if (!price && !src) return null;
+    return h('div', { class: price ? 'glance-price glance-price--unverified' : 'glance-price' },
+      price ? h('p', { class: 'glance-price-note' }, t('Price not yet verified. Please confirm with the venue.')) : null,
+      h('p', { class: 'glance-source' },
+        price ? h('span', {}, t('Reported price: {price}', { price })) : null,
+        price ? sep() : null,
+        src ? [h('span', {}, src.label), ' ', sourceLink(src)] : h('span', {}, t('Source not linked'))));
+  }
+  function glanceStatus() {
+    const tr = trustOf(p);
+    const dates = tr.dates.filter(Boolean);
+    return h('div', { class: `glance-status glance-status--${tr.tier}` },
+      h('p', { class: 'glance-status-main' },
+        h('span', { class: `status-chip stamp--${tr.tier}` }, icon(tr.icon, 16),
+          h('span', { class: 'sr-only' }, `${t('Information source')}: `), tr.label),
+        tr.note ? h('span', { class: 'glance-status-note' }, tr.note) : null),
+      dates.length ? h('p', { class: 'glance-dates' }, dates.flatMap((d, i) => i ? [sep(), h('span', {}, d)] : [h('span', {}, d)])) : null);
+  }
+
   // ----- trust panel -----
   const tr = trustOf(p);
   const counts = { ...workedCounts(p) };
@@ -115,8 +140,8 @@ export async function placeView(ctx, root, [id]) {
     h('h2', { id: 'trust-h' }, t('Information source')),
     trustStamp(p, { detail: true, cls: 'stamp--big' }),
     // Where the listing's details were taken from; this says nothing about who has checked them.
-    /^https?:\/\//.test(p.source_url || '') ? h('p', { class: 'source-link' }, icon('globe', 18), t('Official source:'), ' ',
-      h('a', { href: p.source_url, rel: 'noopener noreferrer nofollow', target: '_blank' }, new URL(p.source_url).hostname.replace(/^www\./, ''))) : null,
+    src ? h('p', { class: 'source-link' }, icon('globe', 18), `${src.label}:`, ' ',
+      h('a', { href: src.url, rel: 'noopener noreferrer nofollow', target: '_blank' }, src.host)) : null,
     meterBox,
     p.status === 'approved' ? h('div', { class: 'did-it-work' },
       h('h3', {}, t('Been here? Did you get the OKU offer?')),
@@ -202,11 +227,12 @@ export async function placeView(ctx, root, [id]) {
             h('p', { class: 'glance-offer' }, offerIcon(first.kind), h('strong', {}, offerLine(first))),
             first.conditions ? h('p', {}, t(first.conditions)) : null,
             first.valid_until ? h('p', {}, h('strong', {}, t('Valid until {date}', { date: fmtDate(first.valid_until) }))) : null,
+            priceAndSource(),
           ] : h('p', { class: 'muted' }, t('Nothing listed yet.')),
-          trustStamp(p, { detail: true }),
-          h('div', { class: 'actions' },
-            p.status === 'approved' ? saveButton(ctx, p) : null,
-            p.status === 'approved' ? h('a', { class: 'btn btn--ghost', href: `#/place/${p.id}/edit` }, icon('edit', 16), t('Suggest an edit')) : null,
+          glanceStatus(),
+          h('div', { class: 'actions glance-actions' },
+            p.status === 'approved' ? Object.assign(saveButton(ctx, p), { className: 'btn btn--ghost btn--small save-btn' }) : null,
+            p.status === 'approved' ? h('a', { class: 'btn btn--ghost btn--small', href: `#/place/${p.id}/edit` }, icon('edit', 16), t('Suggest an edit')) : null,
             verifyBtn, hubBtn)),
         h('section', { class: 'block', 'aria-labelledby': 'contact-h' }, h('h2', { id: 'contact-h' }, t('Ask before you go')), contactBtns),
         first && first.kind !== 'volunteer' ? h('section', { class: 'block', 'aria-labelledby': 'claim-h' },

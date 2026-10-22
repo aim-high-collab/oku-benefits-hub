@@ -302,8 +302,8 @@ details.more[open] summary::after { transform: rotate(-135deg); }
 .photo-credit { margin: .4rem 0 0; font-size: .85rem; color: var(--muted); }
 .photo-credit a { color: inherit; }
 .place-actions { display: flex; flex-wrap: wrap; gap: .75rem; }
-.place-grid { display: grid; gap: 2.5rem; grid-template-columns: 1fr; align-items: start; }
-@media (min-width: 60rem) { .place-grid { grid-template-columns: 1fr 23rem; } .place-side { position: sticky; top: calc(var(--header-h) + 1.25rem); } }
+.place-grid { display: grid; gap: 2.5rem; grid-template-columns: minmax(0, 1fr); align-items: start; }
+@media (min-width: 60rem) { .place-grid { grid-template-columns: minmax(0, 1fr) 23rem; } .place-side { position: sticky; top: calc(var(--header-h) + 1.25rem); } }
 .place-about { font-size: 1.15rem; max-width: 42rem; }
 .block { margin-top: 2.25rem; }
 .block > h2 { font-size: 1.4rem; margin-bottom: 1rem; }
@@ -529,8 +529,22 @@ fieldset.group--inner > legend { padding: 0; margin-bottom: .6rem; font-weight: 
 .glance h2 { font-size: 1.05rem; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); margin-bottom: .6rem; }
 .glance-offer { display: flex; align-items: flex-start; gap: .5rem; font: 750 1.45rem/1.25 var(--display); margin-bottom: .5rem; }
 .glance-offer .icon { margin-top: .3rem; }
-.glance .stamp { margin: .2rem 0 .2rem; }
 .glance .actions { margin: 1rem 0; }
+.glance-offer strong { overflow-wrap: break-word; hyphens: auto; min-width: 0; }
+.glance-price { margin: 0 0 .4rem; }
+.glance-price--unverified { background: var(--cream); border-radius: 12px; padding: .6rem .8rem; margin: .2rem 0 .8rem; }
+.glance-price p { margin: 0; }
+.glance-price-note { font-weight: 700; }
+.glance-source { display: flex; flex-wrap: wrap; align-items: center; column-gap: .25rem; color: var(--muted); font-size: .95rem; }
+.glance-source a { display: inline-flex; align-items: center; gap: .25rem; min-height: 44px; font-weight: 700; color: var(--ink); }
+.glance-status { border-top: 2px solid var(--rule); padding-top: .8rem; margin-top: .4rem; }
+.glance-status p { margin: 0; }
+.glance-status-main { display: flex; flex-wrap: wrap; align-items: center; gap: .3rem .6rem; }
+.status-chip { display: inline-flex; align-items: center; gap: .35rem; padding: .15rem .65rem; border-radius: 10px; font-weight: 700; font-size: .95rem; color: var(--ink); }
+.glance-status-note { font-weight: 600; }
+.glance-dates { color: var(--muted); font-size: .9rem; margin-top: .35rem !important; }
+.glance-actions .btn { box-shadow: none; border-width: 2px; font-weight: 650; }
+.glance-actions .btn:hover { transform: none; box-shadow: none; background: var(--cream); }
 .contact-btns { display: flex; flex-wrap: wrap; gap: .6rem; }
 .claim-steps { margin: 0; padding-left: 1.5rem; display: grid; gap: .4rem; font-weight: 600; }
 .unknown { display: flex; align-items: flex-start; gap: .5rem; background: var(--paper); border: 2px dashed var(--rule); border-radius: 14px; padding: .8rem 1rem; }

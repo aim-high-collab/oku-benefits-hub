@@ -24,7 +24,8 @@ const STATS_SQL = `
   (SELECT COUNT(*) FROM visits v WHERE v.place_id = places.id AND worked = 'yes') AS visits_yes,
   (SELECT COUNT(*) FROM visits v WHERE v.place_id = places.id AND worked = 'no') AS visits_no,
   (SELECT COUNT(*) FROM visits v WHERE v.place_id = places.id AND worked = 'partly') AS visits_partly,
-  (SELECT MAX(created_at) FROM visits v WHERE v.place_id = places.id) AS last_visit_at`;
+  (SELECT MAX(created_at) FROM visits v WHERE v.place_id = places.id) AS last_visit_at,
+  (SELECT MAX(created_at) FROM visits v WHERE v.place_id = places.id AND worked = 'yes') AS last_used_at`;
 
 export function attachOffers(db, places) {
   if (!places.length) return places;
@@ -78,8 +79,8 @@ export function getPlace(db, id) {
 }
 
 export function insertOffers(db, placeId, offers) {
-  const ins = db.prepare('INSERT INTO offers (place_id, title, kind, value_text, conditions, valid_until) VALUES (?,?,?,?,?,?)');
-  for (const o of offers) ins.run(placeId, o.title, o.kind, o.value_text, o.conditions, o.valid_until ?? '');
+  const ins = db.prepare('INSERT INTO offers (place_id, title, kind, value_text, conditions, valid_until, reported_price) VALUES (?,?,?,?,?,?,?)');
+  for (const o of offers) ins.run(placeId, o.title, o.kind, o.value_text, o.conditions, o.valid_until ?? '', o.reported_price ?? '');
 }
 
 export function insertPlace(db, data, { userId, status, isOwner = false, partnerVerified = false, source = '' }) {

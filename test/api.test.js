@@ -182,6 +182,12 @@ test('"Did it work?" needs no account and is counted per place', async () => {
   const listed = (await anon.get('/api/places?q=Zoo')).body.places[0];
   assert.equal(listed.visits_yes, 2);
   assert.ok(listed.last_visit_at);
+  // The last reported use only counts visitors who said the offer worked.
+  const other = (await anon.get('/api/places?q=Aquaria')).body.places[0];
+  await anon.post(`/api/places/${other.id}/visits`, { worked: 'no' });
+  const after = (await anon.get(`/api/places/${other.id}`)).body.place;
+  assert.ok(after.last_visit_at);
+  assert.equal(after.last_used_at, null);
   assert.equal((await anon.post('/api/places/999999/visits', { worked: 'yes' })).status, 404);
 });
 
@@ -482,4 +488,15 @@ test('Add a place: community or business, details stay private, and claiming to 
   assert.equal(pub.contributor, undefined);
   assert.equal(pub.partner_verified, false);
   assert.ok(!(await client().get('/api/places')).body.places.some((p) => 'contributor' in p));
+});
+
+test('a reported price stays separate from the conditions, and older wording moves it there', async () => {
+  const aq = (await client().get('/api/places?q=Aquaria')).body.places[0];
+  assert.deepEqual([aq.offers[0].conditions, aq.offers[0].reported_price], ['Buy at the counter and show your OKU card.', 'RM16']);
+  const old = openDb(':memory:');
+  seedPlaces(old);
+  old.prepare("UPDATE offers SET conditions = 'Verification with your OKU card is required. One source lists RM16; confirm the current price at the counter.', reported_price = '' WHERE reported_price = 'RM16'").run();
+  seedPlaces(old);
+  assert.deepEqual({ ...old.prepare("SELECT conditions, reported_price FROM offers WHERE reported_price = 'RM16'").get() },
+    { conditions: 'Buy at the counter and show your OKU card.', reported_price: 'RM16' });
 });

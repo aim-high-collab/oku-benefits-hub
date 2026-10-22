@@ -44,6 +44,7 @@ function withStats(p) {
     visits_no: vs.filter((v) => v.worked === 'no').length,
     visits_partly: vs.filter((v) => v.worked === 'partly').length,
     last_visit_at: vs.length ? vs[vs.length - 1].created_at : null,
+    last_used_at: vs.filter((v) => v.worked === 'yes').at(-1)?.created_at ?? null,
   };
 }
 
@@ -159,8 +160,8 @@ export async function handle(method, path, body = {}) {
     if (!['yes', 'no', 'partly'].includes(body.worked)) throw fail(422, 'Choose yes, no or partly.');
     store.visits.push({ place_id: place.id, worked: body.worked, created_at: new Date().toISOString() });
     save();
-    const { visits_yes, visits_no, visits_partly, last_visit_at } = withStats(place);
-    return { visits_yes, visits_no, visits_partly, last_visit_at };
+    const { visits_yes, visits_no, visits_partly, last_visit_at, last_used_at } = withStats(place);
+    return { visits_yes, visits_no, visits_partly, last_visit_at, last_used_at };
   }
 
   if ((m = /^\/places\/(\d+)\/access$/.exec(p)) && method === 'POST') {

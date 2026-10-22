@@ -192,23 +192,45 @@ export const workedCounts = (p) => {
 
 /** Which of the three trust levels a listing is at, with a short explanation. */
 export function trustOf(p) {
-  const { yes, total } = workedCounts(p);
-  // detail: short lines shown under the label on the place page, dates first.
+  const { total } = workedCounts(p);
+  // note: what the label means for this place. dates: when things happened, shown as secondary lines.
+  // detail is both together, for the places that show everything in one stamp.
+  const tier = (o) => ({ ...o, detail: o.tier === 'hub' ? [...o.dates, o.note] : [o.note, ...o.dates] });
   if (p.hub_verified) {
-    return { tier: 'hub', icon: 'verified', label: t('Checked by OKU Benefits Hub'), detail: [
-      p.hub_verified_at && t('Checked on {date}', { date: fmtDate(p.hub_verified_at) }),
-      p.hub_checked && t('What we checked: {what}', { what: t(p.hub_checked) })] };
+    return tier({ tier: 'hub', icon: 'verified', label: t('Checked by OKU Benefits Hub'),
+      note: p.hub_checked && t('What we checked: {what}', { what: t(p.hub_checked) }),
+      dates: [p.hub_verified_at && t('Checked on {date}', { date: fmtDate(p.hub_verified_at) })] });
   }
   if (p.partner_verified) {
-    return { tier: 'business', icon: 'shield', label: t('Confirmed by business'), detail: [
-      p.verified_at && t('The business confirmed it on {date}', { date: fmtDate(p.verified_at) })] };
+    return tier({ tier: 'business', icon: 'shield', label: t('Confirmed by business'), note: null,
+      dates: [p.verified_at && t('The business confirmed it on {date}', { date: fmtDate(p.verified_at) })] });
   }
   // Every other listing was shared by someone in the community, and nobody has checked it independently.
-  return { tier: 'community', icon: 'users', label: t('Shared by the community'), detail: [
-    t('Not yet independently verified'),
-    (p.updated_at || p.created_at) && t('Last updated {date}', { date: fmtDate(p.updated_at || p.created_at) }),
-    p.last_visit_at ? t('A member last used it on {date}', { date: fmtDate(p.last_visit_at) })
-      : p.source === 'used_it' && !total ? t('Shared by someone who used it') : null] };
+  // The record's last edit and the last time a visitor said the offer worked are different things, so both are shown.
+  return tier({ tier: 'community', icon: 'users', label: t('Shared by the community'), note: t('Not yet independently verified'), dates: [
+    (p.updated_at || p.created_at) && t('Last updated: {date}', { date: fmtDate(p.updated_at || p.created_at) }),
+    p.last_used_at ? t('Last reported use: {date}', { date: fmtDate(p.last_used_at) })
+      : p.source === 'used_it' && !total ? t('Shared by someone who used it') : null] });
+}
+
+/**
+ * The page a listing's details were taken from, or null when there is no usable link. Links our team added
+ * (no submitter) come from the venue's own site; a link from a member is only what they pointed us to.
+ * Neither means anyone has checked the details.
+ */
+export function sourceOf(p) {
+  if (!/^https?:\/\//.test(p.source_url || '')) return null;
+  let host;
+  try { host = new URL(p.source_url).hostname.replace(/^www\./, ''); } catch { return null; }
+  const official = p.submitted_by == null;
+  return { url: p.source_url, host, official, label: official ? t('Official source') : t('Link shared by a member') };
+}
+
+/** A "View source" link that says where it goes and that it opens a new tab. */
+export function sourceLink(src) {
+  return h('a', { href: src.url, rel: 'noopener noreferrer nofollow', target: '_blank',
+    'aria-label': t('View source: {label}, {host} (opens in a new tab)', { label: src.label, host: src.host }) },
+  t('View source'), icon('external', 16));
 }
 
 /** The trust label: icon, word and border style all differ, so colour is never the only cue. */
